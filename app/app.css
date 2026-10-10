@@ -152,6 +152,89 @@
   background-position: var(--position, center);
 }
 
+/* Photo de l'affiche d'accueil (maquette : .ph-hero). Fichier servi par le site (CSP img-src 'self'). */
+.photo-affiche {
+  --photo: url("/photos/hero.webp");
+}
+
+/* Même duotone que .duo, pour une <img> (chargement différé des photos sous le premier écran) :
+   l'image, puis le dégradé en « multiply », puis l'aplat en « screen », isolés dans le cadre. */
+.duo-calques {
+  position: relative;
+  isolation: isolate;
+  background-color: #5a1a0b;
+}
+.duo-calques > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.duo-calques::before,
+.duo-calques::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.duo-calques::before {
+  z-index: 1;
+  background: linear-gradient(170deg, #ffe2bd 0%, #f5a25c 50%, #d2482a 100%);
+  mix-blend-mode: multiply;
+}
+.duo-calques::after {
+  z-index: 2;
+  background: #4a170a;
+  mix-blend-mode: screen;
+}
+
+/* Grain d'affiche (maquette : .grain), en calque posé dans un cadre isolé. Texture servie par le
+   site : un SVG en data: URI serait bloqué par la CSP (img-src 'self'). */
+.grain {
+  pointer-events: none;
+  background-image: url("/textures/grain.svg");
+  mix-blend-mode: soft-light;
+  opacity: 0.55;
+}
+
+/* Carte « Notez les Olympiades ». La maquette mène le dégradé jusqu'à #ec7a35 et pose une lueur
+   ambre #f6b450 en haut à droite : le texte blanc y tombe à 2,8:1 et 1,8:1. Mêmes directions, teintes
+   assombries pour tenir 4,5:1 partout sous le texte (CDC, AA) : la lueur devient un or brûlé de même
+   clarté que le fond (blanc sur #b85e10 : 4,52:1). Contrôlé par tests/unit/contrastes.test.ts,
+   mélanges de la lueur et du fond compris. */
+:root {
+  --couchant-carte: linear-gradient(140deg, #a92e17 0%, #c2441d 52%, #c74f16 100%);
+  --couchant-carte-lueur: #b85e10;
+}
+.carte-notez {
+  background-color: #b3321a;
+  background-image: radial-gradient(110% 80% at 100% 0%, var(--couchant-carte-lueur) 0%, transparent 55%),
+    var(--couchant-carte);
+}
+
+/* Fond du bloc « Dernier vainqueur connu » (maquette : .champion). */
+.fond-champion {
+  background-color: var(--color-nuit);
+  background-image: radial-gradient(90% 120% at 100% 0%, rgba(183, 134, 73, 0.32), transparent 60%);
+}
+
+/* Pastille « En direct » (état « ouvert », lot 2) : seul élément animé en continu (charte, section 5). */
+@keyframes pulsation-direct {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 110, 70, 0.65);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(255, 110, 70, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 110, 70, 0);
+  }
+}
+.point-direct {
+  animation: pulsation-direct 1.6s infinite;
+}
+
 /* ============================================================
    Signature « Signé TPMGE » (spec agence), adaptée au fond nuit
    du pied de page : badge translucide blanc, label blanc atténué.

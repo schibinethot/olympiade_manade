@@ -6,7 +6,7 @@ export type DateCalendrier = {
 
 const FUSEAU = 'Europe/Paris';
 
-function jourParis(date: Date): string {
+export function jourParis(date: Date): string {
   return new Intl.DateTimeFormat('fr-CA', { timeZone: FUSEAU, year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
 }
 

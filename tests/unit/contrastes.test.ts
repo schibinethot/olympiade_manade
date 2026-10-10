@@ -43,3 +43,24 @@ describe('dégradé couchant sous texte blanc (--couchant-bouton)', () => {
     expect(minimum).toBeGreaterThanOrEqual(4.5);
   });
 });
+
+describe('carte « Notez les Olympiades » sous texte blanc (--couchant-carte et sa lueur)', () => {
+  it('a au moins trois arrêts lisibles', () => {
+    expect(arrets(variable('couchant-carte')).length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('garde au moins 4,5:1 avec le blanc en tout point, lueur posée par-dessus à toute opacité', () => {
+    const fond = echantillons(arrets(variable('couchant-carte')));
+    const lueur = rvbDepuisHex(variable('couchant-carte-lueur'));
+    // La lueur radiale passe de l'opaque au transparent : composition alpha dans l'espace sRGB.
+    const points = fond.flatMap((p) =>
+      Array.from({ length: 11 }, (_, i) => {
+        const a = i / 10;
+        const melange = (c: 0 | 1 | 2) => Math.round(lueur[c] * a + p[c] * (1 - a));
+        return [melange(0), melange(1), melange(2)] as const;
+      }),
+    );
+    const minimum = Math.min(...points.map((p) => contraste(BLANC, p)));
+    expect(minimum).toBeGreaterThanOrEqual(4.5);
+  });
+});

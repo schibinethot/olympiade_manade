@@ -3,15 +3,23 @@ import { contraste, rvbDepuisCss } from '../outils/contraste';
 
 test('la navigation mène aux pages vitrine et le pied de page porte la signature', async ({ page }) => {
   await page.goto('/');
-  for (const [lien, titre] of [
-    ['Classements', /Classements/],
-    ['Dates', /Dates/],
-    ['Contact', /Contact/],
+  // Mise en place adaptée (Task 3) : la navigation suit la maquette (Accueil, Classements, Dates,
+  // Noter en direct) et Contact n'est plus que dans le pied de page. L'intention reste la même :
+  // chaque page vitrine est joignable depuis l'accueil.
+  for (const [zone, lien, titre] of [
+    ['navigation', 'Classements', /Classements/],
+    ['navigation', 'Dates', /Dates/],
+    ['navigation', 'Noter en direct', /Les votes ouvriront/],
+    ['pied', 'Contact', /Contact/],
   ] as const) {
-    // Mise en place adaptée : sur téléphone, la navigation est repliée derrière le bouton « Menu ».
-    const menu = page.getByRole('button', { name: 'Menu' });
-    if (await menu.isVisible()) await menu.click();
-    await page.getByRole('navigation').getByRole('link', { name: lien }).click();
+    if (zone === 'navigation') {
+      // Sur téléphone, la navigation est repliée derrière le bouton « Menu ».
+      const menu = page.getByRole('button', { name: 'Menu' });
+      if (await menu.isVisible()) await menu.click();
+      await page.getByRole('navigation').getByRole('link', { name: lien }).click();
+    } else {
+      await page.getByRole('contentinfo').getByRole('link', { name: lien }).click();
+    }
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(titre);
     await page.goto('/');
   }
