@@ -131,3 +131,82 @@ describe('avis sur la soirée', () => {
       expect((await db.query('select count(*)::int as n from public.avis_soiree')).rows[0].n).toBe(1);
     }));
 });
+
+describe('modification et suppression directes', () => {
+  const MODIF_NOTE = 'update public.notes_public set note = 1 where votant_id = $1';
+
+  it('notes : une note ne peut plus être modifiée sur un passage clos', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      await modifier(db, ouvrir(IDS.passageA));
+      await voter(db, IDS.spectateur, IDS.passageA, 8);
+      await modifier(db, `update public.passages set statut_public = 'clos' where id = $1`, [IDS.passageA]);
+      await commeUtilisateur(db, IDS.spectateur);
+      expect((await db.query(MODIF_NOTE, [IDS.spectateur])).rowCount).toBe(0);
+      expect(await notesEnBase(db)).toEqual([{ votant_id: IDS.spectateur, note: 8 }]);
+    }));
+
+  it('notes : refuse de déplacer une note vers un autre passage', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      await modifier(db, ouvrir(IDS.passageA));
+      await modifier(db, ouvrir(IDS.passageB));
+      await voter(db, IDS.spectateur, IDS.passageA, 8);
+      await commeUtilisateur(db, IDS.spectateur);
+      expect(
+        await doitEtreRefuse(db, 'update public.notes_public set passage_id = $1 where passage_id = $2', [
+          IDS.passageB,
+          IDS.passageA,
+        ]),
+      ).toBe('42501');
+    }));
+
+  it('notes : refuse de changer le votant', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      await modifier(db, ouvrir(IDS.passageA));
+      await voter(db, IDS.spectateur, IDS.passageA, 8);
+      await commeUtilisateur(db, IDS.spectateur);
+      expect(
+        await doitEtreRefuse(db, 'update public.notes_public set votant_id = $1 where votant_id = $2', [
+          IDS.spectateur2,
+          IDS.spectateur,
+        ]),
+      ).toBe('42501');
+    }));
+
+  it('notes : aucune suppression possible', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      await modifier(db, ouvrir(IDS.passageA));
+      await voter(db, IDS.spectateur, IDS.passageA, 8);
+      await commeUtilisateur(db, IDS.spectateur);
+      expect(await doitEtreRefuse(db, 'delete from public.notes_public')).toBe('42501');
+    }));
+
+  it('avis : non modifiable quand la soirée n’est plus terminée', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      await modifier(db, `update public.soirees set statut = 'terminee' where id = $1`, [IDS.soiree]);
+      await commeUtilisateur(db, IDS.spectateur);
+      await db.query(DONNER_AVIS, [IDS.soiree, IDS.spectateur, 5, 'Super']);
+      await modifier(db, `update public.soirees set statut = 'annulee' where id = $1`, [IDS.soiree]);
+      await commeUtilisateur(db, IDS.spectateur);
+      expect((await db.query('update public.avis_soiree set etoiles = 1')).rowCount).toBe(0);
+      await commeSuperutilisateur(db);
+      expect((await db.query('select etoiles from public.avis_soiree')).rows).toEqual([{ etoiles: 5 }]);
+    }));
+
+  it('avis : refuse de déplacer un avis vers une autre soirée', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      await modifier(db, `update public.soirees set statut = 'terminee' where id = $1`, [IDS.soiree]);
+      await commeUtilisateur(db, IDS.spectateur);
+      await db.query(DONNER_AVIS, [IDS.soiree, IDS.spectateur, 5, 'Super']);
+      expect(
+        await doitEtreRefuse(db, 'update public.avis_soiree set soiree_id = $1', [
+          '20000000-0000-4000-8000-0000000000ff',
+        ]),
+      ).toBe('42501');
+    }));
+});
