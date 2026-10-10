@@ -1,4 +1,5 @@
-import { useId, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { useLocation } from 'react-router';
 import { LIMITES_CONTACT, longueur, normaliserContact, validerContact, type ChampsContact, type ErreursContact } from '../lib/contact';
 import { envoyerMessageContact } from '../lib/donnees';
 import { Icone } from './Icone';
@@ -29,6 +30,10 @@ export function FormulaireContact() {
   const [verifier, setVerifier] = useState(false);
   const [envoi, setEnvoi] = useState<Envoi>('repos');
   const verrou = useRef(false);
+  // Bouton inactif tant que React n'est pas monté : un clic avant l'hydratation ne doit rien envoyer.
+  const [pret, setPret] = useState(false);
+  useEffect(() => setPret(true), []);
+  const { pathname } = useLocation();
   const piege = useRef<HTMLInputElement>(null);
 
   function modifier(nom: keyof ChampsContact, valeur: string) {
@@ -88,7 +93,7 @@ export function FormulaireContact() {
   const restants = LIMITES_CONTACT.messageMax - longueur(champs.message);
 
   return (
-    <form noValidate onSubmit={soumettre} className="mt-3.5 grid gap-3 paysage:grid-cols-2" aria-busy={enCours}>
+    <form noValidate method="post" action={pathname} onSubmit={soumettre} className="mt-3.5 grid gap-3 paysage:grid-cols-2" aria-busy={enCours}>
       <div className="grid content-start gap-1.5">
         <label htmlFor={`${id}-prenom`} className={LIBELLE}>
           Prénom
@@ -147,10 +152,14 @@ export function FormulaireContact() {
         <input ref={piege} id={`${id}-site_web`} name="site_web" type="text" tabIndex={-1} autoComplete="off" />
       </div>
 
+      <noscript>
+        <p className="text-[13px] font-semibold text-rouge paysage:col-span-2">Ce formulaire nécessite JavaScript.</p>
+      </noscript>
+
       <div className="paysage:col-span-2">
         <button
           type="submit"
-          disabled={enCours}
+          disabled={enCours || !pret}
           className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[14px] bg-encre px-5 text-[15px] leading-none font-semibold text-sable transition-[filter,transform] hover:brightness-125 active:scale-[0.97] disabled:cursor-wait disabled:opacity-70"
         >
           Envoyer le message

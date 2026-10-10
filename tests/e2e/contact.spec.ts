@@ -2,8 +2,12 @@ import { expect, test } from '@playwright/test';
 
 test('le formulaire de contact envoie une seule fois et confirme', async ({ page }) => {
   let appels = 0;
+  let corps: unknown = null;
+  let prefer: string | undefined;
   await page.route('**/rest/v1/messages_contact*', async (route) => {
     appels += 1;
+    corps = route.request().postDataJSON();
+    prefer = route.request().headers()['prefer'];
     await new Promise((r) => setTimeout(r, 300));
     await route.fulfill({ status: 201, body: '' });
   });
@@ -11,11 +15,44 @@ test('le formulaire de contact envoie une seule fois et confirme', async ({ page
   await page.getByLabel('Prénom').fill('Léa');
   await page.getByLabel('Email').fill('lea@exemple.fr');
   await page.getByLabel('Message').fill('Bonjour, quelle sera la date à Nîmes en 2027 ?');
-  const bouton = page.getByRole('button', { name: 'Envoyer' });
-  await bouton.click();
-  await bouton.click({ force: true }).catch(() => {});
+  // Deux soumissions dans le même tour : seul le verrou du composant les départage
+  // (le bouton désactivé ne protège pas d'un requestSubmit).
+  await page.evaluate(() => {
+    const form = document.querySelector('form') as HTMLFormElement;
+    form.requestSubmit();
+    form.requestSubmit();
+  });
   await expect(page.getByText('Merci, votre message est bien parti.')).toBeVisible();
   expect(appels).toBe(1);
+  expect(Object.keys(corps as object).sort()).toEqual(['email', 'message', 'prenom']);
+  expect(prefer ?? '').not.toContain('return=representation');
+});
+
+test('le formulaire signale un échec d’envoi', async ({ page }) => {
+  await page.route('**/rest/v1/messages_contact*', (route) => route.fulfill({ status: 500, body: '' }));
+  await page.goto('/contact');
+  await page.getByLabel('Prénom').fill('Léa');
+  await page.getByLabel('Email').fill('lea@exemple.fr');
+  await page.getByLabel('Message').fill('Bonjour, quelle sera la date à Nîmes en 2027 ?');
+  await page.getByRole('button', { name: 'Envoyer' }).click();
+  await expect(page.getByText('L’envoi a échoué, réessayez dans un instant.')).toBeVisible();
+});
+
+test('sans JavaScript, le bouton est inactif et rien ne part dans l’URL', async ({ browser }) => {
+  const contexte = await browser.newContext({ javaScriptEnabled: false });
+  const page = await contexte.newPage();
+  await page.goto('http://localhost:4173/contact');
+  await expect(page.getByRole('button', { name: 'Envoyer' })).toBeDisabled();
+  await expect(page.locator('form')).toHaveAttribute('method', 'post');
+  // Playwright ignore le texte des <noscript> dans ses sélecteurs : lecture directe du HTML.
+  expect(await page.locator('noscript').innerHTML()).toContain('Ce formulaire nécessite JavaScript.');
+  expect(page.url()).not.toContain('prenom=');
+  await contexte.close();
+});
+
+test('le lien de confidentialité figure sous le formulaire', async ({ page }) => {
+  await page.goto('/contact');
+  await expect(page.getByRole('link', { name: 'politique de confidentialité' })).toHaveAttribute('href', '/confidentialite');
 });
 
 test('le formulaire refuse un message trop court sans appeler le serveur', async ({ page }) => {
@@ -72,4 +109,25 @@ test('la confidentialité annonce les droits, la durée et les sous-traitants', 
   }
   await expect(page.getByText(/aucun traceur/i).first()).toBeVisible();
   await expect(page.getByRole('link', { name: /formulaire de contact/i }).first()).toHaveAttribute('href', '/contact');
+});
+
+test('les hébergeurs sont identifiés et la licence des retouches est précisée', async ({ page }) => {
+  await page.goto('/mentions-legales');
+  await expect(page.getByText(/548 Market St/)).toBeVisible();
+  await expect(page.getByText(/65 Chulia Street/)).toBeVisible();
+  await expect(page.getByText(/même licence que l’original/)).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Propriété intellectuelle' })).toBeVisible();
+});
+
+test('l’accueil renvoie vers les crédits photos', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('link', { name: 'Crédits photos' })).toHaveAttribute('href', '/mentions-legales#credits');
+});
+
+test('la confidentialité mentionne les transferts, la CNIL et la session', async ({ page }) => {
+  await page.goto('/confidentialite');
+  await expect(page.getByText(/clauses contractuelles types/)).toBeVisible();
+  await expect(page.getByText(/3 place de Fontenoy/)).toBeVisible();
+  await expect(page.getByText(/donnée de session/)).toBeVisible();
+  await expect(page.getByText(/Data Privacy Framework/)).toHaveCount(0);
 });

@@ -5,7 +5,7 @@ export const LIEN_TEXTE = 'font-semibold text-rouge underline underline-offset-2
 /** Colonne de lecture des pages juridiques, avec les mêmes marges que TitrePage. */
 export function CorpsLegal({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto grid max-w-[72ch] gap-8 px-4 pt-6 tablette:px-7 paysage:px-10 bureau:px-14 bureau:mx-0">
+    <div className="grid max-w-[72ch] gap-8 px-4 pt-6 tablette:px-7 paysage:px-10 bureau:px-14">
       {children}
     </div>
   );
@@ -28,7 +28,8 @@ export function SectionLegale({ id, titre, children }: { id: string; titre: stri
  */
 export function EncadreOrganisateur({ children }: { children: ReactNode }) {
   return (
-    <aside
+    <div
+      role="group"
       aria-labelledby="encadre-organisateur"
       className="rounded-[18px] border-2 border-dashed border-rouge bg-creme p-4 text-[15px] leading-relaxed text-encre-2"
     >
@@ -36,6 +37,6 @@ export function EncadreOrganisateur({ children }: { children: ReactNode }) {
         À compléter par l’organisateur
       </p>
       <div className="mt-2 grid gap-2">{children}</div>
-    </aside>
+    </div>
   );
 }

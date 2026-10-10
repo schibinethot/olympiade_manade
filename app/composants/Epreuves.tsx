@@ -93,7 +93,11 @@ export function Epreuves() {
             )
           </Fragment>
         ))}
-        , via Wikimedia Commons, {RETOUCHE.replace('retouchée', 'retouchées')}.
+        , via Wikimedia Commons, {RETOUCHE.replace('retouchée', 'retouchées')}.{' '}
+        <Link to="/mentions-legales#credits" className={LIEN}>
+          Crédits photos
+        </Link>
+        .
       </p>
     </section>
   );

@@ -8,6 +8,12 @@ export const meta: Route.MetaFunction = () => [
   { name: 'description', content: 'Données collectées, finalités, durée de conservation et droits RGPD.' },
 ];
 
+const LIEN_CONTACT = (
+  <Link to="/contact" className={LIEN_TEXTE}>
+    formulaire de contact
+  </Link>
+);
+
 export default function Confidentialite() {
   return (
     <>
@@ -22,25 +28,42 @@ export default function Confidentialite() {
         <SectionLegale id="donnees" titre="Données collectées">
           <ul>
             <li>
-              <strong>Visiteurs du site</strong>&nbsp;: aucune donnée personnelle n’est collectée tant que vous ne vous
-              inscrivez pas pour voter.
+              <strong>Visiteurs du site</strong>&nbsp;: nos hébergeurs traitent des données techniques de connexion (adresse
+              IP, date et heure, pages demandées, type de navigateur) pour assurer le fonctionnement et la sécurité du site.
+              Nous n’utilisons aucun outil de mesure d’audience. Aucune autre donnée n’est collectée tant que vous n’écrivez
+              pas ou ne vous inscrivez pas. Base légale&nbsp;: intérêt légitime à sécuriser le service (art. 6(1)(f) RGPD).
+              Durée&nbsp;: celle fixée par chaque hébergeur pour ses journaux techniques.
             </li>
             <li>
-              <strong>Formulaire de contact</strong>&nbsp;: prénom, email et message.
+              <strong>Formulaire de contact</strong>&nbsp;: prénom, email, message et date d’envoi. Les trois champs du
+              formulaire sont obligatoires pour que nous puissions vous répondre.
             </li>
             <li>
-              <strong>Inscription au vote</strong> (prévue)&nbsp;: prénom et email. Ce traitement sera ouvert avec le vote
-              du public.
+              <strong>Inscription au vote</strong>&nbsp;: prénom et email, puis un code reçu par email pour vous connecter.
             </li>
           </ul>
         </SectionLegale>
 
         <SectionLegale id="finalites" titre="Finalités et bases légales">
           <ul>
-            <li>Répondre à votre message&nbsp;: votre consentement, donné en envoyant le formulaire, ou notre intérêt légitime à répondre.</li>
-            <li>Donner accès au vote et envoyer les notifications liées à la soirée&nbsp;: votre consentement, recueilli à l’inscription.</li>
+            <li>
+              Répondre à votre message&nbsp;: intérêt légitime de l’organisation à répondre aux demandes qui lui sont
+              adressées (art. 6(1)(f) RGPD).
+            </li>
+            <li>
+              Donner accès au vote et envoyer les notifications liées à la soirée&nbsp;: votre consentement, recueilli par une
+              case à cocher à l’inscription (art. 6(1)(a) RGPD). Vous pouvez le retirer à tout moment.
+            </li>
           </ul>
           <p>Aucune newsletter sans case dédiée, décochée par défaut.</p>
+          <p>Aucune décision fondée exclusivement sur un traitement automatisé ne vous concerne.</p>
+        </SectionLegale>
+
+        <SectionLegale id="destinataires" titre="Destinataires">
+          <p>
+            Vos données sont accessibles à l’organisateur et aux personnes habilitées à répondre, ainsi qu’à nos
+            sous-traitants listés plus bas.
+          </p>
         </SectionLegale>
 
         <SectionLegale id="duree" titre="Durée de conservation">
@@ -53,39 +76,54 @@ export default function Confidentialite() {
           </ul>
         </SectionLegale>
 
-        <SectionLegale id="traceurs" titre="Traceurs">
-          <p>Aucun traceur tiers, aucun cookie publicitaire, aucun outil de mesure d’audience externe.</p>
+        <SectionLegale id="traceurs" titre="Traceurs et stockage local">
+          <p>Aucun traceur tiers, aucun cookie publicitaire, aucun outil de mesure d’audience.</p>
+          <p>
+            Lorsque vous vous inscrivez, une donnée de session est enregistrée dans votre navigateur pour vous reconnaître.
+            Elle est strictement nécessaire au service, ne sert à aucun suivi et est supprimée à votre déconnexion.
+          </p>
         </SectionLegale>
 
-        <SectionLegale id="soustraitants" titre="Sous-traitants">
+        <SectionLegale id="soustraitants" titre="Sous-traitants et transferts">
           <ul>
             <li>
-              <strong>Supabase</strong>&nbsp;: base de données, région de l’Union européenne (Paris).
+              <strong>Supabase</strong>&nbsp;: base de données (région de l’Union européenne, Paris) et, pour l’instant,
+              envoi des emails de connexion.
             </li>
             <li>
               <strong>Railway</strong>&nbsp;: hébergement du site.
             </li>
             <li>
-              <strong>Brevo</strong>&nbsp;: envoi des emails (prévu avec le vote du public).
+              <strong>Brevo</strong>&nbsp;: envoi des emails, prévu pour remplacer le service d’email de Supabase.
             </li>
           </ul>
+          <p>
+            Railway Corp. est établie aux États-Unis. Supabase est exploitée par Supabase Pte. Ltd. (Singapour) et
+            Supabase, Inc. (États-Unis). La base de données est hébergée dans l’Union européenne (Paris) et le site est servi
+            depuis l’Europe. Tout accès depuis un pays hors de l’Union européenne est encadré par les clauses contractuelles
+            types de la Commission européenne, prévues dans l’accord de traitement des données de chaque prestataire (art. 28
+            et 46 RGPD). Une copie des garanties peut être demandée via le {LIEN_CONTACT}.
+          </p>
         </SectionLegale>
 
         <SectionLegale id="droits" titre="Vos droits">
           <p>
-            Vous disposez d’un droit d’accès, de rectification, d’effacement, d’opposition et de portabilité de vos
-            données. Pour l’exercer, écrivez-nous via le{' '}
-            <Link to="/contact" className={LIEN_TEXTE}>
-              formulaire de contact
-            </Link>
-            .
+            Vous disposez des droits d’accès, de rectification, d’effacement, d’opposition, de limitation et de portabilité
+            de vos données, et du droit de retirer votre consentement à tout moment (vote et notifications). Vous pouvez
+            aussi définir des directives sur le sort de vos données après votre décès (loi Informatique et Libertés,
+            art. 85).
           </p>
           <p>
-            Vous pouvez aussi introduire une réclamation auprès de la CNIL (
-            <a href="https://www.cnil.fr" target="_blank" rel="noopener noreferrer" className={LIEN_TEXTE}>
-              cnil.fr
+            Pour exercer ces droits, écrivez-nous via le {LIEN_CONTACT}. Nous répondons dans un délai d’un mois (art. 12(3)
+            RGPD). Une pièce d’identité n’est demandée qu’en cas de doute raisonnable sur votre identité.
+          </p>
+          <p>
+            Vous pouvez introduire une réclamation auprès de la CNIL, 3 place de Fontenoy, TSA 80715, 75334 Paris Cedex 07,
+            ou en ligne&nbsp;:{' '}
+            <a href="https://www.cnil.fr/fr/plaintes" target="_blank" rel="noopener noreferrer" className={LIEN_TEXTE}>
+              formulaire de plainte de la CNIL
             </a>
-            ).
+            .
           </p>
         </SectionLegale>
       </CorpsLegal>

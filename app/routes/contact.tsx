@@ -21,7 +21,7 @@ export default function Contact() {
           </h2>
           <FormulaireContact />
           <p className="mt-4 text-[12.5px] text-encre-2">
-            Vos données ne servent qu’à vous répondre. Détails dans la{' '}
+            Vos données (prénom, email, message) servent uniquement à vous répondre. Vous pouvez en demander l’effacement à tout moment. Détails et droits&nbsp;:{' '}
             <Link to="/confidentialite" className="underline underline-offset-2 hover:text-encre">
               politique de confidentialité
             </Link>
