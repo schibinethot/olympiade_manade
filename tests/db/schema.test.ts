@@ -1,3 +1,4 @@
+import type pg from 'pg';
 import { describe, expect, it } from 'vitest';
 import { dansUneTransaction, doitEtreRefuse } from './aide';
 import { IDS, modifier, semerSoiree } from './graine';
@@ -192,5 +193,78 @@ describe('schéma', () => {
         [IDS.manadeHors, IDS.soiree, IDS.manadeA],
       );
       expect(code).toBe('23503');
+    }));
+});
+
+describe('planning modifié après les votes', () => {
+  const NOTE_PUBLIC = 'insert into public.notes_public (passage_id, votant_id, note) values ($1, $2, 8)';
+  const NOTE_JURY = 'insert into public.notes_jury (passage_id, juge_id, note) values ($1, $2, 15)';
+  const CHANGER_MANADE = 'update public.passages set manade_id = $1 where id = $2';
+  const engagerManadeHors = (db: pg.Client) =>
+    db.query('insert into public.soiree_manades (soiree_id, manade_id, ordre) values ($1, $2, 3)', [
+      IDS.soiree,
+      IDS.manadeHors,
+    ]);
+
+  it('refuse de changer la manade d’un passage noté par le public', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      await engagerManadeHors(db);
+      await db.query(NOTE_PUBLIC, [IDS.passageA, IDS.spectateur]);
+      expect(await doitEtreRefuse(db, CHANGER_MANADE, [IDS.manadeHors, IDS.passageA])).toBe('23503');
+    }));
+
+  it('refuse de changer la manade d’un passage noté par le jury', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      await engagerManadeHors(db);
+      await db.query(NOTE_JURY, [IDS.passageA, IDS.juge]);
+      expect(await doitEtreRefuse(db, CHANGER_MANADE, [IDS.manadeHors, IDS.passageA])).toBe('23503');
+    }));
+
+  it('refuse de changer l’épreuve d’un passage noté', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      const { rows } = await db.query(
+        `insert into public.epreuves (soiree_id, ordre, nom) values ($1, 3, 'Abrivado') returning id`,
+        [IDS.soiree],
+      );
+      await db.query(NOTE_PUBLIC, [IDS.passageA, IDS.spectateur]);
+      expect(
+        await doitEtreRefuse(db, 'update public.passages set epreuve_id = $1 where id = $2', [rows[0].id, IDS.passageA]),
+      ).toBe('23503');
+    }));
+
+  it('accepte de changer la manade d’un passage sans note, si la manade cible est engagée', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      await db.query(NOTE_PUBLIC, [IDS.passageA, IDS.spectateur]);
+      expect(await doitEtreRefuse(db, CHANGER_MANADE, [IDS.manadeHors, IDS.passageB])).toBe('23514');
+      await engagerManadeHors(db);
+      expect((await db.query(CHANGER_MANADE, [IDS.manadeHors, IDS.passageB])).rowCount).toBe(1);
+    }));
+
+  it('refuse de supprimer une épreuve notée', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      await db.query(NOTE_PUBLIC, [IDS.passageA, IDS.spectateur]);
+      expect(await doitEtreRefuse(db, 'delete from public.epreuves where id = $1', [IDS.epreuve])).toBe('23503');
+    }));
+
+  it('refuse de supprimer un passage noté, par le public comme par le jury', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      await db.query(NOTE_PUBLIC, [IDS.passageA, IDS.spectateur]);
+      await db.query(NOTE_JURY, [IDS.passageB, IDS.juge]);
+      for (const passage of [IDS.passageA, IDS.passageB]) {
+        expect(await doitEtreRefuse(db, 'delete from public.passages where id = $1', [passage])).toBe('23503');
+      }
+    }));
+
+  it('refuse de supprimer une soirée qui a des votes : elle s’annule', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      await db.query(NOTE_JURY, [IDS.passageA, IDS.juge]);
+      expect(await doitEtreRefuse(db, 'delete from public.soirees where id = $1', [IDS.soiree])).toBe('23503');
     }));
 });

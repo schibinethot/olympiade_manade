@@ -50,6 +50,7 @@ create table public.soirees (
 
 create table public.soiree_manades (
   soiree_id uuid not null references public.soirees (id) on delete cascade,
+  -- NO ACTION et non RESTRICT : RESTRICT renvoie 23001 sous PostgreSQL 18, NO ACTION renvoie 23503 sous PostgreSQL 17 et 18.
   manade_id uuid not null references public.manades (id) on delete no action,
   ordre smallint not null check (ordre > 0),
   primary key (soiree_id, manade_id)
@@ -77,6 +78,7 @@ create table public.epreuves (
 create table public.passages (
   id uuid primary key default gen_random_uuid(),
   epreuve_id uuid not null references public.epreuves (id) on delete cascade,
+  -- NO ACTION et non RESTRICT : RESTRICT renvoie 23001 sous PostgreSQL 18, NO ACTION renvoie 23503 sous PostgreSQL 17 et 18.
   manade_id uuid not null references public.manades (id) on delete no action,
   ordre smallint not null check (ordre > 0),
   statut_public public.statut_vote not null default 'a_venir',
@@ -87,7 +89,8 @@ create table public.passages (
 );
 
 create table public.notes_public (
-  passage_id uuid not null references public.passages (id) on delete cascade,
+  -- Une soirée qui a des votes s'annule, elle ne se supprime pas.
+  passage_id uuid not null references public.passages (id) on delete no action,
   votant_id uuid not null references public.profils (id) on delete cascade,
   note smallint not null check (note between 1 and 10),
   maj_le timestamptz not null default now(),
@@ -95,7 +98,8 @@ create table public.notes_public (
 );
 
 create table public.notes_jury (
-  passage_id uuid not null references public.passages (id) on delete cascade,
+  -- Une soirée qui a des votes s'annule, elle ne se supprime pas.
+  passage_id uuid not null references public.passages (id) on delete no action,
   juge_id uuid not null references public.profils (id) on delete cascade,
   note numeric not null check (note >= 0 and note * 2 = trunc(note * 2)),
   commentaire text check (length(commentaire) <= 1000),
@@ -150,6 +154,25 @@ $$;
 create trigger passages_manade_participante
   before insert or update of epreuve_id, manade_id on public.passages
   for each row execute function prive.verifier_manade_du_passage();
+
+-- Un passage noté ne change ni d'épreuve ni de manade : ses notes seraient réattribuées.
+create function prive.verifier_passage_sans_note() returns trigger
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  if (new.epreuve_id is distinct from old.epreuve_id or new.manade_id is distinct from old.manade_id)
+     and (exists (select 1 from public.notes_public np where np.passage_id = old.id)
+          or exists (select 1 from public.notes_jury nj where nj.passage_id = old.id)) then
+    raise exception 'Le passage % a déjà des notes : son épreuve et sa manade ne changent plus', old.id
+      using errcode = 'foreign_key_violation';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger passages_notes_figees
+  before update of epreuve_id, manade_id on public.passages
+  for each row execute function prive.verifier_passage_sans_note();
 
 -- Une note de jury ne dépasse pas le barème de la soirée
 create function prive.verifier_bareme_note_jury() returns trigger
@@ -276,6 +299,7 @@ create trigger soirees_bareme_coherent
 revoke execute on function
   prive.horodater_maj(),
   prive.verifier_manade_du_passage(),
+  prive.verifier_passage_sans_note(),
   prive.verifier_bareme_note_jury(),
   prive.creer_profil_spectateur(),
   prive.verifier_retrait_manade(),
