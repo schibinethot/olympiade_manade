@@ -3,7 +3,6 @@ import { Navigate } from 'react-router';
 import { CadreInscription, TitreEtape } from '../composants/CadreInscription';
 import { FormulaireInscription } from '../composants/FormulaireInscription';
 import { demandeEnCours } from '../lib/auth';
-import { INSCRIPTION_OUVERTE } from '../lib/inscription-ouverte';
 import { useSession } from '../lib/useSession';
 import type { Route } from './+types/inscription';
 
@@ -13,9 +12,10 @@ export const meta: Route.MetaFunction = () => [
     name: 'description',
     content: 'Inscrivez-vous en 30 secondes pour noter les manades : prénom, email, puis un code à 6 chiffres reçu par email.',
   },
-  // Inscriptions pas encore ouvertes au public (drapeau VITE_INSCRIPTION_OUVERTE) : la page sert aux
-  // tests de l'équipe, par son adresse, et reste hors des moteurs de recherche.
-  ...(INSCRIPTION_OUVERTE ? [] : [{ name: 'robots', content: 'noindex' }]),
+  // Hors des moteurs de recherche en permanence, quel que soit le drapeau VITE_INSCRIPTION_OUVERTE :
+  // page monopage, sans contenu à indexer, que le serveur envoie toujours avec
+  // X-Robots-Tag: noindex (serveur/application.mjs).
+  { name: 'robots', content: 'noindex' },
 ];
 
 // Route sans pré-rendu (repli monopage) : elle ne s'affiche que dans le navigateur.

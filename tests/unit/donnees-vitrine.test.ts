@@ -124,3 +124,24 @@ describe('lireDonneesVitrineNavigateur', () => {
     expect(donnees.palmares).toBeNull();
   });
 });
+
+// Build dégradé (M3) : pré-rendu sans calendrier ou sans palmarès (Supabase injoignable au build).
+// La relecture part alors dès l'hydratation, sans attendre d'interaction ; ensuite, plus jamais
+// sans interaction (une lecture du navigateur a déjà eu lieu).
+describe('relireDesLHydratation', () => {
+  it('vrai si le pré-rendu n’a pas de calendrier ou pas de palmarès', async () => {
+    const { relireDesLHydratation } = await charger();
+    expect(relireDesLHydratation(PRE_RENDU)).toBe(false);
+    expect(relireDesLHydratation({ calendrier: null, palmares: PRE_RENDU.palmares })).toBe(true);
+    expect(relireDesLHydratation({ calendrier: PRE_RENDU.calendrier, palmares: null })).toBe(true);
+    expect(relireDesLHydratation({ calendrier: null, palmares: null })).toBe(true);
+  });
+
+  it('faux dès qu’une lecture du navigateur a été tentée, même en échec', async () => {
+    const { relireDesLHydratation, lireDonneesVitrineNavigateur } = await charger();
+    lireCalendrier.mockImplementation(horsLigne);
+    lirePalmares.mockImplementation(horsLigne);
+    await lireDonneesVitrineNavigateur(horsLigne);
+    expect(relireDesLHydratation({ calendrier: null, palmares: null })).toBe(false);
+  });
+});

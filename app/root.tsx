@@ -10,7 +10,7 @@ const police = (fichier: string) =>
   ({ rel: 'preload', href: `/polices/${fichier}`, as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' }) as const;
 
 export const links: Route.LinksFunction = () => [
-  // Feuille de style : elle bloque le premier rendu, elle doit partir avant les 24 modules JavaScript.
+  // Feuille de style : elle bloque le premier rendu, elle doit partir avant les modules JavaScript.
   // React 19 remonte en tête du <head> les préchargements (polices, modules) ; avec « precedence »,
   // il y remonte aussi la feuille, juste après les polices. Sans, elle arrivait en dernier.
   { rel: 'stylesheet', href: feuilleDeStyle, precedence: 'default' },

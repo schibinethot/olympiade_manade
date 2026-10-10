@@ -54,6 +54,30 @@ async function client(signal?: AbortSignal): Promise<SupabaseClient> {
 }
 
 /**
+ * Apostrophe typographique à l'affichage. La base contient des apostrophes droites
+ * (« Olympiades d'Aimargues ») : les textes affichés du calendrier et du palmarès passent tous ici, à
+ * la lecture. Les adresses (billetterie, source) n'y passent jamais.
+ */
+export function apostrophes(texte: string): string {
+  return texte.replaceAll("'", '’');
+}
+
+const typographierCalendrier = (ligne: Calendrier): Calendrier => ({
+  ...ligne,
+  nom: apostrophes(ligne.nom),
+  ville: apostrophes(ligne.ville),
+  arenes: ligne.arenes === null ? null : apostrophes(ligne.arenes),
+});
+
+const typographierPalmares = (ligne: Palmares): Palmares => ({
+  ...ligne,
+  evenement: apostrophes(ligne.evenement),
+  ville: apostrophes(ligne.ville),
+  vainqueur: apostrophes(ligne.vainqueur),
+  detail: ligne.detail === null ? null : apostrophes(ligne.detail),
+});
+
+/**
  * Les lectures acceptent un signal d'abandon, qui borne le chargement du client puis la requête.
  * postgrest-js refait jusqu'à trois fois une lecture qui échoue sur le réseau (après 1, 2 puis 4 s) ;
  * une requête abandonnée n'est pas refaite. Dans le navigateur, le signal borne donc l'attente d'une
@@ -66,7 +90,7 @@ export async function lireCalendrier(signal?: AbortSignal): Promise<Calendrier[]
     .order('date_soiree');
   const { data, error } = await (signal ? requete.abortSignal(signal) : requete);
   if (error) throw new ErreurDonnees(`Calendrier indisponible : ${error.message}`);
-  return data as Calendrier[];
+  return (data as Calendrier[]).map(typographierCalendrier);
 }
 
 export async function lirePalmares(signal?: AbortSignal): Promise<Palmares[]> {
@@ -77,7 +101,7 @@ export async function lirePalmares(signal?: AbortSignal): Promise<Palmares[]> {
     .order('date_soiree', { ascending: false });
   const { data, error } = await (signal ? requete.abortSignal(signal) : requete);
   if (error) throw new ErreurDonnees(`Palmarès indisponible : ${error.message}`);
-  return data as Palmares[];
+  return (data as Palmares[]).map(typographierPalmares);
 }
 
 /**

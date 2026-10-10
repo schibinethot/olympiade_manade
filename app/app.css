@@ -51,6 +51,9 @@
   --color-rouge: #c23b1d;  --color-orange: #ec7433;  --color-ambre: #f5b14d;  --color-peche: #ffd6ad;
   --color-etang-nuit: #0d1417;  --color-etang-2: #152027;  --color-etang-3: #1f2e36;  --color-etang-clair: #9cc0d0;
   --color-ok: #2f7a4f;  --color-ok-vif: #5cc68e;  --color-alerte: #d9822b;
+  /* Hors charte : rouge assombri pour un texte posé sur un fond teinté de rouge (alertes, badge
+     « Annulée », pastille « Ce soir ») ; le rouge de la charte n'y tient que 4,23 à 4,60:1. */
+  --color-rouge-alerte: #a93217;
   --font-brush: "Kaushan Script", "Brush Script MT", cursive;
   --font-display: "Playfair Display", Georgia, "Times New Roman", serif;
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;

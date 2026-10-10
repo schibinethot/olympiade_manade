@@ -107,7 +107,7 @@ export function Entete({ generique = false, etat = ETAT_SOIREE }: Props) {
         {connecte ? <CompteSpectateur prenom={prenom} variante="barre" /> : null}
         {soiree && !generique ? (
           ouvert ? (
-            <span className={`${CLASSE_PASTILLE_SOIREE} ${pastilleConnecte} bg-[rgba(194,59,29,.1)] text-rouge`}>
+            <span className={`${CLASSE_PASTILLE_SOIREE} ${pastilleConnecte} bg-[rgba(194,59,29,.1)] text-rouge-alerte`}>
               <span aria-hidden="true" className="point-direct size-[7px] rounded-full bg-current" />
               Ce soir · {soiree.ville}
             </span>

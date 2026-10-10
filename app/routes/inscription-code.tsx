@@ -53,7 +53,7 @@ export default function InscriptionCode() {
       {adresse.lienExpire ? (
         <p
           role="alert"
-          className="flex items-start gap-2 rounded-[13px] bg-[rgba(194,59,29,.08)] px-3.5 py-3 text-[14px] font-semibold text-rouge"
+          className="flex items-start gap-2 rounded-[13px] bg-[rgba(194,59,29,.08)] px-3.5 py-3 text-[14px] font-semibold text-rouge-alerte"
         >
           <Icone nom="alerte" className="mt-0.5 size-[18px]" />
           <span>

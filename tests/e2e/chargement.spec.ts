@@ -195,3 +195,23 @@ test('supabase-js bloqué avec une session sur l’appareil : /noter s’affiche
   await expect(page.getByText('Inscriptions bientôt ouvertes')).toBeVisible({ timeout: 4000 });
   expect(retenues()).toBeGreaterThan(0);
 });
+
+// Restauration du défilement (M4) : au rechargement, React Router remet la page où elle était, ce
+// qui émet un événement « scroll » sans action du visiteur. Il ne déclenche pas la relecture.
+test('le défilement restauré au rechargement ne charge pas supabase-js', async ({ page }) => {
+  await page.goto('/dates', { waitUntil: 'networkidle' });
+  await page.evaluate(() => window.scrollTo(0, 1500));
+  await page.waitForFunction(() => window.scrollY >= 1000);
+
+  const appels: string[] = [];
+  page.on('request', (requete) => {
+    const url = new URL(requete.url());
+    if (url.hostname.endsWith('.supabase.co') || /\/assets\/dist-[^/]*\.js$/.test(url.pathname)) appels.push(url.pathname);
+  });
+  await page.reload({ waitUntil: 'networkidle' });
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThanOrEqual(1000);
+  // Deux images de plus : un « scroll » émis par la restauration aurait déjà lancé la relecture.
+  await page.evaluate(() => new Promise((fin) => requestAnimationFrame(() => requestAnimationFrame(fin))));
+  await page.waitForLoadState('networkidle');
+  expect(appels).toEqual([]);
+});

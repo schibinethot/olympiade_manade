@@ -85,6 +85,44 @@ describe('page Dates : textes sur les fonds ajoutés', () => {
   });
 });
 
+describe('textes rouges sur fond teinté de rouge (alertes, badge « Annulée », pastille « Ce soir »)', () => {
+  const couleur = (nom: string) => rvbDepuisHex(variable(`color-${nom}`));
+  const sur = (fond: Rvb, couche: Rvb, alpha: number): Rvb =>
+    [0, 1, 2].map((c) => Math.round(couche[c] * alpha + fond[c] * (1 - alpha))) as unknown as Rvb;
+  // Le rouge de la charte n'y tient que 4,23 à 4,60:1 : ces textes prennent un rouge plus sombre.
+  const texte = () => couleur('rouge-alerte');
+
+  it('alerte (rouge à 8 %) sur la carte sable et sur crème : 4,5:1 au moins', () => {
+    for (const fond of ['sable', 'creme']) {
+      expect(contraste(texte(), sur(couleur(fond), couleur('rouge'), 0.08)), fond).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('badge « Annulée » et pastille « Ce soir » (rouge à 10 %) sur crème et sur sable : 4,5:1 au moins', () => {
+    for (const fond of ['creme', 'sable']) {
+      expect(contraste(texte(), sur(couleur(fond), couleur('rouge'), 0.1)), fond).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('chaque texte posé sur un fond teinté de rouge utilise ce rouge sombre', () => {
+    const fichiers = [
+      'app/composants/FormulaireCode.tsx',
+      'app/composants/FormulaireInscription.tsx',
+      'app/routes/inscription-code.tsx',
+      'app/composants/FormulaireContact.tsx',
+      'app/composants/BadgeSoiree.tsx',
+      'app/composants/Entete.tsx',
+    ];
+    for (const fichier of fichiers) {
+      const source = readFileSync(new URL(`../../${fichier}`, import.meta.url), 'utf8');
+      // Classe complète (jusqu'au guillemet ou à l'accent grave) de chaque fond rouge à 8 ou 10 %.
+      const classes = [...source.matchAll(/bg-\[rgba\(194,59,29,\.(?:08|1)\)\][^"`]*/g)].map((m) => m[0]);
+      expect(classes.length, fichier).toBeGreaterThan(0);
+      for (const classe of classes) expect(classe, fichier).toMatch(/\btext-rouge-alerte\b/);
+    }
+  });
+});
+
 describe('pages d’inscription : texte blanc sur la photo des arènes (Task 6)', () => {
   // Pixel le plus clair possible du duotone (.duo) : photo blanche, multipliée par l'arrêt le plus
   // clair du dégradé (#ffe2bd), puis éclaircie par l'aplat #4a170a (mode « screen »).

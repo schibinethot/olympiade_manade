@@ -117,7 +117,7 @@ export function FormulaireCode({ demande }: { demande: DemandeCode }) {
         <div>
           <div role="alert" id={`${id}-erreur`}>
             {erreur ? (
-              <p className="mt-1 flex items-start gap-2 rounded-[13px] bg-[rgba(194,59,29,.08)] px-3.5 py-3 text-[14px] font-semibold text-rouge">
+              <p className="mt-1 flex items-start gap-2 rounded-[13px] bg-[rgba(194,59,29,.08)] px-3.5 py-3 text-[14px] font-semibold text-rouge-alerte">
                 <Icone nom="alerte" className="mt-0.5 size-[18px]" />
                 {erreur}
               </p>

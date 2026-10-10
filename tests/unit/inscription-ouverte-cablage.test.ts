@@ -19,7 +19,7 @@ async function rendre(valeur: string | undefined) {
       createElement(BlocNoter, { etat: 'hors-soiree', soiree: null, calendrierDisponible: true, maintenant: new Date() }),
     ),
   );
-  // meta() n'utilise pas ses arguments : la route ne lit que le drapeau.
+  // meta() n'utilise pas ses arguments.
   const meta = (inscription.meta as () => Record<string, string>[])();
   return { carte, robots: meta.find((m) => m.name === 'robots')?.content ?? null };
 }
@@ -30,12 +30,14 @@ afterEach(() => {
 });
 
 describe('drapeau VITE_INSCRIPTION_OUVERTE dans les pages', () => {
-  it('à vrai : lien vers /inscription sur la carte de l’accueil, page d’inscription indexable', async () => {
+  // La page d'inscription reste hors des moteurs de recherche quel que soit le drapeau : le serveur
+  // l'envoie toujours avec X-Robots-Tag: noindex (page monopage, sans contenu à indexer).
+  it('à vrai : lien vers /inscription sur la carte de l’accueil, page d’inscription toujours en noindex', async () => {
     const { carte, robots } = await rendre('true');
     expect(carte).toContain('href="/inscription"');
     expect(carte).toContain('Inscrivez-vous dès maintenant, vous serez prêt le soir venu');
     expect(carte).not.toContain('Inscriptions bientôt ouvertes');
-    expect(robots).toBeNull();
+    expect(robots).toBe('noindex');
   });
 
   it('à faux ou absent : « Inscriptions bientôt ouvertes », sans lien, page hors des moteurs de recherche', async () => {

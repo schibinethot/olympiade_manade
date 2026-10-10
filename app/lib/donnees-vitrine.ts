@@ -1,7 +1,7 @@
 // Données des pages vitrine qui portent le calendrier et le palmarès (accueil, Classements, Dates).
 import type { AvecCalendrier } from './accueil';
 import { lireCalendrier, lireOuRepli, lirePalmares, type Palmares } from './donnees';
-import { dernieresDonnees, marquerDonneesRelues, retenirDonnees } from './relecture';
+import { dernieresDonnees, marquerDonneesRelues, marquerLectureTentee, retenirDonnees } from './relecture';
 
 export type DonneesVitrine = AvecCalendrier & { palmares: Palmares[] | null };
 
@@ -32,6 +32,7 @@ export async function lireDonneesVitrine(signal?: AbortSignal): Promise<DonneesV
  * interaction la retente.
  */
 export async function lireDonneesVitrineNavigateur(serverLoader: () => Promise<DonneesVitrine>): Promise<DonneesVitrine> {
+  marquerLectureTentee();
   const frais = await lireDonneesVitrine(AbortSignal.timeout(DELAI_LECTURE_NAVIGATEUR_MS));
   if (frais.calendrier && frais.palmares) {
     marquerDonneesRelues();

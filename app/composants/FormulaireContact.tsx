@@ -176,7 +176,7 @@ export function FormulaireContact() {
         </div>
         <div role="alert">
           {envoi === 'echec' ? (
-            <p className="mt-3 flex items-center gap-2 rounded-[13px] bg-[rgba(194,59,29,.08)] px-3.5 py-3 text-[14px] font-semibold text-rouge">
+            <p className="mt-3 flex items-center gap-2 rounded-[13px] bg-[rgba(194,59,29,.08)] px-3.5 py-3 text-[14px] font-semibold text-rouge-alerte">
               <Icone nom="alerte" />
               L’envoi a échoué, réessayez dans un instant.
             </p>
