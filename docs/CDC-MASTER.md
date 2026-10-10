@@ -1,6 +1,6 @@
 # Cahier des charges : app de notation de l'Olympiade des manades
 
-> Version 0.5 (brouillon) · 2026-10-10 · Statut : **à valider**
+> Version 0.6 (brouillon) · 2026-10-10 · Statut : **à valider** · Design validé : [charte graphique](charte-graphique.md) et [maquette v1](maquette/README.md)
 > Document de référence du projet. Toute fonctionnalité livrée doit s'y rattacher.
 
 ---
@@ -151,6 +151,8 @@ Aucune note ni aucun classement complet (2e, 3e, points) n'a jamais été publi�
 ### 4.0 Site vitrine
 
 Objectif : un site **simple, intuitif et soigné**, pensé d'abord pour le téléphone, dans l'esprit camarguais (sable, noir, rouge, grandes photos).
+
+**Design** : toutes les interfaces (vitrine, spectateur, jury, organisateur, écran géant) suivent la [charte graphique](charte-graphique.md), validée le 10/10/2026 avec la [maquette v1](maquette/README.md). Elle reprend l'affiche officielle des Olympiades (duotone couchant, titre au pinceau, manades et fers) et la charte d'Atch Élevage, sponsor de l'Olympiade des Manades.
 
 | Page | Contenu |
 |---|---|
@@ -452,7 +454,7 @@ Le réseau 4G est souvent saturé dans les arènes. En conséquence :
 | RGPD | Données du public : prénom et email, utilisés uniquement pour l'accès au vote et les notifications. Consentement à l'inscription, politique de confidentialité, suppression du compte depuis l'app, suppression automatique des comptes spectateurs inactifs depuis 24 mois. Aucun traceur tiers. Pas de newsletter sans case dédiée, décochée par défaut. Sous-traitants : Supabase, Brevo, Vercel |
 | Référencement | Pages vitrine pré-rendues, titre et description par page, données structurées `Event` pour les dates |
 | Sécurité | Clé API Anthropic et clé `service_role` Supabase uniquement côté serveur. Règles RLS couvertes par des tests automatisés |
-| Signature | Pied de page « Signé TPMGE » selon la spec de l'agence |
+| Signature | Pied de page « Signé TPMGE » selon la spec de l'agence, et mention « Conçue en collaboration avec Atch Élevage et TPMGE » avec le bloc « Partenaire officiel : Atch Élevage » (charte graphique, section 8) |
 
 ---
 
@@ -463,7 +465,7 @@ Le réseau 4G est souvent saturé dans les arènes. En conséquence :
 - vote par SMS ou code sur le billet
 - commentaires publics (les avis de la section 4.9 restent privés)
 - autres langues que le français
-- espaces sponsors et publicité
+- espaces sponsors et publicité (seule exception : la mention du partenaire Atch Élevage décrite dans la charte graphique)
 - statistiques multi-soirées, championnat sur l'année, historique par manade
 - newsletter et emailing marketing
 
