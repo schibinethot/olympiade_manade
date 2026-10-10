@@ -82,6 +82,14 @@ Relectures des lots Vitrine 5 et 6, le 10/10/2026. **Ordre obligatoire** :
 4. **Ouverture.** Poser la variable Railway `VITE_INSCRIPTION_OUVERTE=true`, puis redéployer.
 5. **Vérification réelle.** Une inscription de bout en bout avec une vraie adresse, puis la suppression du compte de test.
 
+Déjà fait :
+
+- [x] **Prénom des profils borné à 60 caractères bruts**, blancs compris : `check (length(prenom) <= 60 and length(btrim(prenom)) >= 1)` (migration `20261011120000_plafonds.sql`). Avant, une lettre suivie de 100 000 espaces passait.
+
+Avant toute communication publique du site, **bloquant** :
+
+- [ ] **Contact : Turnstile et dépôt par une fonction serveur avant toute communication publique du site ; le plafond en base n'est qu'un garde-fou.** Le plafond (10 messages en 10 minutes, tous visiteurs confondus, migration `20261011120000_plafonds.sql`) empêche de remplir la table, mais un robot peut à lui seul bloquer le formulaire pour tout le monde.
+
 ## Juridique (relecture du lot Vitrine 5)
 
 - **DPA (art. 28 RGPD).** Accepter le DPA de Railway et celui de Supabase. Confirmer que les clauses contractuelles types y figurent, quelle que soit l'entité signataire (Supabase Pte. Ltd., Singapour, ou Supabase, Inc.).

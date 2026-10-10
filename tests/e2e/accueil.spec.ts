@@ -175,6 +175,33 @@ test('le formulaire de contact signale un échec d’envoi', async ({ page }) =>
   await expect(page.getByLabel('Message')).toHaveValue('Bonjour, quelle sera la date à Nîmes en 2027 ?');
 });
 
+// Plafond en base (migration 20261011120000_plafonds.sql) : PostgREST répond 429 avec le code PT429.
+test('le formulaire de contact signale le plafond de messages atteint, une seule fois envoyé', async ({ page }) => {
+  let appels = 0;
+  await page.route('**/rest/v1/messages_contact*', (route) => {
+    appels += 1;
+    return route.fulfill({
+      status: 429,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        code: 'PT429',
+        details: null,
+        hint: null,
+        message: 'Trop de messages de contact reçus ces 10 dernières minutes. Réessayez plus tard.',
+      }),
+    });
+  });
+  await page.goto('/');
+  await page.getByLabel('Prénom').fill('Léa');
+  await page.getByLabel('Email').fill('lea@exemple.fr');
+  await page.getByLabel('Message').fill('Bonjour, quelle sera la date à Nîmes en 2027 ?');
+  await page.getByRole('button', { name: 'Envoyer' }).click();
+  await expect(page.getByText('L’envoi a échoué, réessayez dans un instant.')).toBeVisible();
+  await expect(page.getByText('Merci, votre message est bien parti.')).toHaveCount(0);
+  await expect(page.getByLabel('Message')).toHaveValue('Bonjour, quelle sera la date à Nîmes en 2027 ?');
+  expect(appels).toBe(1);
+});
+
 test('le champ piège rempli n’envoie rien mais affiche le succès', async ({ page }) => {
   let appels = 0;
   await page.route('**/rest/v1/messages_contact*', (route) => {
