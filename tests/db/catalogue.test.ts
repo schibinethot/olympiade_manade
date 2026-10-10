@@ -2,8 +2,11 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   NOM_BASE_TEST,
   commeSuperutilisateur,
+  commeUtilisateur,
+  commeVisiteur,
   connecter,
   dansUneTransaction,
+  doitEtreRefuse,
   recreerBaseDeTest,
   supprimerBaseDeTest,
 } from './aide';
@@ -143,6 +146,33 @@ describe('catalogue : index', () => {
         { table: 'notes_jury', colonne: 'juge_id' },
         { table: 'notes_public', colonne: 'votant_id' },
       ]);
+    }));
+});
+
+describe('catalogue : schéma prive', () => {
+  // Politiques et déclencheurs référencent les fonctions par identifiant interne : l'usage du schéma
+  // n'est vérifié qu'à la résolution des noms, jamais à l'exécution. Seul service_role le garde.
+  it('anon et authenticated n’ont pas l’usage du schéma prive, service_role si', () =>
+    dansUneTransaction(async (db) => {
+      await commeSuperutilisateur(db);
+      const { rows } = await db.query(
+        `select r.role, has_schema_privilege(r.role, 'prive', 'usage') as usage
+         from (values ('anon'), ('authenticated'), ('service_role')) as r (role)
+         order by 1`,
+      );
+      expect(rows).toEqual([
+        { role: 'anon', usage: false },
+        { role: 'authenticated', usage: false },
+        { role: 'service_role', usage: true },
+      ]);
+    }));
+
+  it('un appel direct à une fonction de prive par son nom est refusé à anon et à authenticated', () =>
+    dansUneTransaction(async (db) => {
+      await commeVisiteur(db);
+      expect(await doitEtreRefuse(db, 'select prive.est_admin()')).toBe('42501');
+      await commeUtilisateur(db, '00000000-0000-4000-8000-000000000001');
+      expect(await doitEtreRefuse(db, 'select prive.est_admin()')).toBe('42501');
     }));
 });
 

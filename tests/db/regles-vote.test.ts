@@ -1,22 +1,34 @@
 import type pg from 'pg';
 import { describe, expect, it } from 'vitest';
-import { commeUtilisateur, dansUneTransaction } from './aide';
+import { dansUneTransaction } from './aide';
 import { IDS, modifier, semerSoiree } from './graine';
 
+// Les fonctions de règles sont security definer : leur résultat dépend de l'identité du jeton
+// (auth.uid()) et des données, jamais du rôle appelant. Les appeler par leur nom exige l'usage du
+// schéma prive, refusé à anon et authenticated : on pose donc l'identité sans quitter le rôle
+// superutilisateur. Le droit EXECUTE des rôles de l'API est vérifié dans catalogue.test.ts,
+// l'appel réel par les politiques dans les tests RLS.
+async function identiteDe(db: pg.Client, id: string): Promise<void> {
+  await db.query('reset role');
+  await db.query(`select set_config('request.jwt.claims', $1, true)`, [
+    JSON.stringify({ sub: id, role: 'authenticated' }),
+  ]);
+}
+
 async function votablePublic(db: pg.Client, passage: string): Promise<boolean> {
-  await commeUtilisateur(db, IDS.spectateur);
+  await identiteDe(db, IDS.spectateur);
   const { rows } = await db.query('select prive.passage_votable_public($1) as ok', [passage]);
   return rows[0].ok;
 }
 
 async function votableJury(db: pg.Client, juge: string, passage: string): Promise<boolean> {
-  await commeUtilisateur(db, juge);
+  await identiteDe(db, juge);
   const { rows } = await db.query('select prive.passage_votable_jury($1) as ok', [passage]);
   return rows[0].ok;
 }
 
 async function avisOuvert(db: pg.Client): Promise<boolean> {
-  await commeUtilisateur(db, IDS.spectateur);
+  await identiteDe(db, IDS.spectateur);
   const { rows } = await db.query('select prive.avis_ouvert($1) as ok', [IDS.soiree]);
   return rows[0].ok;
 }
@@ -209,7 +221,7 @@ describe('identité du compte connecté', () => {
     dansUneTransaction(async (db) => {
       await semerSoiree(db);
       const lire = async (id: string) => {
-        await commeUtilisateur(db, id);
+        await identiteDe(db, id);
         const { rows } = await db.query('select prive.est_admin() as admin, prive.email_verifie() as verifie');
         return rows[0];
       };

@@ -1,9 +1,10 @@
 -- Lot 0A : schéma de base (CDC section 5.2).
 
 -- Toutes les fonctions vivent dans prive, que la Data API n'expose pas : aucune n'est appelable en RPC.
--- Les politiques et les déclencheurs les appellent par leur nom qualifié, d'où l'usage accordé aux rôles de l'API.
+-- Les politiques et les déclencheurs les référencent par identifiant interne : l'usage du schéma n'est
+-- vérifié qu'à la résolution des noms, jamais à l'exécution. anon et authenticated n'en ont pas besoin.
 create schema prive;
-grant usage on schema prive to anon, authenticated, service_role;
+grant usage on schema prive to service_role;
 
 create type public.role_profil as enum ('admin', 'juge', 'spectateur');
 create type public.mode_vote as enum ('libre', 'deblocage');
