@@ -154,21 +154,42 @@ describe('schéma', () => {
       expect(code).toBe('23514');
     }));
 
-  it('refuse de baisser le barème sous une note de jury existante', () =>
+  it('le barème ne change plus dès qu’une note de jury existe, quelle que soit sa valeur', () =>
     dansUneTransaction(async (db) => {
       await semerSoiree(db);
+      const PASSER_A_10 = 'update public.soirees set bareme_jury = 10 where id = $1';
       await db.query('insert into public.notes_jury (passage_id, juge_id, note) values ($1, $2, 15)', [
         IDS.passageA,
         IDS.juge,
       ]);
-      const code = await doitEtreRefuse(db, 'update public.soirees set bareme_jury = 10 where id = $1', [
-        IDS.soiree,
-      ]);
-      expect(code).toBe('23514');
-      await db.query('update public.notes_jury set note = 10 where passage_id = $1', [IDS.passageA]);
-      const { rowCount } = await db.query('update public.soirees set bareme_jury = 10 where id = $1', [
-        IDS.soiree,
-      ]);
+      expect(await doitEtreRefuse(db, PASSER_A_10, [IDS.soiree])).toBe('23514');
+      // Une note de 9 saisie sur 20 se lirait 9/10 : refusé aussi.
+      await db.query('update public.notes_jury set note = 9 where passage_id = $1', [IDS.passageA]);
+      expect(await doitEtreRefuse(db, PASSER_A_10, [IDS.soiree])).toBe('23514');
+      // Réécrire la même valeur n'est pas un changement.
+      expect((await db.query('update public.soirees set bareme_jury = 20 where id = $1', [IDS.soiree])).rowCount).toBe(1);
+      await db.query('delete from public.notes_jury where passage_id = $1', [IDS.passageA]);
+      expect((await db.query(PASSER_A_10, [IDS.soiree])).rowCount).toBe(1);
+    }));
+
+  it('accepte une note de jury égale au barème de 20', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      const { rowCount } = await db.query(
+        'insert into public.notes_jury (passage_id, juge_id, note) values ($1, $2, 20)',
+        [IDS.passageA, IDS.juge],
+      );
+      expect(rowCount).toBe(1);
+    }));
+
+  it('accepte une note de jury égale au barème de 10', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      await db.query('update public.soirees set bareme_jury = 10 where id = $1', [IDS.soiree]);
+      const { rowCount } = await db.query(
+        'insert into public.notes_jury (passage_id, juge_id, note) values ($1, $2, 10)',
+        [IDS.passageA, IDS.juge],
+      );
       expect(rowCount).toBe(1);
     }));
 

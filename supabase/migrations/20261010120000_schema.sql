@@ -271,19 +271,21 @@ create trigger epreuves_soiree_fixe
   before update of soiree_id on public.epreuves
   for each row execute function prive.verifier_soiree_de_epreuve();
 
--- Le barème d'une soirée ne passe pas sous une note de jury déjà saisie
+-- Le barème d'une soirée est figé dès qu'une note de jury existe : une note se lit sur le barème
+-- où elle a été saisie (9 sur 20 ne devient jamais 9 sur 10).
 create function prive.verifier_changement_bareme() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
 begin
-  if exists (
-    select 1
-    from public.notes_jury nj
-    join public.passages p on p.id = nj.passage_id
-    join public.epreuves e on e.id = p.epreuve_id
-    where e.soiree_id = new.id and nj.note > new.bareme_jury
-  ) then
-    raise exception 'Des notes de jury dépassent le nouveau barème (%)', new.bareme_jury
+  if new.bareme_jury is distinct from old.bareme_jury
+     and exists (
+       select 1
+       from public.notes_jury nj
+       join public.passages p on p.id = nj.passage_id
+       join public.epreuves e on e.id = p.epreuve_id
+       where e.soiree_id = old.id
+     ) then
+    raise exception 'Des notes de jury existent : le barème de la soirée (%) ne change plus', old.bareme_jury
       using errcode = 'check_violation';
   end if;
   return new;
