@@ -11,7 +11,10 @@ export type EtatSession = {
 };
 
 const AU_DEPART: EtatSession = { session: null, prenom: null, chargement: true };
-/** Attente maximale de la lecture du prénom, comme pour les autres lectures du navigateur. */
+/**
+ * Attente maximale de la session (chargement de supabase-js) puis de la lecture du prénom, comme pour
+ * les autres lectures du navigateur.
+ */
 const DELAI_PROFIL_MS = 3000;
 
 // Un seul état pour toute l'application : l'en-tête, la carte de l'accueil et les pages
@@ -66,9 +69,20 @@ function stockageLocal(): Storage | null {
   }
 }
 
-/** Charge le client ; sans lui (variables absentes, réseau), personne n'est connecté. */
+/**
+ * Charge le client ; sans lui (variables absentes, réseau), personne n'est connecté. Même borne que
+ * les lectures du navigateur : si la session n'est pas connue dans le délai (supabase-js lent ou
+ * bloqué), la page s'affiche en version non connectée, et la session s'applique si elle arrive ensuite.
+ */
 function charger() {
-  supabase().catch(() => publier({ session: null, prenom: null, chargement: false }));
+  const numero = tour;
+  const borne = setTimeout(() => {
+    if (tour === numero && etat.chargement) publier({ session: null, prenom: null, chargement: false });
+  }, DELAI_PROFIL_MS);
+  supabase().catch(() => {
+    clearTimeout(borne);
+    publier({ session: null, prenom: null, chargement: false });
+  });
 }
 
 function demarrer() {

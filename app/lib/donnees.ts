@@ -26,22 +26,41 @@ export type Palmares = {
 
 export class ErreurDonnees extends Error {}
 
-/** Client Supabase, chargé à la demande ; un échec (variables absentes, réseau) devient ErreurDonnees. */
-async function client(): Promise<SupabaseClient> {
+/** Rejette en ErreurDonnees dès l'abandon du signal, sans attendre la promesse. */
+function avantAbandon<T>(promesse: Promise<T>, signal: AbortSignal): Promise<T> {
+  return new Promise<T>((resoudre, rejeter) => {
+    const abandon = () => rejeter(new ErreurDonnees('Supabase non chargé dans le délai imparti'));
+    if (signal.aborted) {
+      abandon();
+      return;
+    }
+    signal.addEventListener('abort', abandon, { once: true });
+    promesse.then(resoudre, rejeter).finally(() => signal.removeEventListener('abort', abandon));
+  });
+}
+
+/**
+ * Client Supabase, chargé à la demande ; un échec (variables absentes, réseau) devient ErreurDonnees.
+ * Le signal borne aussi le chargement du module supabase-js : un module lent ou bloqué ne retient pas
+ * la lecture au-delà du délai (le chargement continue, il servira à la lecture suivante).
+ */
+async function client(signal?: AbortSignal): Promise<SupabaseClient> {
   try {
-    return await supabase();
+    return await (signal ? avantAbandon(supabase(), signal) : supabase());
   } catch (erreur) {
+    if (erreur instanceof ErreurDonnees) throw erreur;
     throw new ErreurDonnees(erreur instanceof Error ? erreur.message : String(erreur));
   }
 }
 
 /**
- * Les lectures acceptent un signal d'abandon. postgrest-js refait jusqu'à trois fois une lecture
- * qui échoue sur le réseau (après 1, 2 puis 4 s) ; une requête abandonnée n'est pas refaite. Dans
- * le navigateur, le signal borne donc l'attente d'une navigation quand Supabase ne répond pas.
+ * Les lectures acceptent un signal d'abandon, qui borne le chargement du client puis la requête.
+ * postgrest-js refait jusqu'à trois fois une lecture qui échoue sur le réseau (après 1, 2 puis 4 s) ;
+ * une requête abandonnée n'est pas refaite. Dans le navigateur, le signal borne donc l'attente d'une
+ * navigation quand supabase-js ou Supabase ne répondent pas.
  */
 export async function lireCalendrier(signal?: AbortSignal): Promise<Calendrier[]> {
-  const requete = (await client())
+  const requete = (await client(signal))
     .from('calendrier')
     .select('id, annee, nom, ville, arenes, date_soiree, heure, statut, lien_billetterie')
     .order('date_soiree');
@@ -51,7 +70,7 @@ export async function lireCalendrier(signal?: AbortSignal): Promise<Calendrier[]
 }
 
 export async function lirePalmares(signal?: AbortSignal): Promise<Palmares[]> {
-  const requete = (await client())
+  const requete = (await client(signal))
     .from('palmares')
     .select('id, annee, evenement, ville, date_soiree, vainqueur, detail, statut, source_url')
     .order('annee', { ascending: false })

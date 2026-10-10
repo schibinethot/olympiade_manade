@@ -118,8 +118,8 @@ test('accueil sans JavaScript : l’affiche et les photos des épreuves restent 
   await contexte.close();
 });
 
-test('une session enregistrée sur l’appareil charge Supabase dès l’ouverture', async ({ page }) => {
-  // Session factice : l'en-tête doit la relire (prénom), donc charger le client tout de suite.
+/** Session factice enregistrée sur l'appareil, au nom de Léa. */
+async function poserSession(page: Page) {
   await page.addInitScript(() =>
     localStorage.setItem(
       'olympiade-auth',
@@ -133,9 +133,65 @@ test('une session enregistrée sur l’appareil charge Supabase dès l’ouvertu
       }),
     ),
   );
+}
+
+test('une session enregistrée sur l’appareil charge Supabase dès l’ouverture', async ({ page }) => {
+  // Session factice : l'en-tête doit la relire (prénom), donc charger le client tout de suite.
+  await poserSession(page);
   await page.route('**/rest/v1/profils*', (route) => route.fulfill({ json: [{ prenom: 'Léa' }] }));
   const scripts = suivreScripts(page);
   await page.goto('/', { waitUntil: 'networkidle' });
   await expect(page.getByText('Vous êtes inscrit, à bientôt dans les arènes, Léa')).toBeVisible();
   expect((await Promise.all(scripts)).some((texte) => texte.includes('supabase-js'))).toBe(true);
+});
+
+// supabase-js lent ou bloqué (I1) : la borne de 3 s des lectures du navigateur couvre aussi le
+// chargement du module, pas seulement la requête. Au-delà, le repli habituel s'applique.
+// Le module de supabase-js est le fragment « dist-*.js » du build (vérifié dans build/client/assets).
+const MODULE_SUPABASE = '**/assets/dist-*.js';
+
+/** Retient le module de supabase-js : `attente` en ms, ou indéfiniment. Rend le nombre de requêtes retenues. */
+async function retenirModuleSupabase(page: Page, attente?: number): Promise<() => number> {
+  let retenues = 0;
+  await page.route(MODULE_SUPABASE, async (route) => {
+    retenues += 1;
+    if (attente === undefined) return;
+    await new Promise((fin) => setTimeout(fin, attente));
+    await route.continue().catch(() => {});
+  });
+  return () => retenues;
+}
+
+/** Lien « Dates » de la navigation, derrière le bouton « Menu » sur téléphone. */
+async function ouvrirDates(page: Page) {
+  const menu = page.getByRole('button', { name: /Menu/ });
+  if (await menu.isVisible()) await menu.click();
+  await page.getByRole('navigation').getByRole('link', { name: 'Dates' }).click();
+}
+
+test('supabase-js retardé de 8 s : la navigation vers /dates affiche le pré-rendu en moins de 4 s', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'networkidle' });
+  const retenues = await retenirModuleSupabase(page, 8000);
+  await ouvrirDates(page);
+  await expect(page.locator('#saison-2027').getByRole('article').filter({ hasText: 'Nîmes' })).toBeVisible({ timeout: 4000 });
+  await expect(page.getByText(/momentanément indisponibles/)).toHaveCount(0);
+  expect(retenues(), 'module de supabase-js demandé, puis retenu').toBeGreaterThan(0);
+});
+
+test('supabase-js retardé de 8 s : /noter en accès direct quitte « Chargement… » en moins de 4 s', async ({ page }) => {
+  const retenues = await retenirModuleSupabase(page, 8000);
+  await page.goto('/noter');
+  await expect(page.getByRole('heading', { level: 1, name: /Les votes ouvriront/ })).toBeVisible({ timeout: 4000 });
+  await expect(page.getByText('Chargement…')).toHaveCount(0);
+  await expect(page.getByText('Inscriptions bientôt ouvertes')).toBeVisible();
+  expect(retenues()).toBeGreaterThan(0);
+});
+
+test('supabase-js bloqué avec une session sur l’appareil : /noter s’affiche en version non connectée', async ({ page }) => {
+  await poserSession(page);
+  const retenues = await retenirModuleSupabase(page);
+  await page.goto('/noter');
+  await expect(page.getByRole('heading', { level: 1, name: /Les votes ouvriront/ })).toBeVisible({ timeout: 4000 });
+  await expect(page.getByText('Inscriptions bientôt ouvertes')).toBeVisible({ timeout: 4000 });
+  expect(retenues()).toBeGreaterThan(0);
 });
