@@ -25,7 +25,8 @@ const CODE_INCOMPLET = 'Saisissez les 6 chiffres du code reçu par email.';
  * - Pas de vérification automatique à 6 chiffres (SITE-AM la faisait) : le parcours du plan valide
  *   par le bouton « Valider », ou la touche Entrée.
  * - Verrou synchrone sur la vérification et sur le renvoi : un double clic ne part qu'une fois.
- * - Code refusé : message, saisie vidée et remise au focus, pour réessayer tout de suite.
+ * - Code refusé : message, saisie vidée et remise au focus, pour réessayer tout de suite. La
+ *   saisie n'est donc jamais désactivée (un champ désactivé ne peut pas reprendre le focus).
  */
 export function FormulaireCode({ demande }: { demande: DemandeCode }) {
   const id = useId();
@@ -108,7 +109,6 @@ export function FormulaireCode({ demande }: { demande: DemandeCode }) {
           }}
           invalide={erreur !== null}
           description={`${id}-aide${erreur ? ` ${id}-erreur` : ''}`}
-          desactive={etat === 'verification'}
         />
         <p id={`${id}-aide`} className="text-[12.5px] text-encre-2">
           Vous pouvez coller le code reçu, même avec des espaces.
@@ -158,7 +158,7 @@ export function FormulaireCode({ demande }: { demande: DemandeCode }) {
       </div>
 
       <div className="grid gap-2.5">
-        <button type="submit" disabled={etat === 'verification'} className={BOUTON_PRINCIPAL}>
+        <button type="submit" disabled={occupe} className={BOUTON_PRINCIPAL}>
           Valider
           <Icone nom="fleche" />
         </button>

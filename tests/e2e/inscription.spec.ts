@@ -159,6 +159,9 @@ test('un code collé avec du texte autour est accepté', async ({ page }) => {
   await page.getByRole('button', { name: 'Valider' }).click();
   await expect(page.getByText(CODE_REFUSE)).toBeVisible();
   expect(verification).toMatchObject({ token: '123456' });
+  // Code refusé : saisie vidée et remise au focus, pour réessayer tout de suite.
+  await expect(saisie).toHaveValue('');
+  await expect(saisie).toBeFocused();
 });
 
 test('un code incomplet n’est pas envoyé', async ({ page }) => {
@@ -324,7 +327,42 @@ test('accueil, spectateur inscrit : « Vous êtes inscrit, à bientôt dans les 
   await expect(page.getByRole('button', { name: /Je note les manades/ })).toHaveAttribute('aria-disabled', 'true');
 });
 
+// Calendrier simulé pour /noter : la page n'a pas de pré-rendu de repli, et une lecture de la vraie
+// base qui dépasse 3 s (tests en parallèle) la laissait sans date. Mouriès vient avant Nîmes : la page
+// doit tout de même annoncer Nîmes (soireeDeReference).
+const CALENDRIER = [
+  {
+    id: 'mouries-2027',
+    annee: 2027,
+    nom: 'Les Grandes Olympiades des Gardians',
+    ville: 'Mouriès',
+    arenes: 'Arènes André Blanc',
+    date_soiree: '2027-05-01',
+    heure: '21:00:00',
+    statut: 'confirmee',
+    lien_billetterie: null,
+  },
+  {
+    id: 'nimes-2027',
+    annee: 2027,
+    nom: 'Olympiades de Nîmes',
+    ville: 'Nîmes',
+    arenes: 'Arènes de Nîmes',
+    date_soiree: '2027-08-20',
+    heure: '21:00:00',
+    statut: 'previsionnelle',
+    lien_billetterie: null,
+  },
+];
+
+async function simulerCalendrier(page: Page) {
+  await page.route('**/rest/v1/calendrier*', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(CALENDRIER) }),
+  );
+}
+
 test('/noter, visiteur : date de la prochaine soirée de Nîmes et lien d’inscription', async ({ page }) => {
+  await simulerCalendrier(page);
   await page.clock.setFixedTime(new Date('2026-10-10T12:00:00+02:00'));
   await page.goto('/noter');
   await expect(page.getByText(/Les votes ouvriront le vendredi 20 août 2027 à 21h, aux arènes de Nîmes/)).toBeVisible();
@@ -335,6 +373,7 @@ test('/noter, visiteur : date de la prochaine soirée de Nîmes et lien d’insc
 
 test('/noter, spectateur inscrit : « Bonjour Léa » et la date, sans lien d’inscription', async ({ page }) => {
   await ouvrirSession(page);
+  await simulerCalendrier(page);
   await page.clock.setFixedTime(new Date('2026-10-10T12:00:00+02:00'));
   await page.goto('/noter');
   const texte = page.getByRole('main').getByText(/Bonjour Léa\./);

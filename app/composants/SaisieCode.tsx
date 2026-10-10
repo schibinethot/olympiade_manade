@@ -20,13 +20,12 @@ type Props = {
   invalide?: boolean;
   /** Identifiants des textes d'aide et d'erreur (aria-describedby). */
   description?: string;
-  desactive?: boolean;
 };
 
 /** Ne garde que les chiffres (une lettre tapée au clavier d'ordinateur est ignorée). */
 const chiffres = (texte: string) => texte.replace(/[^0-9]/g, '').slice(0, LONGUEUR);
 
-export function SaisieCode({ id, valeur, onChange, invalide = false, description, desactive = false }: Props) {
+export function SaisieCode({ id, valeur, onChange, invalide = false, description }: Props) {
   const champ = useRef<HTMLInputElement>(null);
   const changer = useRef(onChange);
   useEffect(() => {
@@ -74,11 +73,9 @@ export function SaisieCode({ id, valeur, onChange, invalide = false, description
       pasteTransformer={chiffres}
       // La page exige JavaScript : pas de feuille de style de repli dans un <noscript>.
       noScriptCSSFallback={null}
-      disabled={desactive}
       aria-invalid={invalide || undefined}
       aria-describedby={description}
-      containerClassName="w-full max-w-[440px] has-[:disabled]:opacity-60"
-      className="disabled:cursor-not-allowed"
+      containerClassName="w-full max-w-[440px]"
     >
       <div aria-hidden="true" className="grid grid-cols-6 gap-2">
         {Array.from({ length: LONGUEUR }, (_, index) => (
