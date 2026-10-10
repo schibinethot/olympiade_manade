@@ -1,18 +1,34 @@
 import { Fragment } from 'react';
 import { Link } from 'react-router';
 import { EPREUVES } from '../donnees/epreuves';
-import { PHOTOS_ACCUEIL, RETOUCHE } from '../donnees/photos-accueil';
+import { PHOTOS_ACCUEIL, RETOUCHE, type PhotoAccueil } from '../donnees/photos-accueil';
+import { useProche } from '../lib/useProche';
 import { Icone } from './Icone';
 
 const LIEN = 'underline underline-offset-2 hover:text-encre';
+
+/** Photo d'une carte : AVIF si le navigateur le lit, sinon WebP. */
+function PhotoCarte({ photo, cadrage }: { photo: PhotoAccueil; cadrage: string }) {
+  return (
+    <picture>
+      <source type="image/avif" srcSet={photo.avif} width={photo.largeur} height={photo.hauteur} />
+      <img src={photo.fichier} alt="" width={photo.largeur} height={photo.hauteur} decoding="async" className={cadrage} />
+    </picture>
+  );
+}
 
 /**
  * « Le programme · Les quatre épreuves » (maquette : .sec + .ep-grid). Sur téléphone, les cartes
  * défilent à l'horizontale ; à partir de l'iPad portrait, grille de 2 puis de 4 colonnes.
  * Hors soirée, pas d'horaire ni d'état d'épreuve : le pied de carte donne le format.
+ *
+ * Photos chargées quand la liste arrive à 400 px de l'écran (useProche), toutes les quatre à la fois :
+ * sur téléphone, elles ne pèsent plus sur le premier affichage, et les cartes qu'on fait défiler à
+ * l'horizontale sont déjà prêtes. Sans JavaScript, le <noscript> les affiche directement.
  */
 export function Epreuves() {
   const photos = [...new Set(EPREUVES.map((e) => e.photo))].map((id) => PHOTOS_ACCUEIL[id]);
+  const [liste, photosProches] = useProche<HTMLUListElement>();
   return (
     <section aria-labelledby="titre-epreuves" className="px-4 pt-9 pb-1 tablette:px-7 tablette:pt-11 paysage:px-10 paysage:pt-14 bureau:px-14">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
@@ -35,6 +51,7 @@ export function Epreuves() {
           que le texte réservé aux lecteurs d'écran (sr-only, en absolu) reste rogné par le défilement
           au lieu d'élargir la page. */}
       <ul
+        ref={liste}
         tabIndex={0}
         aria-label="Les quatre épreuves"
         className="relative -mx-4 grid snap-x snap-mandatory scroll-px-4 auto-cols-[80%] grid-flow-col gap-3 overflow-x-auto rounded-[22px] px-4 pb-1 [scrollbar-width:none] tablette:mx-0 tablette:grid-flow-row tablette:grid-cols-2 tablette:overflow-visible tablette:px-0 paysage:grid-cols-4 paysage:gap-4 [&::-webkit-scrollbar]:hidden"
@@ -47,15 +64,13 @@ export function Epreuves() {
               className="relative flex snap-start flex-col overflow-hidden rounded-[22px] border border-trait bg-creme"
             >
               <div className="duo-calques aspect-[16/11] overflow-hidden text-white">
-                <img
-                  src={photo.fichier}
-                  alt=""
-                  width={640}
-                  height={440}
-                  loading="lazy"
-                  decoding="async"
-                  className={epreuve.cadrage}
-                />
+                {photosProches ? (
+                  <PhotoCarte photo={photo} cadrage={epreuve.cadrage} />
+                ) : (
+                  <noscript>
+                    <img src={photo.fichier} alt="" width={photo.largeur} height={photo.hauteur} className={epreuve.cadrage} />
+                  </noscript>
+                )}
                 <span
                   aria-hidden="true"
                   className="absolute -bottom-0.5 left-3.5 z-10 font-display text-[74px] leading-none font-bold italic [text-shadow:0_4px_22px_rgba(70,15,0,.4)]"

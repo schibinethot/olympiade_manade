@@ -1,5 +1,5 @@
 import { EDITION_MANADES, VILLE_AFFICHE } from '../donnees/affiche';
-import { PHOTOS_ACCUEIL, RETOUCHE } from '../donnees/photos-accueil';
+import { AFFICHE, PHOTOS_ACCUEIL, RETOUCHE } from '../donnees/photos-accueil';
 import { formaterJourMois } from '../lib/accueil';
 import { formaterHeure } from '../lib/dates';
 import type { Calendrier } from '../lib/donnees';
@@ -15,17 +15,43 @@ const ID_CREDIT = 'credit-photo-affiche';
  * Affiche de l'accueil (maquette : .affiche, charte section 5) : grande photo en duotone,
  * « ARÈNES DE NÎMES » en Playfair capitales, date en Playfair italique, titre au pinceau incliné
  * de −5°, manades en capitales séparées par des filets. Le titre est le h1 de la page.
+ *
+ * La photo est une <img> du HTML pré-rendu (et non un fond CSS, découvert après la feuille de style) :
+ * c'est l'élément le plus grand du premier écran (LCP), chargé en priorité haute. Le duotone est
+ * celui de .duo-calques (app/app.css).
  */
 export function Affiche({ soiree }: Props) {
   const heure = soiree ? formaterHeure(soiree.heure) : null;
   return (
     <div className="relative isolate flex min-h-[470px] flex-col justify-between overflow-hidden rounded-[26px] px-5 pt-[22px] pb-[26px] text-white tablette:min-h-[560px] paysage:min-h-[600px] paysage:px-9 paysage:py-[34px] bureau:min-h-[640px]">
-      <div
-        role="img"
-        aria-label="Un gardian à cheval traverse un pré clos de barbelés, photo en duotone orangé"
-        aria-describedby={ID_CREDIT}
-        className="duo photo-affiche absolute inset-0 [--position:38%_42%]"
-      />
+      <div className="absolute inset-0">
+        <picture className="duo-calques block size-full">
+          <source
+            type="image/avif"
+            media={AFFICHE.telephone.media}
+            srcSet={AFFICHE.telephone.avif}
+            width={AFFICHE.telephone.largeur}
+            height={AFFICHE.telephone.hauteur}
+          />
+          <source
+            type="image/webp"
+            media={AFFICHE.telephone.media}
+            srcSet={AFFICHE.telephone.webp}
+            width={AFFICHE.telephone.largeur}
+            height={AFFICHE.telephone.hauteur}
+          />
+          <source type="image/avif" srcSet={AFFICHE.entiere.avif} />
+          <img
+            src={AFFICHE.entiere.webp}
+            width={AFFICHE.entiere.largeur}
+            height={AFFICHE.entiere.hauteur}
+            alt="Un gardian à cheval traverse un pré clos de barbelés, photo en duotone orangé"
+            aria-describedby={ID_CREDIT}
+            fetchPriority="high"
+            className="object-[38%_42%]"
+          />
+        </picture>
+      </div>
       {/* Voile en dégradé, en haut et en bas, pour la lisibilité des textes sur la photo
           (app/app.css, .voile-affiche). */}
       <div aria-hidden="true" className="voile-affiche absolute inset-0" />

@@ -160,11 +160,6 @@
   background-position: var(--position, center);
 }
 
-/* Photo de l'affiche d'accueil (maquette : .ph-hero). Fichier servi par le site (CSP img-src 'self'). */
-.photo-affiche {
-  --photo: url("/photos/hero.webp");
-}
-
 /* Visuel des pages d'inscription (maquette : .ins-vis.ph-arenes). */
 .photo-arenes {
   --photo: url("/photos/arenes-640.webp");
@@ -196,14 +191,15 @@
     radial-gradient(60% 42% at 62% 44%, rgba(255, 226, 180, 0.22), transparent 70%);
 }
 
-/* Même duotone que .duo, pour une <img> (chargement différé des photos sous le premier écran) :
-   l'image, puis le dégradé en « multiply », puis l'aplat en « screen », isolés dans le cadre. */
+/* Même duotone que .duo, pour une <img> (affiche de l'accueil, photos des épreuves) : l'image, puis le
+   dégradé en « multiply », puis l'aplat en « screen », isolés dans le cadre. L'image peut être dans un
+   <picture> (AVIF ou WebP) ou dans un <noscript>. */
 .duo-calques {
   position: relative;
   isolation: isolate;
   background-color: #5a1a0b;
 }
-.duo-calques > img {
+.duo-calques img {
   position: absolute;
   inset: 0;
   width: 100%;

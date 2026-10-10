@@ -88,6 +88,36 @@ test('/classements : un premier clic sur un onglet affiche le palmarès relu', a
   await expect(page.getByRole('article').filter({ hasText: 'Nîmes' }).first()).toContainText('Relue');
 });
 
+// Photos (Task 7 et 8) : seule l'affiche part au premier affichage ; les épreuves suivent à l'approche.
+test('accueil : l’affiche seule au premier affichage, les photos des épreuves à l’approche de la liste', async ({ page }, info) => {
+  const photos: string[] = [];
+  page.on('request', (requete) => {
+    const { pathname } = new URL(requete.url());
+    if (pathname.startsWith('/photos/')) photos.push(pathname);
+  });
+  await page.goto('/', { waitUntil: 'networkidle' });
+  const telephone = info.project.name === 'mobile';
+  // Téléphone (412 px) : recadrage de l'affiche ; ordinateur : photo entière. AVIF dans les deux cas.
+  expect(photos[0]).toBe(telephone ? '/photos/hero-telephone.avif' : '/photos/hero.avif');
+  if (telephone) expect(photos).toEqual(['/photos/hero-telephone.avif']);
+
+  const liste = page.getByRole('list', { name: 'Les quatre épreuves' });
+  await liste.scrollIntoViewIfNeeded();
+  await expect.poll(() => photos.filter((p) => p.endsWith('-640.avif')).length).toBe(4);
+  const premiere = liste.locator('img').first();
+  await expect(premiere).toHaveJSProperty('complete', true);
+  expect(await premiere.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(640);
+});
+
+test('accueil sans JavaScript : l’affiche et les photos des épreuves restent affichées', async ({ browser }) => {
+  const contexte = await browser.newContext({ javaScriptEnabled: false });
+  const page = await contexte.newPage();
+  await page.goto('/');
+  await expect(page.getByRole('img', { name: /Un gardian à cheval/ })).toBeVisible();
+  await expect(page.locator('img[src="/photos/manade-640.webp"]')).toHaveCount(1);
+  await contexte.close();
+});
+
 test('une session enregistrée sur l’appareil charge Supabase dès l’ouverture', async ({ page }) => {
   // Session factice : l'en-tête doit la relire (prénom), donc charger le client tout de suite.
   await page.addInitScript(() =>
