@@ -1,0 +1,28 @@
+#!/usr/bin/env expect
+# Affiche l'écart entre supabase/config.toml et le projet Supabase distant, sans rien écrire.
+#
+# `supabase config push` n'a pas de mode simulation : pour chaque service, il affiche l'écart
+# puis demande « Do you want to push <service> config to remote? [Y/n] ». Sans terminal, la
+# CLI prend la réponse par défaut, qui est oui ; derrière un tube, la fin de flux vaut aussi
+# oui. Ce script répond « n » à chaque question. Si la CLI pose une question qu'il ne connaît
+# pas, il la tue sans répondre.
+#
+# Usage, depuis n'importe quel dossier : expect scripts/supabase-config-diff.exp
+# Ne jamais ajouter --yes : l'option répond oui à tout.
+
+set racine [file dirname [file dirname [file normalize [info script]]]]
+cd $racine
+set timeout 120
+
+spawn supabase config push --project-ref khwlwpzydlrfocfpvywv --agent no
+expect {
+  -nocase -re {\[y/n\] *$} { send "n\r"; exp_continue }
+  eof {}
+  timeout {
+    puts "\nDÉLAI DÉPASSÉ : question inconnue, la CLI est arrêtée sans réponse."
+    exec kill -9 [exp_pid]
+    exit 2
+  }
+}
+lassign [wait] pid id erreur_systeme code
+exit $code

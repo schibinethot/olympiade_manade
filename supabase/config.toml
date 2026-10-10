@@ -152,10 +152,17 @@ max_indexes = 5
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-site_url = "http://localhost:5173"
+# Front hébergé sur Railway (lot Vitrine).
+site_url = "https://olympiademanade-production.up.railway.app"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-# Développement local. L'URL de production sera ajoutée au lot du front.
-additional_redirect_urls = ["http://localhost:5173/**"]
+# Chemins précis, pas de joker : la page du code et la page de confirmation par lien.
+# localhost sert au développement ; à retirer avant le premier email à un vrai spectateur.
+additional_redirect_urls = [
+  "https://olympiademanade-production.up.railway.app/inscription/code",
+  "https://olympiademanade-production.up.railway.app/auth/confirm",
+  "http://localhost:5173/inscription/code",
+  "http://localhost:5173/auth/confirm",
+]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to the local API URL (http://127.0.0.1:<port>/auth/v1).

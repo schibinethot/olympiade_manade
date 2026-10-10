@@ -2,9 +2,15 @@
   "name": "olympiade-manade",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@11.20.0",
+  "engines": {
+    "node": "24.19.0",
+    "pnpm": "11.20.0"
+  },
   "scripts": {
     "dev": "react-router dev",
     "build": "react-router build",
+    "start": "node serveur/statique.mjs",
     "preview": "sirv build/client --single __spa-fallback.html",
     "test": "vitest run",
     "test:unit": "vitest run --project unit",

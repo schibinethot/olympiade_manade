@@ -10,10 +10,12 @@
     "skipLibCheck": true,
     "noEmit": true,
     "verbatimModuleSyntax": true,
+    "allowJs": true,
     "types": ["node", "vite/client"]
   },
   "include": [
     "app",
+    "serveur",
     "tests",
     ".react-router/types/**/*",
     "vitest.config.ts",
