@@ -1069,3 +1069,78 @@ test('chaque photo de la galerie a un texte alternatif et un crédit avec licenc
 - [ ] **Step 4 :** captures mobile (390 × 844) et ordinateur (1 280 × 800) de chaque page, relues une à une : textes, accents, débordements, contrastes.
 - [ ] **Step 5 :** `grep` sans aucun tiret cadratin. Aucune clé secrète dans le dépôt : seule la clé publishable vient de `.env.local`.
 - [ ] **Step 6 :** `git fetch`, rebase sur `feat/lot0a-socle` (ou sur `main` si la PR #1 a été fusionnée), puis rejouer les tests.
+
+---
+
+### Task 9 : hébergement Railway (ajoutée le 10/10 à la demande de l'utilisateur)
+
+Côté Railway, tout est déjà en place :
+- projet `olympiade-manade`, espace de travail TPMGE ;
+- service unique `olympiade_manade` (f3df98c1-2705-4def-86e6-4869f8a4c2ab), environnement `production`, source GitHub `schibinethot/olympiade_manade` ;
+- variables `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `PORT=8080`, `NODE_ENV=production` ;
+- domaine `https://olympiademanade-production.up.railway.app`, qui pointe sur le port 8080.
+
+Le worktree est lié au projet par `railway status`. Cette tâche ajoute la configuration côté dépôt et prépare le premier déploiement. Elle **ne déploie pas** : `railway up` et le push des migrations de la vitrine vers Supabase sont des portes, soumises au GO de l'utilisateur.
+
+**Files :**
+- Create : `serveur/statique.mjs`, `railway.json`, `tests/e2e/serveur.spec.ts`, `scripts/supabase-config-diff.exp`, `scripts/supabase-config-push-auth.exp`
+- Modify : `package.json` (script `start`), `playwright.config.ts` (le `webServer` lance le vrai serveur de production), `supabase/config.toml` (URL du site)
+
+**Contenu :**
+- **`serveur/statique.mjs`** : serveur Node minimal. Pas de dépendance, ou seulement `sirv`.
+  - Sert `build/client`, avec les pages pré-rendues.
+  - Pour les routes non pré-rendues (`/inscription`, `/inscription/code`, `/noter`) : repli d'application monopage, vers le fichier de repli produit par React Router 8. Vérifier le nom exact de ce fichier dans la sortie du build.
+  - Une route inconnue reçoit un statut 404 et la page 404 de l'app.
+  - Écoute `process.env.PORT`, 8080 par défaut.
+  - En-têtes :
+    - cache long et `immutable` sur les fichiers fingerprintés (`/assets/*`) ;
+    - `no-cache` sur le HTML ;
+    - `X-Content-Type-Options: nosniff` ;
+    - `Referrer-Policy: strict-origin-when-cross-origin` ;
+    - `Permissions-Policy` restrictive ;
+    - une `Content-Security-Policy` qui autorise seulement le site lui-même et le projet Supabase (`https://khwlwpzydlrfocfpvywv.supabase.co`, `wss://khwlwpzydlrfocfpvywv.supabase.co`).
+- **`package.json`** : `"start": "node serveur/statique.mjs"`.
+- **`railway.json`** :
+  - build : `pnpm install --frozen-lockfile && pnpm build` ;
+  - démarrage : `pnpm start` ;
+  - healthcheck : `/` ;
+  - région européenne, si Railway la règle par fichier.
+
+  Vérifier les clés exactes dans la doc Railway, ne pas les deviner. Les variables `VITE_*` doivent être disponibles au build.
+- **`supabase/config.toml`** :
+  - `site_url = "https://olympiademanade-production.up.railway.app"` ;
+  - `additional_redirect_urls` : le domaine Railway et `http://localhost:5173`, avec des chemins précis (`/inscription/code`, `/auth/confirm`), pas `/**`.
+- **Scripts versionnés** (suivi lot 0, point 1) :
+  - `scripts/supabase-config-diff.exp` affiche le diff de `supabase config push` en répondant « n » à toutes les questions ;
+  - `scripts/supabase-config-push-auth.exp` ne pousse que la partie Auth.
+  - Ne **pas** lancer le push dans cette tâche, seulement le diff, et joindre la sortie au rapport.
+
+- [ ] **Step 1 : écrire `tests/e2e/serveur.spec.ts`**
+
+```ts
+import { expect, test } from '@playwright/test';
+
+test('le serveur de production sert les pages pré-rendues, le repli et les en-têtes', async ({ request }) => {
+  const accueil = await request.get('/');
+  expect(accueil.status()).toBe(200);
+  expect(accueil.headers()['cache-control']).toContain('no-cache');
+  expect(accueil.headers()['x-content-type-options']).toBe('nosniff');
+  expect(accueil.headers()['content-security-policy']).toContain('khwlwpzydlrfocfpvywv.supabase.co');
+
+  const inscription = await request.get('/inscription');
+  expect(inscription.status()).toBe(200);
+  expect(await inscription.text()).toContain('<div');
+
+  const inconnue = await request.get('/page-qui-n-existe-pas');
+  expect(inconnue.status()).toBe(404);
+});
+
+test('une page non pré-rendue s’ouvre directement par son URL', async ({ page }) => {
+  await page.goto('/inscription');
+  await expect(page.getByRole('button', { name: /Recevoir mon code/ })).toBeVisible();
+});
+```
+
+- [ ] **Step 2 :** voir les tests échouer, implémenter, puis lancer `pnpm build && pnpm test:e2e` contre le vrai serveur.
+- [ ] **Step 3 :** lancer `railway up --dry-run` si la CLI le propose. Sinon, vérifier avec `railway status` et relire `railway.json`. **Ne pas déployer.**
+- [ ] **Step 4 : commit** « Hébergement Railway : serveur statique, en-têtes de sécurité, configuration et scripts de push Auth ».
