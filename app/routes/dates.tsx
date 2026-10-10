@@ -8,6 +8,7 @@ import { EPREUVES } from '../donnees/epreuves';
 import { formaterJourMois } from '../lib/accueil';
 import { noteProjections, sectionsDates, type LigneDate, type SectionDates } from '../lib/calendrier';
 import { lireDonneesVitrine, lireDonneesVitrineNavigateur, type DonneesVitrine } from '../lib/donnees-vitrine';
+import { useRelectureApresInteraction } from '../lib/relecture';
 import { useMaintenant } from '../lib/temps';
 import type { Route } from './+types/dates';
 
@@ -22,11 +23,11 @@ export async function loader(): Promise<DonneesVitrine> {
   return lireDonneesVitrine();
 }
 
-// Dans le navigateur : calendrier frais, sinon celui du pré-rendu, sinon le message de repli.
+// Dans le navigateur, à la première interaction puis à chaque navigation vers la page : calendrier
+// frais, sinon celui du pré-rendu, sinon le message de repli. Pas de lecture à l'hydratation.
 export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs): Promise<DonneesVitrine> {
   return lireDonneesVitrineNavigateur(serverLoader);
 }
-clientLoader.hydrate = true as const;
 
 const lignesDe = (section: SectionDates): LigneDate[] => [...section.ceSoir, ...section.mois.flatMap((m) => m.lignes)];
 const CLASSE_SECTION =
@@ -191,6 +192,7 @@ function SectionAnnee({ section, premiere }: { section: SectionDates; premiere: 
 export default function Dates({ loaderData }: Route.ComponentProps) {
   const { calendrier, palmares, lueLe } = loaderData;
   const maintenant = useMaintenant(lueLe);
+  useRelectureApresInteraction();
   const sections = calendrier ? sectionsDates(calendrier, palmares, maintenant) : [];
   const saison = sections.find((s) => s.type === 'saison');
 

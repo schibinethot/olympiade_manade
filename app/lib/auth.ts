@@ -8,7 +8,7 @@
 //   « magiclink » sont dépréciés dans supabase-js).
 //
 // Les fonctions pures (normalisation, validation, traduction des erreurs) n'ouvrent pas le client :
-// il n'est créé qu'au premier appel de supabase(), les tests unitaires s'en passent.
+// il n'est chargé et créé qu'au premier appel de supabase(), les tests unitaires s'en passent.
 import { longueur } from './contact';
 import { supabase } from './supabase';
 
@@ -113,7 +113,7 @@ function enErreurAuth(erreur: unknown, etape: EtapeAuth): ErreurAuth {
  */
 export async function demanderCode(prenom: string, email: string): Promise<void> {
   try {
-    const { error } = await supabase().auth.signInWithOtp({
+    const { error } = await (await supabase()).auth.signInWithOtp({
       email,
       options: {
         shouldCreateUser: true,
@@ -130,7 +130,7 @@ export async function demanderCode(prenom: string, email: string): Promise<void>
 /** Valide le code : la session est alors enregistrée dans le navigateur (clé « olympiade-auth »). */
 export async function verifierCode(email: string, code: string): Promise<void> {
   try {
-    const { data, error } = await supabase().auth.verifyOtp({ email, token: code, type: 'email' });
+    const { data, error } = await (await supabase()).auth.verifyOtp({ email, token: code, type: 'email' });
     if (error) throw error;
     if (!data.session) throw new ErreurAuth(MESSAGES_AUTH.codeRefuse);
   } catch (erreur) {
@@ -141,7 +141,7 @@ export async function verifierCode(email: string, code: string): Promise<void> {
 /** Ferme la session de cet appareil seulement (les autres appareils du spectateur restent connectés). */
 export async function seDeconnecter(): Promise<void> {
   try {
-    const { error } = await supabase().auth.signOut({ scope: 'local' });
+    const { error } = await (await supabase()).auth.signOut({ scope: 'local' });
     if (error) throw error;
   } catch (erreur) {
     throw enErreurAuth(erreur, 'demande');

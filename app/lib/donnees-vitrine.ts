@@ -1,6 +1,7 @@
 // Données des pages vitrine qui portent le calendrier et le palmarès (accueil, Classements, Dates).
 import type { AvecCalendrier } from './accueil';
 import { lireCalendrier, lireOuRepli, lirePalmares, type Palmares } from './donnees';
+import { marquerDonneesRelues } from './relecture';
 
 export type DonneesVitrine = AvecCalendrier & { palmares: Palmares[] | null };
 
@@ -20,13 +21,15 @@ export async function lireDonneesVitrine(signal?: AbortSignal): Promise<DonneesV
 }
 
 /**
- * Lecture dans le navigateur (au chargement, puis à chaque navigation vers la page) : données
- * fraîches, pour qu'un palmarès complété apparaisse sans redéploiement. Une table que Supabase ne
- * rend pas dans le délai est reprise des données du pré-rendu (fichier .data servi par le site).
+ * Lecture dans le navigateur (à la première interaction, app/lib/relecture.ts, puis à chaque
+ * navigation vers la page) : données fraîches, pour qu'un palmarès complété apparaisse sans
+ * redéploiement. Une table que Supabase ne rend pas dans le délai est reprise des données du
+ * pré-rendu (fichier .data servi par le site).
  * Si elles manquent aussi, null : la page affiche son message de repli.
  */
 export async function lireDonneesVitrineNavigateur(serverLoader: () => Promise<DonneesVitrine>): Promise<DonneesVitrine> {
   const frais = await lireDonneesVitrine(AbortSignal.timeout(DELAI_LECTURE_NAVIGATEUR_MS));
+  marquerDonneesRelues();
   if (frais.calendrier && frais.palmares) return frais;
   const archive = await serverLoader().catch(() => null);
   return {

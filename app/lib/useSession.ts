@@ -1,6 +1,6 @@
 import type { Session, SupabaseClient } from '@supabase/supabase-js';
 import { useSyncExternalStore } from 'react';
-import { supabase } from './supabase';
+import { CLE_SESSION, quandClientCree, sessionPossible, supabase } from './supabase';
 
 export type EtatSession = {
   session: Session | null;
@@ -57,22 +57,42 @@ async function appliquer(client: SupabaseClient, session: Session | null) {
   if (numero === tour) publier({ session, prenom, chargement: false });
 }
 
+/** Stockage local du navigateur, ou null s'il est indisponible. */
+function stockageLocal(): Storage | null {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+/** Charge le client ; sans lui (variables absentes, réseau), personne n'est connecté. */
+function charger() {
+  supabase().catch(() => publier({ session: null, prenom: null, chargement: false }));
+}
+
 function demarrer() {
   if (demarre) return;
   demarre = true;
-  let client: SupabaseClient;
-  try {
-    client = supabase();
-  } catch {
-    // Variables d'environnement absentes : personne n'est connecté.
+  // Écoute de la session dès que le client existe, quel que soit l'appel qui le crée : la relecture
+  // ci-dessous, ou la demande d'un code depuis /inscription. INITIAL_SESSION arrive dès
+  // l'abonnement, une fois la session relue dans le stockage local (ou le lien de secours de l'email
+  // échangé). La doc de supabase-js déconseille d'appeler Supabase dans le rappel lui-même (verrou
+  // interne) : la suite est décalée.
+  quandClientCree((client) => {
+    client.auth.onAuthStateChange((_evenement, session) => {
+      setTimeout(() => void appliquer(client, session), 0);
+    });
+  });
+  if (sessionPossible(stockageLocal(), window.location)) {
+    charger();
+  } else {
+    // Aucune session sur cet appareil : personne n'est connecté, et supabase-js reste à charger.
     publier({ session: null, prenom: null, chargement: false });
-    return;
   }
-  // INITIAL_SESSION arrive dès l'abonnement, une fois la session relue dans le stockage local (ou le
-  // lien de secours de l'email échangé). La doc de supabase-js déconseille d'appeler Supabase dans
-  // le rappel lui-même (verrou interne) : la suite est décalée.
-  client.auth.onAuthStateChange((_evenement, session) => {
-    setTimeout(() => void appliquer(client, session), 0);
+  // Connexion depuis un autre onglet : la session apparaît dans le stockage, on la relit ici aussi.
+  window.addEventListener('storage', (evenement) => {
+    if (evenement.key?.startsWith(CLE_SESSION) && evenement.newValue) charger();
   });
 }
 

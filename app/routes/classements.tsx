@@ -7,6 +7,7 @@ import { anneeChoisie, anneesClassements, resultatsAnnee } from '../lib/classeme
 import { jourParis } from '../lib/dates';
 import { lireDonneesVitrine, lireDonneesVitrineNavigateur, type DonneesVitrine } from '../lib/donnees-vitrine';
 import { useHydrate } from '../lib/hydratation';
+import { donneesRelues, useRelectureApresInteraction } from '../lib/relecture';
 import { useMaintenant } from '../lib/temps';
 import type { Route } from './+types/classements';
 
@@ -20,15 +21,18 @@ export async function loader(): Promise<DonneesVitrine> {
   return lireDonneesVitrine();
 }
 
-// Dans le navigateur : palmarès frais, sinon celui du pré-rendu, sinon le message de repli.
+// Dans le navigateur, à la première interaction puis à chaque navigation vers la page : palmarès
+// frais, sinon celui du pré-rendu, sinon le message de repli. Pas de lecture à l'hydratation.
 export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs): Promise<DonneesVitrine> {
   return lireDonneesVitrineNavigateur(serverLoader);
 }
-clientLoader.hydrate = true as const;
 
-// Changer d'onglet ne change que `?annee=` : les données déjà lues suffisent.
+// Changer d'onglet ne change que `?annee=` : les données déjà relues suffisent. Tant qu'elles ne
+// le sont pas (premier clic de la visite sur un onglet, qui interrompt la relecture différée), le
+// changement d'onglet les relit. La relecture elle-même (même adresse) passe toujours.
 export function shouldRevalidate({ currentUrl, nextUrl, defaultShouldRevalidate }: ShouldRevalidateFunctionArgs) {
-  return currentUrl.pathname === nextUrl.pathname ? false : defaultShouldRevalidate;
+  const changementOnglet = currentUrl.pathname === nextUrl.pathname && currentUrl.search !== nextUrl.search;
+  return changementOnglet && donneesRelues() ? false : defaultShouldRevalidate;
 }
 
 const PANNEAU = 'panneau-classements';
@@ -63,6 +67,7 @@ function AnneeEnDirect({ annee, soirees }: { annee: number; soirees: number }) {
 export default function Classements({ loaderData }: Route.ComponentProps) {
   const { calendrier, palmares, lueLe } = loaderData;
   const maintenant = useMaintenant(lueLe);
+  useRelectureApresInteraction();
   const hydrate = useHydrate();
   const [parametres, setParametres] = useSearchParams();
 

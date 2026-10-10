@@ -26,9 +26,10 @@ export type Palmares = {
 
 export class ErreurDonnees extends Error {}
 
-function client(): SupabaseClient {
+/** Client Supabase, chargé à la demande ; un échec (variables absentes, réseau) devient ErreurDonnees. */
+async function client(): Promise<SupabaseClient> {
   try {
-    return supabase();
+    return await supabase();
   } catch (erreur) {
     throw new ErreurDonnees(erreur instanceof Error ? erreur.message : String(erreur));
   }
@@ -40,7 +41,7 @@ function client(): SupabaseClient {
  * le navigateur, le signal borne donc l'attente d'une navigation quand Supabase ne répond pas.
  */
 export async function lireCalendrier(signal?: AbortSignal): Promise<Calendrier[]> {
-  const requete = client()
+  const requete = (await client())
     .from('calendrier')
     .select('id, annee, nom, ville, arenes, date_soiree, heure, statut, lien_billetterie')
     .order('date_soiree');
@@ -50,7 +51,7 @@ export async function lireCalendrier(signal?: AbortSignal): Promise<Calendrier[]
 }
 
 export async function lirePalmares(signal?: AbortSignal): Promise<Palmares[]> {
-  const requete = client()
+  const requete = (await client())
     .from('palmares')
     .select('id, annee, evenement, ville, date_soiree, vainqueur, detail, statut, source_url')
     .order('annee', { ascending: false })
@@ -65,7 +66,7 @@ export async function lirePalmares(signal?: AbortSignal): Promise<Palmares[]> {
  * droit de relire la table, et supabase-js n'envoie alors que « return=minimal ».
  */
 export async function envoyerMessageContact(champs: ChampsContact): Promise<void> {
-  const { error } = await client().from('messages_contact').insert(champs);
+  const { error } = await (await client()).from('messages_contact').insert(champs);
   if (error) throw new ErreurDonnees(`Message non enregistré : ${error.message}`);
 }
 

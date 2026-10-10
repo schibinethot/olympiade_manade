@@ -9,6 +9,7 @@ import { VILLE_AFFICHE } from '../donnees/affiche';
 import { prochaineSoireeA, soireeDeReference } from '../lib/accueil';
 import { lireDonneesVitrine, lireDonneesVitrineNavigateur, type DonneesVitrine } from '../lib/donnees-vitrine';
 import { ETAT_SOIREE } from '../lib/etat-soiree';
+import { useRelectureApresInteraction } from '../lib/relecture';
 import { useMaintenant } from '../lib/temps';
 import type { Route } from './+types/accueil';
 
@@ -26,16 +27,17 @@ export async function loader(): Promise<DonneesVitrine> {
   return lireDonneesVitrine();
 }
 
-// Au chargement dans le navigateur, puis à chaque retour sur l'accueil : données fraîches (un palmarès
-// complété apparaît sans redéploiement). Si Supabase ne répond pas, on garde celles du pré-rendu.
+// Dans le navigateur, à la première interaction puis à chaque retour sur l'accueil : données fraîches
+// (un palmarès complété apparaît sans redéploiement). Si Supabase ne répond pas, on garde celles du
+// pré-rendu. Pas de lecture à l'hydratation : la page s'affiche sans charger supabase-js.
 export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs): Promise<DonneesVitrine> {
   return lireDonneesVitrineNavigateur(serverLoader);
 }
-clientLoader.hydrate = true as const;
 
 export default function Accueil({ loaderData }: Route.ComponentProps) {
   const { calendrier, palmares, lueLe } = loaderData;
   const maintenant = useMaintenant(lueLe);
+  useRelectureApresInteraction();
   // Carte et pastille : la soirée de Nîmes (repli sur la prochaine soirée si Nîmes n'a plus de date).
   const soiree = calendrier ? soireeDeReference(calendrier, maintenant) : null;
   const soireeAffiche = calendrier ? prochaineSoireeA(calendrier, VILLE_AFFICHE, maintenant) : null;
