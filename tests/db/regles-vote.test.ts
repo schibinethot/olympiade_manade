@@ -120,6 +120,61 @@ describe('vote du jury', () => {
       expect(await votableJury(db, IDS.juge, IDS.passageA)).toBe(false);
     }));
 
+  it('un juge rétrogradé ne note plus, un admin rattaché le peut', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      await modifier(db, ouvrir(IDS.passageA));
+      await modifier(db, 'insert into public.soiree_juges (soiree_id, juge_id) values ($1, $2)', [
+        IDS.soiree,
+        IDS.admin,
+      ]);
+      expect(await votableJury(db, IDS.juge, IDS.passageA)).toBe(true);
+      expect(await votableJury(db, IDS.admin, IDS.passageA)).toBe(true);
+      await modifier(db, `update public.profils set role = 'spectateur' where id = $1`, [IDS.juge]);
+      expect(await votableJury(db, IDS.juge, IDS.passageA)).toBe(false);
+    }));
+
+  it('le jury ne note que pendant une soirée publiée ou en cours', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      await modifier(db, ouvrir(IDS.passageA));
+      const attendus: Record<string, boolean> = {
+        publiee: true,
+        en_cours: true,
+        brouillon: false,
+        reportee: false,
+        annulee: false,
+        terminee: false,
+      };
+      for (const [statut, attendu] of Object.entries(attendus)) {
+        await modifier(db, 'update public.soirees set statut = $1::public.statut_soiree where id = $2', [
+          statut,
+          IDS.soiree,
+        ]);
+        expect(await votableJury(db, IDS.juge, IDS.passageA), statut).toBe(attendu);
+      }
+    }));
+
+  it('jury lié en mode libre : suit la fenêtre de vote', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      await modifier(db, `update public.soirees set mode_vote = 'libre' where id = $1`, [IDS.soiree]);
+      expect(await votableJury(db, IDS.juge, IDS.passageA)).toBe(true);
+      await modifier(
+        db,
+        `update public.soirees set vote_debut = now() - interval '2 hours', vote_fin = now() where id = $1`,
+        [IDS.soiree],
+      );
+      expect(await votableJury(db, IDS.juge, IDS.passageA)).toBe(false);
+    }));
+
+  it('une démonstration n’est jamais notable par le jury', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      await modifier(db, ouvrir(IDS.passageDemo));
+      expect(await votableJury(db, IDS.juge, IDS.passageDemo)).toBe(false);
+    }));
+
   it('un juge retiré de la soirée ne peut plus noter', () =>
     dansUneTransaction(async (db) => {
       await semerSoiree(db);

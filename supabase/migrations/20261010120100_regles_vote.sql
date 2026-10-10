@@ -47,6 +47,7 @@ as $$
     join public.epreuves e on e.id = p.epreuve_id
     join public.soirees s on s.id = e.soiree_id
     join public.soiree_juges sj on sj.soiree_id = s.id and sj.juge_id = auth.uid()
+    join public.profils pr on pr.id = sj.juge_id and pr.role in ('juge', 'admin')
     where p.id = p_passage_id
       and e.notee
       and s.statut in ('publiee', 'en_cours')
