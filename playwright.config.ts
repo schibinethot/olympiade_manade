@@ -20,9 +20,12 @@ export default defineConfig({
   // (serveur/statique.mjs : pages pré-rendues, repli monopage, 404, en-têtes de sécurité).
   // Sans réutilisation d'un serveur existant, Playwright refuse de démarrer si le port est
   // déjà occupé.
+  // VITE_INSCRIPTION_OUVERTE est figé à faux pour le build des tests : c'est la valeur par défaut du
+  // déploiement, et une valeur posée dans .env.local ne doit pas changer ce qui est testé (une
+  // variable déjà présente dans l'environnement l'emporte sur les fichiers .env de Vite).
   webServer: {
     command: 'pnpm build && pnpm start',
-    env: { PORT: String(PORT) },
+    env: { PORT: String(PORT), VITE_INSCRIPTION_OUVERTE: 'false' },
     url: `http://localhost:${PORT}`,
     reuseExistingServer: false,
     timeout: 180_000,

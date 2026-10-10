@@ -3,6 +3,7 @@ import { TitrePage } from '../composants/TitrePage';
 import { momentSoiree, soireeDeReference, type AvecCalendrier } from '../lib/accueil';
 import { lireCalendrier, lireOuRepli } from '../lib/donnees';
 import { DELAI_LECTURE_NAVIGATEUR_MS } from '../lib/donnees-vitrine';
+import { INSCRIPTION_OUVERTE, TEXTE_INSCRIPTIONS_FERMEES } from '../lib/inscription-ouverte';
 import { useMaintenant } from '../lib/temps';
 import { useSession } from '../lib/useSession';
 import type { Route } from './+types/noter';
@@ -37,9 +38,13 @@ export default function Noter({ loaderData }: Route.ComponentProps) {
       </p>
       <p className="mt-3 flex flex-wrap gap-x-5 gap-y-1">
         {!session && !chargement ? (
-          <Link to="/inscription" className={LIEN}>
-            Inscrivez-vous dès maintenant, vous serez prêt le soir venu
-          </Link>
+          INSCRIPTION_OUVERTE ? (
+            <Link to="/inscription" className={LIEN}>
+              Inscrivez-vous dès maintenant, vous serez prêt le soir venu
+            </Link>
+          ) : (
+            <span className="font-semibold text-encre">{TEXTE_INSCRIPTIONS_FERMEES}</span>
+          )
         ) : null}
         <Link to="/dates" className={LIEN}>
           Voir les dates

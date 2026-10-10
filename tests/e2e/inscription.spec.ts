@@ -25,6 +25,7 @@ const SESSION = {
 const CLE_SESSION = 'olympiade-auth';
 const CLE_DEMANDE = 'olympiade-inscription';
 const LIEN_INSCRIPTION = 'Inscrivez-vous dès maintenant, vous serez prêt le soir venu';
+const INSCRIPTIONS_FERMEES = 'Inscriptions bientôt ouvertes';
 const CODE_REFUSE = 'Code incorrect ou expiré. Vérifiez vos emails ou demandez un nouveau code.';
 
 test('inscription complète : prénom, email, consentement, code collé, arrivée sur /noter', async ({ page }) => {
@@ -308,14 +309,30 @@ test('déjà connecté, /inscription mène directement à /noter', async ({ page
   await expect(page).toHaveURL(/\/noter$/);
 });
 
-test('accueil : lien d’inscription sous le bouton grisé, remplacé par un message une fois inscrit', async ({ page }) => {
+// Drapeau d'ouverture : le build des tests laisse VITE_INSCRIPTION_OUVERTE à faux (playwright.config.ts),
+// comme le déploiement tant que le SMTP personnalisé n'est pas prêt. Le cas « vrai » est couvert par
+// tests/unit/inscription-ouverte.test.ts ; les pages d'inscription restent testées par leur adresse.
+
+test('accueil, inscriptions fermées : « Inscriptions bientôt ouvertes », sans lien vers /inscription', async ({ page }) => {
   await page.goto('/');
-  const lien = page.getByRole('link', { name: LIEN_INSCRIPTION });
-  await expect(lien).toBeVisible();
+  const carte = page.getByRole('region', { name: 'Notez les Olympiades' });
+  await expect(carte.getByText(INSCRIPTIONS_FERMEES, { exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: LIEN_INSCRIPTION })).toHaveCount(0);
+  await expect(page.locator('a[href^="/inscription"]')).toHaveCount(0);
   await expect(page.getByRole('button', { name: /Je note les manades/ })).toHaveAttribute('aria-disabled', 'true');
-  await lien.click();
-  await expect(page).toHaveURL(/\/inscription$/);
-  await expect(page.getByLabel('Prénom')).toBeVisible();
+});
+
+test('inscriptions fermées : /inscription reste utilisable par son adresse, hors des moteurs de recherche', async ({ page }) => {
+  await page.route('**/auth/v1/otp*', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
+  for (const chemin of ['/inscription', '/inscription/code']) {
+    await page.goto(chemin);
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex');
+  }
+  await page.goto('/inscription');
+  await demanderUnCode(page);
+  await expect(page).toHaveURL(/\/inscription\/code$/);
+  await expect(page.getByLabel(/Code/).first()).toBeVisible();
 });
 
 test('accueil, spectateur inscrit : « Vous êtes inscrit, à bientôt dans les arènes, Léa »', async ({ page }) => {
@@ -361,14 +378,15 @@ async function simulerCalendrier(page: Page) {
   );
 }
 
-test('/noter, visiteur : date de la prochaine soirée de Nîmes et lien d’inscription', async ({ page }) => {
+test('/noter, visiteur, inscriptions fermées : date de Nîmes et « Inscriptions bientôt ouvertes », sans lien', async ({ page }) => {
   await simulerCalendrier(page);
   await page.clock.setFixedTime(new Date('2026-10-10T12:00:00+02:00'));
   await page.goto('/noter');
   await expect(page.getByText(/Les votes ouvriront le vendredi 20 août 2027 à 21h, aux arènes de Nîmes/)).toBeVisible();
   await expect(page.getByText(/Bonjour/)).toHaveCount(0);
-  await page.getByRole('main').getByRole('link', { name: LIEN_INSCRIPTION }).click();
-  await expect(page).toHaveURL(/\/inscription$/);
+  await expect(page.getByRole('main').getByText(INSCRIPTIONS_FERMEES, { exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: LIEN_INSCRIPTION })).toHaveCount(0);
+  await expect(page.locator('a[href^="/inscription"]')).toHaveCount(0);
 });
 
 test('/noter, spectateur inscrit : « Bonjour Léa » et la date, sans lien d’inscription', async ({ page }) => {
@@ -380,6 +398,7 @@ test('/noter, spectateur inscrit : « Bonjour Léa » et la date, sans lien d’
   await expect(texte).toBeVisible();
   await expect(texte).toContainText('Les votes ouvriront le vendredi 20 août 2027 à 21h, aux arènes de Nîmes');
   await expect(page.getByRole('main').getByRole('link', { name: LIEN_INSCRIPTION })).toHaveCount(0);
+  await expect(page.getByText(INSCRIPTIONS_FERMEES)).toHaveCount(0);
 });
 
 test('en-tête : prénom et « Se déconnecter », sur ordinateur et dans le menu mobile', async ({ page }, info) => {
@@ -402,7 +421,8 @@ test('en-tête : prénom et « Se déconnecter », sur ordinateur et dans le men
 
   await entete.getByRole('button', { name: 'Se déconnecter' }).click();
   await expect(entete.getByText('Léa')).toHaveCount(0);
-  await expect(page.getByRole('link', { name: LIEN_INSCRIPTION })).toBeVisible();
+  // Déconnecté, inscriptions fermées : la carte de l'accueil revient au texte d'attente.
+  await expect(page.getByText(INSCRIPTIONS_FERMEES, { exact: true })).toBeVisible();
   expect(deconnexion).toContain('scope=local');
   expect(await page.evaluate((cle) => localStorage.getItem(cle), CLE_SESSION)).toBeNull();
 });

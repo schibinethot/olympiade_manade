@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { momentSoiree } from '../lib/accueil';
 import type { Calendrier } from '../lib/donnees';
 import type { EtatSoiree } from '../lib/etat-soiree';
+import { INSCRIPTION_OUVERTE, TEXTE_INSCRIPTIONS_FERMEES } from '../lib/inscription-ouverte';
 import { useSession } from '../lib/useSession';
 import { Fer } from './Fer';
 import { Icone } from './Icone';
@@ -34,6 +35,8 @@ const BOUTON =
  * Inscription (Task 6) : possible avant la soirée (CDC 4.4). Sous la raison du bouton grisé, un lien
  * vers /inscription, ou, pour un spectateur déjà connecté, « Vous êtes inscrit… ». Le pré-rendu et
  * l'hydratation affichent le lien : la session n'est connue qu'ensuite, dans le navigateur.
+ * Drapeau VITE_INSCRIPTION_OUVERTE à faux (par défaut) : « Inscriptions bientôt ouvertes », sans
+ * lien, à la place du lien d'inscription.
  */
 export function BlocNoter({ etat, soiree, calendrierDisponible, maintenant, direct }: Props) {
   const idTitre = useId();
@@ -84,15 +87,15 @@ export function BlocNoter({ etat, soiree, calendrierDisponible, maintenant, dire
       {ouvert ? (
         <>
           {/* Lien et non bouton : il navigue. Vers le vote une fois connecté, sinon vers l'inscription
-              (le même parcours sert à se reconnecter). */}
+              (le même parcours sert à se reconnecter) si elle est ouverte au public. */}
           <Link
-            to={inscrit ? '/noter' : '/inscription'}
+            to={inscrit || !INSCRIPTION_OUVERTE ? '/noter' : '/inscription'}
             className={`${BOUTON} transition-[filter,transform] hover:brightness-105 active:scale-[0.97]`}
           >
             Je note les manades
             <Icone nom="fleche" />
           </Link>
-          {inscrit ? null : (
+          {inscrit || !INSCRIPTION_OUVERTE ? null : (
             <p className="relative z-10 text-[13px] leading-[1.4]">
               Inscription en 30 secondes&nbsp;: prénom, email, code reçu.{' '}
               <Link to="/inscription" className="font-semibold underline underline-offset-2">
@@ -140,7 +143,7 @@ export function BlocNoter({ etat, soiree, calendrierDisponible, maintenant, dire
               <Icone nom="valide" className="size-4" />
               Vous êtes inscrit, à bientôt dans les arènes{prenom ? `, ${prenom}` : ''}
             </p>
-          ) : (
+          ) : INSCRIPTION_OUVERTE ? (
             <Link
               to="/inscription"
               className="relative z-10 self-start py-2.5 text-[13.5px] leading-[1.45] font-semibold underline underline-offset-2"
@@ -148,6 +151,8 @@ export function BlocNoter({ etat, soiree, calendrierDisponible, maintenant, dire
               Inscrivez-vous dès maintenant, vous serez prêt le soir venu
               <Icone nom="fleche" className="ml-1 inline size-4 align-[-3px]" />
             </Link>
+          ) : (
+            <p className="relative z-10 text-[13.5px] leading-[1.45] font-semibold">{TEXTE_INSCRIPTIONS_FERMEES}</p>
           )}
           <ProchaineSoiree soiree={soiree} disponible={calendrierDisponible} maintenant={maintenant} />
         </>
