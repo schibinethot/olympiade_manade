@@ -11,7 +11,7 @@ describe('vitrine : calendrier et palmarès', () => {
       const cal = await db.query(
         `select count(*)::int as n from public.calendrier where annee = 2027 and statut = 'previsionnelle'`,
       );
-      expect(cal.rows[0].n).toBe(10);
+      expect(cal.rows[0].n).toBe(17);
       const nimes = await db.query(
         `select date_soiree::text as d from public.calendrier where annee = 2027 and ville = 'Nîmes'`,
       );
@@ -22,8 +22,28 @@ describe('vitrine : calendrier et palmarès', () => {
       expect(pal.rows).toEqual([
         { annee: 2023, vainqueur: 'Vinuesa', statut: 'confirme' },
         { annee: 2024, vainqueur: 'Vinuesa', statut: 'confirme' },
-        { annee: 2025, vainqueur: 'Vinuesa', statut: 'a_confirmer' },
+        { annee: 2025, vainqueur: 'Vinuesa', statut: 'confirme' },
+        { annee: 2026, vainqueur: 'Arlatenco', statut: 'confirme' },
       ]);
+    }));
+
+  it('les compléments du 10/10 sont en place', () =>
+    dansUneTransaction(async (db) => {
+      await commeVisiteur(db);
+      const arles = await db.query(
+        `select statut::text as s, date_soiree::text as d, heure::text as h from public.calendrier where annee = 2027 and ville = 'Arles'`,
+      );
+      expect(arles.rows).toEqual([{ s: 'confirmee', d: '2027-05-01', h: '15:30:00' }]);
+      const beaucaire = await db.query(
+        `select date_soiree::text as d from public.calendrier where annee = 2027 and ville = 'Beaucaire'`,
+      );
+      expect(beaucaire.rows).toEqual([{ d: '2027-07-20' }]);
+      const total = await db.query(`select count(*)::int as n from public.calendrier where annee = 2027`);
+      expect(total.rows[0].n).toBe(18);
+      const pal = await db.query(
+        `select count(*)::int as n, count(*) filter (where statut = 'confirme')::int as confirmes, count(*) filter (where statut = 'a_confirmer' and ville = 'Bezouce')::int as bezouce from public.palmares where annee = 2026`,
+      );
+      expect(pal.rows).toEqual([{ n: 10, confirmes: 9, bezouce: 1 }]);
     }));
 
   it('un visiteur et un spectateur ne modifient ni le calendrier ni le palmarès', () =>
