@@ -1,0 +1,17 @@
+{
+  "name": "olympiade-manade",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:db": "vitest run tests/db",
+    "typecheck": "tsc"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "@types/pg": "^8.23.1",
+    "pg": "^8.23.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}
