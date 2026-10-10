@@ -50,7 +50,9 @@ test('si Supabase est injoignable en navigation, les pages restent lisibles avec
   if (await menu.isVisible()) await menu.click();
   await page.getByRole('navigation').getByRole('link', { name: 'Dates' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-  await expect(page.getByText(/momentanément indisponibles/)).toBeVisible();
+  // Délai allongé : la lecture coupée peut attendre la borne de 3 s du navigateur, et le délai par
+  // défaut de 5 s ne suffisait pas toujours avec les tests en parallèle.
+  await expect(page.getByText(/momentanément indisponibles/)).toBeVisible({ timeout: 10_000 });
 });
 
 // Garde ajoutée : la page pré-rendue ne connaît pas `?annee=`. Un lien direct doit ouvrir l'onglet

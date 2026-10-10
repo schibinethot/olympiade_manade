@@ -28,6 +28,13 @@ const LIEN_INSCRIPTION = 'Inscrivez-vous dès maintenant, vous serez prêt le so
 const INSCRIPTIONS_FERMEES = 'Inscriptions bientôt ouvertes';
 const CODE_REFUSE = 'Code incorrect ou expiré. Vérifiez vos emails ou demandez un nouveau code.';
 
+// Garde : tout appel Auth qu'un test ne simule pas est coupé, aucun vrai email ne peut partir. Les
+// routes posées ensuite par chaque test passent avant celle-ci (Playwright essaie la dernière
+// route enregistrée en premier).
+test.beforeEach(async ({ page }) => {
+  await page.route('**/auth/v1/**', (route) => route.abort());
+});
+
 test('inscription complète : prénom, email, consentement, code collé, arrivée sur /noter', async ({ page }) => {
   let demandeOtp: Record<string, unknown> | null = null;
   let verification: Record<string, unknown> | null = null;
@@ -90,7 +97,7 @@ test('un code refusé affiche un message clair et laisse réessayer', async ({ p
 });
 
 // ---------------------------------------------------------------------------------------------
-// Gardes ajoutées (fiche, compléments du 10/10 et reprise de SITE-AM)
+// Gardes ajoutées (fiche, compléments du 10/10 et reprise d'un projet interne)
 // ---------------------------------------------------------------------------------------------
 
 /** Remplit le formulaire d'inscription et demande le code. */

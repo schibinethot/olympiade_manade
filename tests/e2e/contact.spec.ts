@@ -41,7 +41,8 @@ test('le formulaire signale un échec d’envoi', async ({ page }) => {
 test('sans JavaScript, le bouton est inactif et rien ne part dans l’URL', async ({ browser }) => {
   const contexte = await browser.newContext({ javaScriptEnabled: false });
   const page = await contexte.newPage();
-  await page.goto('http://localhost:4173/contact');
+  // Adresse relative : le contexte reprend la base d'URL de playwright.config.ts.
+  await page.goto('/contact');
   await expect(page.getByRole('button', { name: 'Envoyer' })).toBeDisabled();
   await expect(page.locator('form')).toHaveAttribute('method', 'post');
   // Playwright ignore le texte des <noscript> dans ses sélecteurs : lecture directe du HTML.
