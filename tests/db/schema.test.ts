@@ -193,6 +193,29 @@ describe('schéma', () => {
       expect(rowCount).toBe(1);
     }));
 
+  it('horodate les notes et les avis à l’insertion, en écrasant un maj_le fourni', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      await db.query(
+        `insert into public.notes_public (passage_id, votant_id, note, maj_le) values ($1, $2, 8, '2020-01-01')`,
+        [IDS.passageA, IDS.spectateur],
+      );
+      await db.query(
+        `insert into public.notes_jury (passage_id, juge_id, note, maj_le) values ($1, $2, 15, '2020-01-01')`,
+        [IDS.passageA, IDS.juge],
+      );
+      await db.query(
+        `insert into public.avis_soiree (soiree_id, votant_id, etoiles, maj_le) values ($1, $2, 5, '2020-01-01')`,
+        [IDS.soiree, IDS.spectateur],
+      );
+      const { rows } = await db.query(
+        `select (select maj_le = now() from public.notes_public) as notes_public,
+                (select maj_le = now() from public.notes_jury) as notes_jury,
+                (select maj_le = now() from public.avis_soiree) as avis_soiree`,
+      );
+      expect(rows[0]).toEqual({ notes_public: true, notes_jury: true, avis_soiree: true });
+    }));
+
   it('supprime une soirée avec ses passages en cascade', () =>
     dansUneTransaction(async (db) => {
       await semerSoiree(db);

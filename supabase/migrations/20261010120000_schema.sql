@@ -116,7 +116,7 @@ create table public.avis_soiree (
   primary key (soiree_id, votant_id)
 );
 
--- Horodatage des modifications
+-- Horodatage par la base, à l'insertion comme à la modification : un maj_le fourni par le client est écrasé.
 create function prive.horodater_maj() returns trigger
 language plpgsql set search_path = ''
 as $$
@@ -126,11 +126,11 @@ begin
 end;
 $$;
 
-create trigger notes_public_horodatage before update on public.notes_public
+create trigger notes_public_horodatage before insert or update on public.notes_public
   for each row execute function prive.horodater_maj();
-create trigger notes_jury_horodatage before update on public.notes_jury
+create trigger notes_jury_horodatage before insert or update on public.notes_jury
   for each row execute function prive.horodater_maj();
-create trigger avis_soiree_horodatage before update on public.avis_soiree
+create trigger avis_soiree_horodatage before insert or update on public.avis_soiree
   for each row execute function prive.horodater_maj();
 
 -- Un passage ne concerne qu'une manade engagée dans la soirée de l'épreuve
