@@ -1,6 +1,6 @@
 # Cahier des charges : app de notation de l'Olympiade des manades
 
-> Version 0.6 (brouillon) · 2026-10-10 · Statut : **à valider** · Design validé : [charte graphique](charte-graphique.md) et [maquette v1](maquette/README.md)
+> Version 0.7 (brouillon) · 2026-10-11 · Statut : **à valider** · Design validé : [charte graphique](charte-graphique.md) et [maquette v1](maquette/README.md)
 > Document de référence du projet. Toute fonctionnalité livrée doit s'y rattacher.
 
 ---
@@ -156,7 +156,7 @@ Objectif : un site **simple, intuitif et soigné**, pensé d'abord pour le tél�
 
 | Page | Contenu |
 |---|---|
-| **Accueil** | Sur mobile, **le premier bloc affiché est « Notez les Olympiades »**, avec un gros bouton qui mène à l'inscription, ou directement à la notation si le spectateur est déjà inscrit. En dessous : prochaine soirée (date, lieu, compte à rebours), photos des éditions passées, présentation courte des 4 épreuves, dernier vainqueur |
+| **Accueil** | Sur mobile, **le premier bloc affiché est « Notez les Olympiades »**, avec un gros bouton qui mène à l'inscription, ou directement à la notation si le spectateur est déjà inscrit. **Hors soirée**, ce bouton reste visible mais grisé, avec la raison juste dessous (date, heure et arènes de la prochaine soirée). En dessous : prochaine soirée (date, lieu, compte à rebours), photos des éditions passées, présentation courte des 4 épreuves, dernier vainqueur |
 | **Classements** | Onglets **2025**, **2026** et **2027**. 2025 et 2026 : palmarès des éditions passées (vainqueur général, vainqueurs par épreuve, source). 2027 : classements en direct de l'app (public et jury, selon les réglages de la section 4.6) |
 | **Dates** | Calendrier des soirées 2027 (date, heure, arènes, ville, lien billetterie), puis archives 2025 et 2026 |
 | **Contact** | Formulaire (prénom, email, message) avec anti-robot. Le message est enregistré et transmis par email à l'organisateur. Coordonnées de l'organisateur |
@@ -238,6 +238,8 @@ L'admin envoie le planning dans le format qu'il a sous la main :
 3. Il reçoit par email un **code à 6 chiffres**, valable 1 heure, et le saisit dans l'app. L'email contient aussi un lien de connexion, en secours
 4. Son accès est validé. Il reste connecté sur ce téléphone pour toute la saison, sans ressaisir de code
 5. L'app lui propose d'**activer les notifications** (section 4.10)
+
+**Ouverture de l'inscription au public** : réglée par le drapeau de build `VITE_INSCRIPTION_OUVERTE`, faux par défaut. Tant qu'il est faux, les liens vers l'inscription sont remplacés par « Inscriptions bientôt ouvertes ». Il passe à vrai seulement quand ces prérequis sont en place, dans cet ordre : anti-robot Turnstile, consentement horodaté à la confirmation de l'email et purge des comptes non confirmés, SMTP Brevo branché sur Supabase Auth. Raison : l'envoi intégré de Supabase n'écrit qu'aux membres de l'équipe.
 
 **Pendant la soirée** :
 
@@ -358,7 +360,7 @@ Après la fermeture des votes, le spectateur peut laisser une **note globale de 
 
 | Brique | Choix | Raison |
 |---|---|---|
-| Front | React Router 7 (mode framework, sur Vite) + TypeScript + Tailwind + shadcn/ui | Pages vitrine pré-rendues pour le référencement, notation et admin en application monopage |
+| Front | React Router 8 (mode framework, sur Vite) + TypeScript + Tailwind + shadcn/ui | Pages vitrine pré-rendues pour le référencement, notation et admin en application monopage |
 | App installable | PWA (`vite-plugin-pwa`), **un seul manifeste** | Plusieurs PWA sur un même domaine se disputent les liens ([web.dev](https://web.dev/articles/building-multiple-pwas-on-the-same-domain)). Une seule app avec des rôles évite le problème |
 | Base de données | Supabase Postgres + Row Level Security | Les règles de vote (fenêtre, déblocage, une note par personne) sont appliquées par la base |
 | Authentification | Supabase Auth : code à 6 chiffres par email pour les spectateurs ([doc](https://supabase.com/docs/guides/auth/auth-email-passwordless)), email + mot de passe pour les admins, lien de connexion généré par l'admin pour les juges | Un email vérifié par votant, sans mot de passe à retenir |
@@ -368,7 +370,7 @@ Après la fermeture des votes, le spectateur peut laisser une **note globale de 
 | Temps réel | Supabase Realtime pour admins, juges et écran géant. Relecture périodique pour les spectateurs (voir 5.3) | Respect des quotas Realtime |
 | Fichiers | Supabase Storage (bucket privé `plannings`) | Historique des imports |
 | IA | Supabase Edge Function `extraire-planning` + SDK `@anthropic-ai/sdk`, modèle `claude-opus-5-5` | La clé API reste côté serveur |
-| Hébergement du front | Vercel (fichiers statiques) | Le front est un simple site statique |
+| Hébergement du front | Railway, compte TPMGE, un seul service `olympiade_manade` : petit serveur Node (`serveur/statique.mjs`) qui sert le build pré-rendu avec les en-têtes de sécurité (CSP par hachages, HSTS) | Le front est un site statique ; un seul bloc à suivre, choisi par le client |
 
 ### 5.2 Modèle de données
 
@@ -451,7 +453,7 @@ Le réseau 4G est souvent saturé dans les arènes. En conséquence :
 | Disponibilité | Aucune mise en production pendant une soirée |
 | Accessibilité | Contrastes AA, boutons de 48 px minimum, lisible de nuit sous l'éclairage des arènes |
 | Langue | Français uniquement en V1 |
-| RGPD | Données du public : prénom et email, utilisés uniquement pour l'accès au vote et les notifications. Consentement à l'inscription, politique de confidentialité, suppression du compte depuis l'app, suppression automatique des comptes spectateurs inactifs depuis 24 mois. Aucun traceur tiers. Pas de newsletter sans case dédiée, décochée par défaut. Sous-traitants : Supabase, Brevo, Vercel |
+| RGPD | Données du public : prénom et email, utilisés uniquement pour l'accès au vote et les notifications. Consentement à l'inscription, politique de confidentialité, suppression du compte depuis l'app, suppression automatique des comptes spectateurs inactifs depuis 24 mois. Aucun traceur tiers. Pas de newsletter sans case dédiée, décochée par défaut. Sous-traitants : Supabase, Brevo, Railway |
 | Référencement | Pages vitrine pré-rendues, titre et description par page, données structurées `Event` pour les dates |
 | Sécurité | Clé API Anthropic et clé `service_role` Supabase uniquement côté serveur. Règles RLS couvertes par des tests automatisés |
 | Signature | Pied de page « Signé TPMGE » selon la spec de l'agence, et mention « Conçue en collaboration avec Atch Élevage et TPMGE » avec le bloc « Partenaire officiel : Atch Élevage » (charte graphique, section 8) |
@@ -501,7 +503,7 @@ Le réseau 4G est souvent saturé dans les arènes. En conséquence :
 | 4 | Jury : liens de connexion, notation, barème, verrouillage | 1 j |
 | 5 | Cockpit en direct et écran géant | 1,5 j |
 | 6 | PWA, test de charge, tests e2e, recette sur téléphones réels | 1,5 j |
-| 7 | Site vitrine : accueil, classements 2025-2027, dates, contact, mentions légales, gestion des contenus et photos | 2,5 j |
+| 7 | Site vitrine : accueil, classements 2025-2027, dates, contact, mentions légales, gestion des contenus et photos. **En ligne depuis le 11/10/2026** ; la gestion des contenus depuis l'admin passe au lot 1 | 2,5 j |
 | 8 | Notifications : abonnement, guide iPhone, envoi au déblocage, bannière de secours | 1,5 j |
 | 9 | App Android : coque Capacitor, notifications FCM, réglage d'ouverture au public, publication Google Play (test interne) | 2,5 j |
 | | **Total** | **≈ 19 jours** |
