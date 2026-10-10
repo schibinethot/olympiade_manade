@@ -29,15 +29,22 @@ export function compteARebours(cible: Date, maintenant: Date): { jours: number; 
   };
 }
 
+/** Le premier jour du mois s'écrit « 1er » en français ; Intl ne donne que « 1 ». */
+export function premierDuMois(texte: string): string {
+  return texte.replace(/(^|\s)1(?=\s)/, '$11er');
+}
+
 export function formaterDateLongue(dateIso: string): string {
   const [a, m, j] = dateIso.split('-').map(Number);
-  return new Intl.DateTimeFormat('fr-FR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(Date.UTC(a, m - 1, j)));
+  return premierDuMois(
+    new Intl.DateTimeFormat('fr-FR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'UTC',
+    }).format(new Date(Date.UTC(a, m - 1, j))),
+  );
 }
 
 export function formaterHeure(heure: string | null): string | null {

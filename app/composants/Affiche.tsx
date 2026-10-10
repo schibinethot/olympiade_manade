@@ -26,14 +26,10 @@ export function Affiche({ soiree }: Props) {
         aria-describedby={ID_CREDIT}
         className="duo photo-affiche absolute inset-0 [--position:38%_42%]"
       />
-      {/* Voile de l'affiche. La maquette éclaire le haut à droite, sous la date : le texte blanc y tombait
-          à 2:1. Ici, le haut s'assombrit sous les textes, la lumière chaude passe au centre (sur le
-          cavalier) et le bas reste assombri sous le titre et les manades. */}
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 bg-[linear-gradient(180deg,rgba(74,22,8,.64)_0%,rgba(74,22,8,.44)_18%,rgba(74,22,8,0)_38%,rgba(90,22,8,0)_48%,rgba(90,22,8,.62)),radial-gradient(60%_42%_at_62%_44%,rgba(255,226,180,.28),transparent_70%)]"
-      />
-      <div aria-hidden="true" className="grain absolute inset-0 opacity-40" />
+      {/* Voile en dégradé, en haut et en bas, pour la lisibilité des textes sur la photo
+          (app/app.css, .voile-affiche). */}
+      <div aria-hidden="true" className="voile-affiche absolute inset-0" />
+      <div aria-hidden="true" className="grain absolute inset-0 opacity-30" />
 
       <div className="relative z-10 flex items-start justify-between gap-3 [text-shadow:0_0_2px_rgba(60,15,5,.7),0_1px_3px_rgba(60,15,5,.5),0_2px_16px_rgba(90,20,5,.55)]">
         <p className="font-display uppercase">

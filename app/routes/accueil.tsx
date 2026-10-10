@@ -6,8 +6,7 @@ import { FormulaireContact } from '../composants/FormulaireContact';
 import { ManadesEdition } from '../composants/ManadesEdition';
 import { SaisonAccueil } from '../composants/SaisonAccueil';
 import { VILLE_AFFICHE } from '../donnees/affiche';
-import { prochaineSoireeA, type AvecCalendrier } from '../lib/accueil';
-import { prochaineSoiree } from '../lib/dates';
+import { prochaineSoireeA, soireeDeReference, type AvecCalendrier } from '../lib/accueil';
 import { lireCalendrier, lireOuRepli, lirePalmares, type Palmares } from '../lib/donnees';
 import { ETAT_SOIREE } from '../lib/etat-soiree';
 import { useMaintenant } from '../lib/temps';
@@ -51,7 +50,8 @@ clientLoader.hydrate = true as const;
 export default function Accueil({ loaderData }: Route.ComponentProps) {
   const { calendrier, palmares, lueLe } = loaderData;
   const maintenant = useMaintenant(lueLe);
-  const soiree = calendrier ? prochaineSoiree(calendrier, maintenant) : null;
+  // Carte et pastille : la soirée de Nîmes (repli sur la prochaine soirée si Nîmes n'a plus de date).
+  const soiree = calendrier ? soireeDeReference(calendrier, maintenant) : null;
   const soireeAffiche = calendrier ? prochaineSoireeA(calendrier, VILLE_AFFICHE, maintenant) : null;
 
   return (

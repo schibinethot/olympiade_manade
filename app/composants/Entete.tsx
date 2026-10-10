@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Link, NavLink, useLocation, useMatches } from 'react-router';
-import { aCalendrier, formaterJourMois } from '../lib/accueil';
-import { prochaineSoiree } from '../lib/dates';
+import { aCalendrier, formaterJourMois, soireeDeReference } from '../lib/accueil';
 import { ETAT_SOIREE, type EtatSoiree } from '../lib/etat-soiree';
 import { useMaintenant } from '../lib/temps';
 import { Icone } from './Icone';
@@ -48,13 +47,13 @@ export function Entete({ prenom = null, generique = false, etat = ETAT_SOIREE }:
   const menu = useRef<HTMLElement>(null);
   const { pathname } = useLocation();
 
-  // Prochaine soirée, quand la page affichée porte le calendrier (accueil, puis Dates) : la pastille
-  // suit ainsi les mêmes données que la page.
+  // Soirée de référence (Nîmes, sinon la prochaine soirée), quand la page affichée porte le
+  // calendrier (accueil, puis Dates) : la pastille suit ainsi les mêmes données que la page.
   const donnees = useMatches()
     .map((m) => m.loaderData)
     .find(aCalendrier);
   const maintenant = useMaintenant(donnees?.lueLe ?? null);
-  const soiree = donnees?.calendrier && maintenant ? prochaineSoiree(donnees.calendrier, maintenant) : null;
+  const soiree = donnees?.calendrier && maintenant ? soireeDeReference(donnees.calendrier, maintenant) : null;
   const ouvert = etat === 'ouvert';
 
   // Le popover reste ouvert après une navigation côté client : on le referme.

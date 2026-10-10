@@ -6,6 +6,7 @@ import {
   lieuSoiree,
   prochaineSoireeA,
   saisonAccueil,
+  soireeDeReference,
   texteCompteARebours,
 } from '../../app/lib/accueil';
 import type { Calendrier, Palmares } from '../../app/lib/donnees';
@@ -76,6 +77,11 @@ describe('formaterJourMois', () => {
     expect(formaterJourMois('2027-08-20')).toBe('20 août');
     expect(formaterJourMois('2027-05-07')).toBe('7 mai');
   });
+
+  it('écrit « 1er » pour le premier jour du mois', () => {
+    expect(formaterJourMois('2027-05-01')).toBe('1er mai');
+    expect(formaterJourMois('2027-05-11')).toBe('11 mai');
+  });
 });
 
 describe('prochaineSoireeA', () => {
@@ -83,6 +89,25 @@ describe('prochaineSoireeA', () => {
     const calendrier = [soiree('2027-05-07', 'Alès'), soiree('2026-08-21', 'Nîmes'), soiree('2027-08-20', 'Nîmes')];
     expect(prochaineSoireeA(calendrier, 'Nîmes', new Date('2026-10-10T12:00:00+02:00'))?.date_soiree).toBe('2027-08-20');
     expect(prochaineSoireeA(calendrier, 'Nîmes', new Date('2027-09-01T12:00:00+02:00'))).toBeNull();
+  });
+});
+
+describe('soireeDeReference', () => {
+  const calendrier = [
+    soiree('2027-05-01', 'Arles', { statut: 'confirmee' }),
+    soiree('2027-08-19', 'Mouriès'),
+    soiree('2027-08-20', 'Nîmes', { heure: '21:00:00' }),
+    soiree('2027-08-27', 'Raphèle-lès-Arles'),
+  ];
+
+  it('vise la prochaine soirée de Nîmes, même si d’autres soirées viennent avant', () => {
+    expect(soireeDeReference(calendrier, new Date('2026-10-10T12:00:00+02:00'))?.ville).toBe('Nîmes');
+    expect(soireeDeReference(calendrier, new Date('2027-08-18T12:00:00+02:00'))?.date_soiree).toBe('2027-08-20');
+  });
+
+  it('revient à la prochaine soirée tous événements confondus quand Nîmes n’a plus de date', () => {
+    expect(soireeDeReference(calendrier, new Date('2027-08-23T12:00:00+02:00'))?.ville).toBe('Raphèle-lès-Arles');
+    expect(soireeDeReference(calendrier, new Date('2027-09-01T12:00:00+02:00'))).toBeNull();
   });
 });
 

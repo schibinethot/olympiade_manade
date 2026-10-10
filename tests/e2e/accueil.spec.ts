@@ -15,16 +15,15 @@ test('sur mobile, « Notez les Olympiades », le bouton grisé et la raison sont
   await expect(page).toHaveURL(/\/$/);
 });
 
-// Mise en place adaptée (consigne du contrôleur) : la fiche fixait l'horloge au 15/08/2027, mais le
-// calendrier réel contient des soirées le 16/08/2027 (Beauvoisin, Le Crès), qui seraient alors la
-// prochaine soirée. Au 18/08/2027, la prochaine soirée est Mouriès, le jeudi 19/08/2027, quelles que
-// soient les dates ajoutées au calendrier. Les assertions sont inchangées.
+// Mise en place adaptée (consigne du contrôleur) : horloge au 18/08/2027 au lieu du 15/08.
+// Correctif avant relecture : la carte vise la soirée de Nîmes (celle de l'affiche et du vote), le
+// vendredi 20/08/2027. Mouriès, prochaine date tous événements confondus, reste dans « Saison 2027 ».
 test('l’accueil présente l’affiche, la prochaine soirée, le compte à rebours, les 4 épreuves et le dernier vainqueur', async ({ page }) => {
   await page.clock.setFixedTime(new Date('2027-08-18T12:00:00+02:00'));
   await page.goto('/');
   await expect(page.getByText(/ARÈNES DE/i).first()).toBeVisible();
   await expect(page.getByText('Mouriès').first()).toBeVisible();
-  await expect(page.getByText(/jeudi 19 août 2027/).first()).toBeVisible();
+  await expect(page.getByText(/vendredi 20 août 2027 à 21h, aux arènes de Nîmes/).first()).toBeVisible();
   await expect(page.getByText(/prévisionnelle/i).first()).toBeVisible();
   for (const epreuve of ['Ferrade en piste', 'Saut de cheval à cheval', 'Saut de cheval à taureau', 'Attente au fer']) {
     await expect(page.getByRole('heading', { name: epreuve })).toBeVisible();
@@ -33,6 +32,28 @@ test('l’accueil présente l’affiche, la prochaine soirée, le compte à rebo
   for (const manade of ['Vinuesa', 'Gillet', 'Robert Michel', 'Lafon', 'Arlatenco']) {
     await expect(page.getByText(manade, { exact: false }).first()).toBeVisible();
   }
+});
+
+test('la carte et la pastille visent la soirée de Nîmes, même si d’autres soirées viennent avant', async ({ page }, info) => {
+  await page.clock.setFixedTime(new Date('2026-10-10T12:00:00+02:00'));
+  await page.goto('/');
+  await expect(
+    page.getByText(
+      'Les votes ouvriront le soir de l’Olympiade, le vendredi 20 août 2027 à 21h, aux arènes de Nîmes (date prévisionnelle). Vous noterez chaque manade de 1 à 10, dès la fin de son passage.',
+    ),
+  ).toBeVisible();
+  await expect(page.getByText('314 jours', { exact: true })).toBeVisible();
+  if (info.project.name === 'ordinateur') {
+    await expect(page.getByRole('banner').getByText('Prochaine soirée · 20 août')).toBeVisible();
+  }
+});
+
+test('quand Nîmes n’a plus de date à venir, la carte revient à la prochaine soirée du calendrier', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2027-08-23T12:00:00+02:00'));
+  await page.goto('/');
+  const raison = page.getByText(/Les votes ouvriront le soir de l’Olympiade/);
+  await expect(raison).toContainText(/, le \S+ \d+(er)? \S+ 20\d\d/);
+  await expect(raison).not.toContainText('Nîmes');
 });
 
 test('sans soirée à venir, l’accueil annonce de prochaines dates', async ({ page }) => {
@@ -54,10 +75,10 @@ test('le dernier vainqueur connu vient du palmarès : un nom de manade, ses vict
 test('le compte à rebours annonce les jours restants avant la prochaine soirée', async ({ page }) => {
   await page.clock.setFixedTime(new Date('2027-08-18T12:00:00+02:00'));
   await page.goto('/');
-  // Mouriès, jeudi 19/08/2027 à 21h30 : 1 jour et 9h30 plus tard.
-  await expect(page.getByText('1 jour', { exact: true })).toBeVisible();
+  // Nîmes, vendredi 20/08/2027 à 21h : 2 jours et 9h plus tard.
+  await expect(page.getByText('2 jours', { exact: true })).toBeVisible();
   // Le jour même, à moins d'un jour : heures et minutes.
-  await page.clock.setFixedTime(new Date('2027-08-19T12:00:00+02:00'));
+  await page.clock.setFixedTime(new Date('2027-08-20T11:30:00+02:00'));
   await page.reload();
   await expect(page.getByText('9 h 30 min', { exact: true })).toBeVisible();
 });

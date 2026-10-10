@@ -1,5 +1,6 @@
 // Logique de la page d'accueil, sans React : tout ce qui se déduit du calendrier et du palmarès.
-import { jourParis, prochaineSoiree } from './dates';
+import { VILLE_AFFICHE } from '../donnees/affiche';
+import { jourParis, premierDuMois, prochaineSoiree } from './dates';
 import type { Calendrier, Palmares } from './donnees';
 
 const FUSEAU = 'Europe/Paris';
@@ -54,11 +55,13 @@ export function lieuSoiree({ arenes, ville }: Pick<Calendrier, 'arenes' | 'ville
   return arenes.includes(ville) ? nom : `${nom}, à ${ville}`;
 }
 
-/** « 20 août » */
+/** « 20 août », « 1er mai » */
 export function formaterJourMois(dateIso: string): string {
   const [a, m, j] = dateIso.split('-').map(Number);
-  return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', timeZone: 'UTC' }).format(
-    new Date(Date.UTC(a, m - 1, j)),
+  return premierDuMois(
+    new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', timeZone: 'UTC' }).format(
+      new Date(Date.UTC(a, m - 1, j)),
+    ),
   );
 }
 
@@ -68,6 +71,15 @@ export function prochaineSoireeA(calendrier: Calendrier[], ville: string, mainte
     calendrier.filter((s) => s.ville === ville),
     maintenant,
   );
+}
+
+/**
+ * Soirée de référence du vote, pour la carte « Notez les Olympiades » et la pastille de l'en-tête :
+ * la prochaine soirée de Nîmes, celle de l'affiche et du vote. Si Nîmes n'a plus de date à venir,
+ * la prochaine soirée du calendrier, tous événements confondus.
+ */
+export function soireeDeReference(calendrier: Calendrier[], maintenant: Date): Calendrier | null {
+  return prochaineSoireeA(calendrier, VILLE_AFFICHE, maintenant) ?? prochaineSoiree(calendrier, maintenant);
 }
 
 export type DernierVainqueur = {

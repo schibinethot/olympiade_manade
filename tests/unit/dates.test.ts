@@ -42,6 +42,13 @@ describe('formats français', () => {
     expect(formaterDateLongue('2027-08-20')).toBe('vendredi 20 août 2027');
   });
 
+  it('écrit « 1er » pour le premier jour du mois, et seulement pour lui', () => {
+    expect(formaterDateLongue('2027-05-01')).toBe('samedi 1er mai 2027');
+    expect(formaterDateLongue('2027-05-11')).toBe('mardi 11 mai 2027');
+    expect(formaterDateLongue('2027-05-21')).toBe('vendredi 21 mai 2027');
+    expect(formaterDateLongue('2031-05-31')).toBe('samedi 31 mai 2031');
+  });
+
   it('formate l’heure à la française', () => {
     expect(formaterHeure('21:00')).toBe('21h');
     expect(formaterHeure('21:30:00')).toBe('21h30');

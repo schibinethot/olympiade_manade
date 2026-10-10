@@ -157,6 +157,20 @@
   --photo: url("/photos/hero.webp");
 }
 
+/* Voile de l'affiche, posé sur la photo en duotone, sous les textes. La maquette éclairait le haut à
+   droite, sous la date : le texte blanc y tombait à 2:1. Ici, un dégradé assombrit le haut (petits
+   textes « ARÈNES DE », date et heure : 4,5:1 au moins) et un autre le bas, jusque sous le titre au
+   pinceau (3:1 au moins, cheval blanc compris) et la ligne des manades (4,5:1 au moins). Même teinte
+   brune que l'aplat du duotone (#4a170a), pour garder le duotone. La lumière chaude reste au centre,
+   sur le cavalier, sans texte dessus. Ratios mesurés au pixel le plus clair : voir le rapport de la
+   Task 3. */
+.voile-affiche {
+  background-image:
+    linear-gradient(180deg, rgba(58, 17, 6, 0.74) 0%, rgba(58, 17, 6, 0.52) 15%, rgba(58, 17, 6, 0.2) 27%, rgba(58, 17, 6, 0) 37%),
+    linear-gradient(0deg, rgba(66, 19, 7, 0.78) 0%, rgba(66, 19, 7, 0.62) 20%, rgba(66, 19, 7, 0.46) 38%, rgba(66, 19, 7, 0.2) 52%, rgba(66, 19, 7, 0) 62%),
+    radial-gradient(60% 42% at 62% 44%, rgba(255, 226, 180, 0.22), transparent 70%);
+}
+
 /* Même duotone que .duo, pour une <img> (chargement différé des photos sous le premier écran) :
    l'image, puis le dégradé en « multiply », puis l'aplat en « screen », isolés dans le cadre. */
 .duo-calques {
