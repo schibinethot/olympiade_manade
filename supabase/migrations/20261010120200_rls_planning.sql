@@ -1,20 +1,6 @@
 -- Lot 0A : sécurité par ligne du planning et des profils (CDC section 5.2).
-
-alter table public.profils enable row level security;
-alter table public.manades enable row level security;
-alter table public.soirees enable row level security;
-alter table public.soiree_manades enable row level security;
-alter table public.soiree_juges enable row level security;
-alter table public.epreuves enable row level security;
-alter table public.passages enable row level security;
-alter table public.notes_public enable row level security;
-alter table public.notes_jury enable row level security;
-alter table public.avis_soiree enable row level security;
-
--- Supabase accorde par défaut tous les droits aux rôles de l'API sur toute table créée
--- dans public. On repart de zéro : seuls les grants explicites ci-dessous s'appliquent.
-revoke all on all tables in schema public from anon, authenticated;
-alter default privileges in schema public revoke all on tables from anon, authenticated;
+-- La RLS et la révocation des droits par défaut sont posées dès la migration de schéma :
+-- seuls les grants explicites ci-dessous s'appliquent.
 
 grant usage on schema public to anon, authenticated;
 grant select on public.manades, public.soirees, public.soiree_manades, public.epreuves, public.passages

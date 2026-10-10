@@ -27,20 +27,29 @@ function verifierCibleLocale(base: string): void {
   }
 }
 
-export async function recreerBaseDeTest(): Promise<void> {
-  verifierCibleLocale(NOM_BASE_TEST);
+/**
+ * Recrée une base de test locale, y applique le bouchon d'Auth puis les migrations dans l'ordre.
+ * `derniereMigration` arrête l'application après ce fichier, comme un push interrompu.
+ */
+export async function recreerBaseDeTest(base: string = NOM_BASE_TEST, derniereMigration?: string): Promise<void> {
+  verifierCibleLocale(base);
   const admin = client('postgres');
   await admin.connect();
-  await admin.query(`drop database if exists ${NOM_BASE_TEST} with (force)`);
-  await admin.query(`create database ${NOM_BASE_TEST}`);
+  await admin.query(`drop database if exists ${base} with (force)`);
+  await admin.query(`create database ${base}`);
   await admin.end();
 
-  const db = client(NOM_BASE_TEST);
+  const db = client(base);
   await db.connect();
   try {
     await db.query(readFileSync(join(racine, 'tests/db/stub-auth-supabase.sql'), 'utf8'));
     const dossier = join(racine, 'supabase/migrations');
-    const fichiers = readdirSync(dossier).filter((nom) => nom.endsWith('.sql')).sort();
+    const fichiers = readdirSync(dossier)
+      .filter((nom) => nom.endsWith('.sql') && (derniereMigration === undefined || nom <= derniereMigration))
+      .sort();
+    if (derniereMigration !== undefined && !fichiers.includes(derniereMigration)) {
+      throw new Error(`Migration introuvable : ${derniereMigration}`);
+    }
     for (const fichier of fichiers) {
       try {
         await db.query(readFileSync(join(dossier, fichier), 'utf8'));
@@ -51,6 +60,24 @@ export async function recreerBaseDeTest(): Promise<void> {
   } finally {
     await db.end();
   }
+}
+
+export async function supprimerBaseDeTest(base: string): Promise<void> {
+  verifierCibleLocale(base);
+  const admin = client('postgres');
+  await admin.connect();
+  try {
+    await admin.query(`drop database if exists ${base} with (force)`);
+  } finally {
+    await admin.end();
+  }
+}
+
+/** Connexion superutilisateur à une base de test, hors transaction. À fermer par l'appelant. */
+export async function connecter(base: string): Promise<pg.Client> {
+  const db = client(base);
+  await db.connect();
+  return db;
 }
 
 export async function dansUneTransaction(fn: (db: pg.Client) => Promise<void>): Promise<void> {

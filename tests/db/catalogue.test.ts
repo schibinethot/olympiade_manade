@@ -1,5 +1,44 @@
-import { describe, expect, it } from 'vitest';
-import { commeSuperutilisateur, dansUneTransaction } from './aide';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import {
+  NOM_BASE_TEST,
+  commeSuperutilisateur,
+  connecter,
+  dansUneTransaction,
+  recreerBaseDeTest,
+  supprimerBaseDeTest,
+} from './aide';
+
+const SANS_RLS = `select c.relname as table from pg_class c
+  where c.relnamespace = 'public'::regnamespace and c.relkind in ('r', 'p') and not c.relrowsecurity
+  order by 1`;
+
+describe('push interrompu après la migration de schéma', () => {
+  // Chaque migration est appliquée dans sa propre transaction : si le push s'arrête
+  // après la première, aucune table ne doit rester ouverte aux rôles de l'API.
+  const base = NOM_BASE_TEST.replace(/_test$/, '_partielle_test');
+  beforeAll(() => recreerBaseDeTest(base, '20261010120000_schema.sql'));
+  afterAll(() => supprimerBaseDeTest(base));
+
+  it('toutes les tables ont la RLS et anon comme authenticated n’ont aucun droit, même sur une table future', async () => {
+    const db = await connecter(base);
+    try {
+      const tables = await db.query(
+        `select count(*)::int as n from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r'`,
+      );
+      expect(tables.rows[0].n).toBe(10);
+      expect((await db.query(SANS_RLS)).rows).toEqual([]);
+      await db.query('create table public.table_future (x int)');
+      const droits = await db.query(
+        `select grantee, table_name, privilege_type from information_schema.role_table_grants
+         where table_schema = 'public' and grantee in ('anon', 'authenticated', 'PUBLIC')
+         order by 1, 2, 3`,
+      );
+      expect(droits.rows).toEqual([]);
+    } finally {
+      await db.end();
+    }
+  });
+});
 
 // Fonctions appelées par les politiques RLS : anon et authenticated doivent pouvoir les exécuter.
 const FONCTIONS_DE_REGLES = [

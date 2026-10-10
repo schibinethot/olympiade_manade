@@ -315,3 +315,21 @@ revoke execute on function
   prive.verifier_soiree_de_epreuve(),
   prive.verifier_changement_bareme()
   from public, anon, authenticated;
+
+-- Sécurité par ligne dès cette migration : chaque migration est appliquée dans sa propre
+-- transaction, et si le push s'arrête ici aucune table ne doit rester ouverte.
+alter table public.profils enable row level security;
+alter table public.manades enable row level security;
+alter table public.soirees enable row level security;
+alter table public.soiree_manades enable row level security;
+alter table public.soiree_juges enable row level security;
+alter table public.epreuves enable row level security;
+alter table public.passages enable row level security;
+alter table public.notes_public enable row level security;
+alter table public.notes_jury enable row level security;
+alter table public.avis_soiree enable row level security;
+
+-- Supabase accorde par défaut tous les droits aux rôles de l'API sur toute table créée
+-- dans public. On repart de zéro : seuls les grants explicites des migrations RLS s'appliquent.
+revoke all on all tables in schema public from anon, authenticated;
+alter default privileges in schema public revoke all on tables from anon, authenticated;
