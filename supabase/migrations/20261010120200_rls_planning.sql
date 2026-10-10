@@ -27,7 +27,7 @@ grant update (prenom) on public.profils to authenticated;
 
 -- Défense en profondeur : même si un droit de colonne ressurgit, le rôle ne change pas via l'API.
 -- security invoker (défaut) : current_user est le rôle appelant. Superutilisateur et service_role passent.
-create function public.figer_role_profil() returns trigger
+create function prive.figer_role_profil() returns trigger
 language plpgsql security invoker set search_path = ''
 as $$
 begin
@@ -39,65 +39,66 @@ end
 $$;
 
 create trigger profils_figer_role before update of role on public.profils
-  for each row execute function public.figer_role_profil();
+  for each row execute function prive.figer_role_profil();
+revoke execute on function prive.figer_role_profil() from public, anon, authenticated;
 
-create function public.soiree_visible(p_soiree_id uuid) returns boolean
+create function prive.soiree_visible(p_soiree_id uuid) returns boolean
 language sql stable security definer set search_path = ''
 as $$
   select exists (
     select 1 from public.soirees s
-    where s.id = p_soiree_id and (s.statut <> 'brouillon' or public.est_admin())
+    where s.id = p_soiree_id and (s.statut <> 'brouillon' or prive.est_admin())
   )
 $$;
 
-create function public.epreuve_visible(p_epreuve_id uuid) returns boolean
+create function prive.epreuve_visible(p_epreuve_id uuid) returns boolean
 language sql stable security definer set search_path = ''
 as $$
   select exists (
     select 1 from public.epreuves e
-    where e.id = p_epreuve_id and public.soiree_visible(e.soiree_id)
+    where e.id = p_epreuve_id and prive.soiree_visible(e.soiree_id)
   )
 $$;
 
 -- Profils
 create policy profils_lecture on public.profils for select to authenticated
-  using (id = (select auth.uid()) or (select public.est_admin()));
+  using (id = (select auth.uid()) or (select prive.est_admin()));
 create policy profils_modification on public.profils for update to authenticated
-  using (id = (select auth.uid()) or (select public.est_admin()))
-  with check (id = (select auth.uid()) or (select public.est_admin()));
+  using (id = (select auth.uid()) or (select prive.est_admin()))
+  with check (id = (select auth.uid()) or (select prive.est_admin()));
 
 -- Annuaire des manades
 create policy manades_lecture on public.manades for select to anon, authenticated
   using (true);
 create policy manades_admin on public.manades for all to authenticated
-  using ((select public.est_admin())) with check ((select public.est_admin()));
+  using ((select prive.est_admin())) with check ((select prive.est_admin()));
 
 -- Soirées
 create policy soirees_lecture on public.soirees for select to anon, authenticated
-  using (statut <> 'brouillon' or (select public.est_admin()));
+  using (statut <> 'brouillon' or (select prive.est_admin()));
 create policy soirees_admin on public.soirees for all to authenticated
-  using ((select public.est_admin())) with check ((select public.est_admin()));
+  using ((select prive.est_admin())) with check ((select prive.est_admin()));
 
 -- Manades engagées
 create policy soiree_manades_lecture on public.soiree_manades for select to anon, authenticated
-  using (public.soiree_visible(soiree_id));
+  using (prive.soiree_visible(soiree_id));
 create policy soiree_manades_admin on public.soiree_manades for all to authenticated
-  using ((select public.est_admin())) with check ((select public.est_admin()));
+  using ((select prive.est_admin())) with check ((select prive.est_admin()));
 
 -- Épreuves
 create policy epreuves_lecture on public.epreuves for select to anon, authenticated
-  using (public.soiree_visible(soiree_id));
+  using (prive.soiree_visible(soiree_id));
 create policy epreuves_admin on public.epreuves for all to authenticated
-  using ((select public.est_admin())) with check ((select public.est_admin()));
+  using ((select prive.est_admin())) with check ((select prive.est_admin()));
 
 -- Passages
 create policy passages_lecture on public.passages for select to anon, authenticated
-  using (public.epreuve_visible(epreuve_id));
+  using (prive.epreuve_visible(epreuve_id));
 create policy passages_admin on public.passages for all to authenticated
-  using ((select public.est_admin())) with check ((select public.est_admin()));
+  using ((select prive.est_admin())) with check ((select prive.est_admin()));
 
 -- Juges rattachés
 create policy soiree_juges_lecture on public.soiree_juges for select to authenticated
-  using (juge_id = (select auth.uid()) or (select public.est_admin()));
+  using (juge_id = (select auth.uid()) or (select prive.est_admin()));
 create policy soiree_juges_admin on public.soiree_juges for all to authenticated
-  using ((select public.est_admin())) with check ((select public.est_admin()));
+  using ((select prive.est_admin())) with check ((select prive.est_admin()));

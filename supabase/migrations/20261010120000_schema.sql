@@ -1,5 +1,10 @@
 -- Lot 0A : schéma de base (CDC section 5.2).
 
+-- Toutes les fonctions vivent dans prive, que la Data API n'expose pas : aucune n'est appelable en RPC.
+-- Les politiques et les déclencheurs les appellent par leur nom qualifié, d'où l'usage accordé aux rôles de l'API.
+create schema prive;
+grant usage on schema prive to anon, authenticated, service_role;
+
 create type public.role_profil as enum ('admin', 'juge', 'spectateur');
 create type public.mode_vote as enum ('libre', 'deblocage');
 create type public.mode_classement as enum ('separe', 'combine', 'jury');
@@ -108,8 +113,8 @@ create table public.avis_soiree (
 );
 
 -- Horodatage des modifications
-create function public.horodater_maj() returns trigger
-language plpgsql
+create function prive.horodater_maj() returns trigger
+language plpgsql set search_path = ''
 as $$
 begin
   new.maj_le := now();
@@ -118,14 +123,14 @@ end;
 $$;
 
 create trigger notes_public_horodatage before update on public.notes_public
-  for each row execute function public.horodater_maj();
+  for each row execute function prive.horodater_maj();
 create trigger notes_jury_horodatage before update on public.notes_jury
-  for each row execute function public.horodater_maj();
+  for each row execute function prive.horodater_maj();
 create trigger avis_soiree_horodatage before update on public.avis_soiree
-  for each row execute function public.horodater_maj();
+  for each row execute function prive.horodater_maj();
 
 -- Un passage ne concerne qu'une manade engagée dans la soirée de l'épreuve
-create function public.verifier_manade_du_passage() returns trigger
+create function prive.verifier_manade_du_passage() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
 begin
@@ -144,10 +149,10 @@ $$;
 
 create trigger passages_manade_participante
   before insert or update of epreuve_id, manade_id on public.passages
-  for each row execute function public.verifier_manade_du_passage();
+  for each row execute function prive.verifier_manade_du_passage();
 
 -- Une note de jury ne dépasse pas le barème de la soirée
-create function public.verifier_bareme_note_jury() returns trigger
+create function prive.verifier_bareme_note_jury() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
 declare
@@ -169,12 +174,12 @@ $$;
 
 create trigger notes_jury_bareme
   before insert or update of note, passage_id on public.notes_jury
-  for each row execute function public.verifier_bareme_note_jury();
+  for each row execute function prive.verifier_bareme_note_jury();
 
 -- Chaque compte créé reçoit un profil spectateur.
 -- Le prénom et le consentement viennent des métadonnées envoyées à l'inscription.
 -- Les rôles admin et juge sont attribués ensuite, par le serveur.
-create function public.creer_profil_spectateur() returns trigger
+create function prive.creer_profil_spectateur() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
 begin
@@ -190,11 +195,11 @@ end;
 $$;
 
 create trigger auth_users_creer_profil after insert on auth.users
-  for each row execute function public.creer_profil_spectateur();
+  for each row execute function prive.creer_profil_spectateur();
 
 -- Une manade ne peut pas être retirée ni remplacée dans une soirée où elle a des passages.
 -- Sur une suppression en cascade de la soirée, la soirée n'existe plus : pas de contrôle.
-create function public.verifier_retrait_manade() returns trigger
+create function prive.verifier_retrait_manade() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
 begin
@@ -224,10 +229,10 @@ $$;
 
 create trigger soiree_manades_retrait
   before delete or update of soiree_id, manade_id on public.soiree_manades
-  for each row execute function public.verifier_retrait_manade();
+  for each row execute function prive.verifier_retrait_manade();
 
 -- Une épreuve ne change jamais de soirée
-create function public.verifier_soiree_de_epreuve() returns trigger
+create function prive.verifier_soiree_de_epreuve() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
 begin
@@ -241,10 +246,10 @@ $$;
 
 create trigger epreuves_soiree_fixe
   before update of soiree_id on public.epreuves
-  for each row execute function public.verifier_soiree_de_epreuve();
+  for each row execute function prive.verifier_soiree_de_epreuve();
 
 -- Le barème d'une soirée ne passe pas sous une note de jury déjà saisie
-create function public.verifier_changement_bareme() returns trigger
+create function prive.verifier_changement_bareme() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
 begin
@@ -264,4 +269,16 @@ $$;
 
 create trigger soirees_bareme_coherent
   before update of bareme_jury on public.soirees
-  for each row execute function public.verifier_changement_bareme();
+  for each row execute function prive.verifier_changement_bareme();
+
+-- Une fonction déclencheur ne s'appelle jamais directement : le déclencheur s'exécute
+-- sans que l'utilisateur ait EXECUTE sur sa fonction.
+revoke execute on function
+  prive.horodater_maj(),
+  prive.verifier_manade_du_passage(),
+  prive.verifier_bareme_note_jury(),
+  prive.creer_profil_spectateur(),
+  prive.verifier_retrait_manade(),
+  prive.verifier_soiree_de_epreuve(),
+  prive.verifier_changement_bareme()
+  from public, anon, authenticated;

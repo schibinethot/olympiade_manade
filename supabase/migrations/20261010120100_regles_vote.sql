@@ -1,8 +1,8 @@
 -- Lot 0A : règles de vote (CDC sections 4.4, 4.5 et 4.9).
--- Fonctions appelées par les politiques RLS. security definer pour lire les tables
+-- Fonctions du schéma prive appelées par les politiques RLS. security definer pour lire les tables
 -- sans dépendre des droits de l'appelant, search_path vide contre le détournement de noms.
 
-create function public.est_admin() returns boolean
+create function prive.est_admin() returns boolean
 language sql stable security definer set search_path = ''
 as $$
   select exists (
@@ -10,7 +10,7 @@ as $$
   )
 $$;
 
-create function public.email_verifie() returns boolean
+create function prive.email_verifie() returns boolean
 language sql stable security definer set search_path = ''
 as $$
   select exists (
@@ -19,7 +19,7 @@ as $$
 $$;
 
 -- Mode libre : fenêtre de la soirée, borne de fin exclue. Mode déblocage : statut du passage.
-create function public.passage_votable_public(p_passage_id uuid) returns boolean
+create function prive.passage_votable_public(p_passage_id uuid) returns boolean
 language sql stable security definer set search_path = ''
 as $$
   select exists (
@@ -38,7 +38,7 @@ as $$
 $$;
 
 -- Le jury suit le vote du public, sauf si l'admin l'a dissocié. Un passage verrouillé est figé.
-create function public.passage_votable_jury(p_passage_id uuid) returns boolean
+create function prive.passage_votable_jury(p_passage_id uuid) returns boolean
 language sql stable security definer set search_path = ''
 as $$
   select exists (
@@ -61,7 +61,7 @@ as $$
 $$;
 
 -- Avis : après l'heure de fin des votes, ou une fois la soirée terminée.
-create function public.avis_ouvert(p_soiree_id uuid) returns boolean
+create function prive.avis_ouvert(p_soiree_id uuid) returns boolean
 language sql stable security definer set search_path = ''
 as $$
   select exists (

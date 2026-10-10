@@ -5,19 +5,19 @@ import { IDS, modifier, semerSoiree } from './graine';
 
 async function votablePublic(db: pg.Client, passage: string): Promise<boolean> {
   await commeUtilisateur(db, IDS.spectateur);
-  const { rows } = await db.query('select public.passage_votable_public($1) as ok', [passage]);
+  const { rows } = await db.query('select prive.passage_votable_public($1) as ok', [passage]);
   return rows[0].ok;
 }
 
 async function votableJury(db: pg.Client, juge: string, passage: string): Promise<boolean> {
   await commeUtilisateur(db, juge);
-  const { rows } = await db.query('select public.passage_votable_jury($1) as ok', [passage]);
+  const { rows } = await db.query('select prive.passage_votable_jury($1) as ok', [passage]);
   return rows[0].ok;
 }
 
 async function avisOuvert(db: pg.Client): Promise<boolean> {
   await commeUtilisateur(db, IDS.spectateur);
-  const { rows } = await db.query('select public.avis_ouvert($1) as ok', [IDS.soiree]);
+  const { rows } = await db.query('select prive.avis_ouvert($1) as ok', [IDS.soiree]);
   return rows[0].ok;
 }
 
@@ -210,7 +210,7 @@ describe('identité du compte connecté', () => {
       await semerSoiree(db);
       const lire = async (id: string) => {
         await commeUtilisateur(db, id);
-        const { rows } = await db.query('select public.est_admin() as admin, public.email_verifie() as verifie');
+        const { rows } = await db.query('select prive.est_admin() as admin, prive.email_verifie() as verifie');
         return rows[0];
       };
       expect(await lire(IDS.admin)).toEqual({ admin: true, verifie: true });
