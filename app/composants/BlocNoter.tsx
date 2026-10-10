@@ -1,9 +1,9 @@
 import { useId } from 'react';
 import { Link } from 'react-router';
-import { lieuSoiree } from '../lib/accueil';
-import { formaterDateLongue, formaterHeure } from '../lib/dates';
+import { momentSoiree } from '../lib/accueil';
 import type { Calendrier } from '../lib/donnees';
 import type { EtatSoiree } from '../lib/etat-soiree';
+import { useSession } from '../lib/useSession';
 import { Fer } from './Fer';
 import { Icone } from './Icone';
 import { ProchaineSoiree } from './ProchaineSoiree';
@@ -30,11 +30,17 @@ const BOUTON =
  * Hors soirée, le bouton reste à sa place mais grisé (aria-disabled, sans navigation) et l'info
  * dessous dit pourquoi : date, heure et lieu de la prochaine soirée du calendrier.
  * Soirée ouverte (lot 2) : le bouton mène au vote, avec la pastille « En direct ».
+ *
+ * Inscription (Task 6) : possible avant la soirée (CDC 4.4). Sous la raison du bouton grisé, un lien
+ * vers /inscription, ou, pour un spectateur déjà connecté, « Vous êtes inscrit… ». Le pré-rendu et
+ * l'hydratation affichent le lien : la session n'est connue qu'ensuite, dans le navigateur.
  */
 export function BlocNoter({ etat, soiree, calendrierDisponible, maintenant, direct }: Props) {
   const idTitre = useId();
   const idRaison = useId();
   const ouvert = etat === 'ouvert';
+  const { session, prenom } = useSession();
+  const inscrit = session !== null;
 
   return (
     <section
@@ -77,17 +83,23 @@ export function BlocNoter({ etat, soiree, calendrierDisponible, maintenant, dire
 
       {ouvert ? (
         <>
-          {/* Lien et non bouton : il navigue. Vers /noter tant que l'inscription (Task 6) n'existe pas. */}
-          <Link to="/noter" className={`${BOUTON} transition-[filter,transform] hover:brightness-105 active:scale-[0.97]`}>
+          {/* Lien et non bouton : il navigue. Vers le vote une fois connecté, sinon vers l'inscription
+              (le même parcours sert à se reconnecter). */}
+          <Link
+            to={inscrit ? '/noter' : '/inscription'}
+            className={`${BOUTON} transition-[filter,transform] hover:brightness-105 active:scale-[0.97]`}
+          >
             Je note les manades
             <Icone nom="fleche" />
           </Link>
-          <p className="relative z-10 text-[13px] leading-[1.4]">
-            Inscription en 30 secondes&nbsp;: prénom, email, code reçu.{' '}
-            <Link to="/noter" className="font-semibold underline underline-offset-2">
-              Déjà inscrit&nbsp;?
-            </Link>
-          </p>
+          {inscrit ? null : (
+            <p className="relative z-10 text-[13px] leading-[1.4]">
+              Inscription en 30 secondes&nbsp;: prénom, email, code reçu.{' '}
+              <Link to="/inscription" className="font-semibold underline underline-offset-2">
+                Déjà inscrit&nbsp;?
+              </Link>
+            </p>
+          )}
           {direct?.manadeEnPiste ? (
             <div className="relative z-10 flex items-center gap-3 rounded-[18px] bg-[rgba(50,10,0,.24)] p-3">
               <Fer manade={direct.manadeEnPiste} clair />
@@ -122,6 +134,21 @@ export function BlocNoter({ etat, soiree, calendrierDisponible, maintenant, dire
           <p id={idRaison} className="relative z-10 text-[13.5px] leading-[1.45]">
             {raisonVotesFermes(soiree)}
           </p>
+          {/* Texte blanc sur le fond de la carte : 4,5:1 au moins (tests/unit/contrastes.test.ts). */}
+          {inscrit ? (
+            <p className="relative z-10 flex items-center gap-1.5 text-[13.5px] leading-[1.45] font-semibold">
+              <Icone nom="valide" className="size-4" />
+              Vous êtes inscrit, à bientôt dans les arènes{prenom ? `, ${prenom}` : ''}
+            </p>
+          ) : (
+            <Link
+              to="/inscription"
+              className="relative z-10 self-start py-2.5 text-[13.5px] leading-[1.45] font-semibold underline underline-offset-2"
+            >
+              Inscrivez-vous dès maintenant, vous serez prêt le soir venu
+              <Icone nom="fleche" className="ml-1 inline size-4 align-[-3px]" />
+            </Link>
+          )}
           <ProchaineSoiree soiree={soiree} disponible={calendrierDisponible} maintenant={maintenant} />
         </>
       )}
@@ -133,8 +160,5 @@ export function BlocNoter({ etat, soiree, calendrierDisponible, maintenant, dire
 function raisonVotesFermes(soiree: Calendrier | null): string {
   const suite = 'Vous noterez chaque manade de 1 à 10, dès la fin de son passage.';
   if (!soiree) return `Les votes ouvriront le soir de l’Olympiade. ${suite}`;
-  const heure = formaterHeure(soiree.heure);
-  const quand = `le ${formaterDateLongue(soiree.date_soiree)}${heure ? ` à ${heure}` : ''}`;
-  const mention = soiree.statut === 'previsionnelle' ? ' (date prévisionnelle)' : '';
-  return `Les votes ouvriront le soir de l’Olympiade, ${quand}, ${lieuSoiree(soiree)}${mention}. ${suite}`;
+  return `Les votes ouvriront le soir de l’Olympiade, ${momentSoiree(soiree)}. ${suite}`;
 }

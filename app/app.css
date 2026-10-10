@@ -54,6 +54,14 @@
   --font-brush: "Kaushan Script", "Brush Script MT", cursive;
   --font-display: "Playfair Display", Georgia, "Times New Roman", serif;
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Curseur clignotant de la saisie du code (maquette : .otp span.cur::after). */
+  --animate-caret-blink: caret-blink 1s steps(1) infinite;
+  @keyframes caret-blink {
+    50% {
+      opacity: 0;
+    }
+  }
 }
 
 /* Points de rupture de la charte (section 6), sur la largeur du conteneur `app`
@@ -155,6 +163,23 @@
 /* Photo de l'affiche d'accueil (maquette : .ph-hero). Fichier servi par le site (CSP img-src 'self'). */
 .photo-affiche {
   --photo: url("/photos/hero.webp");
+}
+
+/* Visuel des pages d'inscription (maquette : .ins-vis.ph-arenes). */
+.photo-arenes {
+  --photo: url("/photos/arenes-640.webp");
+}
+
+/* Voile de ce visuel, sous le texte blanc. La maquette (.ins-vis::before) allait de 10 % à 60 %
+   d'opacité : le texte blanc y tombait sous 4,5:1 sur les zones claires de la photo. Même teinte
+   brune, de 60 % en haut à 82 % en bas : 4,5:1 au moins sur le pixel le plus clair du duotone
+   (contrôlé par tests/unit/contrastes.test.ts). */
+:root {
+  --voile-inscription-haut: rgba(66, 19, 7, 0.6);
+  --voile-inscription-bas: rgba(66, 19, 7, 0.82);
+}
+.voile-inscription {
+  background-image: linear-gradient(180deg, var(--voile-inscription-haut), var(--voile-inscription-bas));
 }
 
 /* Voile de l'affiche, posé sur la photo en duotone, sous les textes. La maquette éclairait le haut à

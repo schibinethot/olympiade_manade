@@ -84,3 +84,24 @@ describe('page Dates : textes sur les fonds ajoutés', () => {
     expect(contraste(rvbDepuisHex('#9a2c12'), rvbDepuisHex('#fffaf2'))).toBeGreaterThanOrEqual(4.5);
   });
 });
+
+describe('pages d’inscription : texte blanc sur la photo des arènes (Task 6)', () => {
+  // Pixel le plus clair possible du duotone (.duo) : photo blanche, multipliée par l'arrêt le plus
+  // clair du dégradé (#ffe2bd), puis éclaircie par l'aplat #4a170a (mode « screen »).
+  const ecran = (a: number, b: number) => Math.round(255 - ((255 - a) * (255 - b)) / 255);
+  const plusClair: Rvb = [ecran(0xff, 0x4a), ecran(0xe2, 0x17), ecran(0xbd, 0x0a)];
+
+  function rgba(nom: string): { couleur: Rvb; alpha: number } {
+    const m = /rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/.exec(variable(nom));
+    if (!m) throw new Error(`--${nom} n'est pas une couleur rgba()`);
+    return { couleur: [Number(m[1]), Number(m[2]), Number(m[3])], alpha: Number(m[4]) };
+  }
+
+  it('garde au moins 4,5:1 sous le voile, du haut (le plus clair) au bas', () => {
+    for (const nom of ['voile-inscription-haut', 'voile-inscription-bas']) {
+      const { couleur, alpha } = rgba(nom);
+      const fond = [0, 1, 2].map((c) => Math.round(couleur[c] * alpha + plusClair[c] * (1 - alpha))) as unknown as Rvb;
+      expect(contraste(BLANC, fond), nom).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+});

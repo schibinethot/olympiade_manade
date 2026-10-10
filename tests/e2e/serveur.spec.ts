@@ -6,10 +6,17 @@ test('le serveur de production sert les pages pré-rendues, le repli et les en-t
   expect(accueil.headers()['cache-control']).toContain('no-cache');
   expect(accueil.headers()['x-content-type-options']).toBe('nosniff');
   expect(accueil.headers()['content-security-policy']).toContain('khwlwpzydlrfocfpvywv.supabase.co');
+  // Task 6 : seule la balise <style> vide d'input-otp est autorisée (empreinte de la chaîne vide).
+  expect(accueil.headers()['content-security-policy']).toContain(
+    "style-src 'self' 'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='",
+  );
+  expect(accueil.headers()['content-security-policy']).not.toContain('unsafe-inline');
 
-  const noter = await request.get('/noter');
-  expect(noter.status()).toBe(200);
-  expect(await noter.text()).toContain('<div');
+  for (const chemin of ['/noter', '/inscription', '/inscription/code']) {
+    const page = await request.get(chemin);
+    expect(page.status(), chemin).toBe(200);
+    expect(await page.text()).toContain('<div');
+  }
 
   const inconnue = await request.get('/page-qui-n-existe-pas');
   expect(inconnue.status()).toBe(404);
@@ -29,10 +36,43 @@ test('la politique de sécurité du contenu ne bloque rien au chargement', async
       violations.push(`${page.url()} : ${message.text()}`);
     }
   });
-  for (const chemin of ['/', '/classements', '/dates', '/contact', '/mentions-legales', '/confidentialite', '/noter', '/adresse-inconnue']) {
+  // Task 6 : une demande de code en cours, pour que /inscription/code affiche la saisie du code
+  // (la bibliothèque input-otp y ajoute une feuille de style).
+  await page.addInitScript(() =>
+    sessionStorage.setItem(
+      'olympiade-inscription',
+      JSON.stringify({ prenom: 'Léa', email: 'lea@exemple.fr', envoyeeLe: Date.now() }),
+    ),
+  );
+  for (const chemin of [
+    '/',
+    '/classements',
+    '/dates',
+    '/contact',
+    '/mentions-legales',
+    '/confidentialite',
+    '/noter',
+    '/inscription',
+    '/inscription/code',
+    '/adresse-inconnue',
+  ]) {
     await page.goto(chemin, { waitUntil: 'networkidle' });
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    if (chemin === '/inscription/code') await expect(page.getByLabel(/Code/).first()).toBeVisible();
   }
+  // Même saisie, atteinte cette fois par une navigation dans l'application : la page garde alors
+  // la politique de l'accueil.
+  await page.goto('/', { waitUntil: 'networkidle' });
+  await page.evaluate(() => {
+    history.pushState(null, '', '/inscription/code');
+    dispatchEvent(new PopStateEvent('popstate'));
+  });
+  await expect(page.getByLabel(/Code/).first()).toBeVisible();
+  // Les règles d'input-otp (sélection et remplissage automatique invisibles) sont bien appliquées.
+  const regles = await page.evaluate(
+    () => (document.getElementById('input-otp-style') as HTMLStyleElement | null)?.sheet?.cssRules.length ?? 0,
+  );
+  expect(regles).toBeGreaterThan(0);
   expect(violations).toEqual([]);
 });
 

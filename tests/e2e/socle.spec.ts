@@ -61,7 +61,18 @@ test('chaque page vitrine reçoit son propre HTML pré-rendu', async ({ browser 
 test('aucune erreur JavaScript au chargement des pages', async ({ page }) => {
   const erreurs: string[] = [];
   page.on('pageerror', (erreur) => erreurs.push(`${page.url()} : ${erreur.message}`));
-  for (const chemin of ['/', '/classements', '/dates', '/contact', '/mentions-legales', '/confidentialite', '/noter', '/adresse-inconnue']) {
+  for (const chemin of [
+    '/',
+    '/classements',
+    '/dates',
+    '/contact',
+    '/mentions-legales',
+    '/confidentialite',
+    '/noter',
+    '/inscription',
+    '/inscription/code',
+    '/adresse-inconnue',
+  ]) {
     await page.goto(chemin, { waitUntil: 'networkidle' });
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   }

@@ -72,17 +72,24 @@ const EN_TETES_COMMUNS = {
 // Réponses autres que les pages (scripts, styles, images, erreurs en texte) : rien à exécuter.
 const CSP_RESSOURCE = "default-src 'none'; frame-ancestors 'none'";
 
+// Saisie du code (bibliothèque input-otp, page /inscription/code) : elle ajoute une balise <style>
+// VIDE, puis y insère ses règles par le CSSOM, que la CSP ne filtre pas. Seule l'empreinte de la
+// chaîne vide est autorisée : aucun style en ligne qui aurait un contenu ne passe.
+const EMPREINTE_STYLE_VIDE = `'sha256-${createHash('sha256').update('', 'utf8').digest('base64')}'`;
+
 /**
  * Politique d'une page : le site lui-même et le projet Supabase. Les scripts en ligne émis
  * par React Router (contexte, import des modules, restauration du défilement) sont autorisés
- * un par un par leur empreinte SHA-256, calculée sur le fichier servi. Aucun style en ligne.
+ * un par un par leur empreinte SHA-256, calculée sur le fichier servi. Aucun style en ligne,
+ * sauf la balise <style> vide d'input-otp. La politique vaut pour toutes les pages : on arrive
+ * aussi sur /inscription/code par une navigation dans l'application, depuis l'accueil.
  * @param {string[]} empreintes
  */
 function cspPage(empreintes) {
   return [
     "default-src 'self'",
     `script-src 'self' ${empreintes.join(' ')}`.trim(),
-    "style-src 'self'",
+    `style-src 'self' ${EMPREINTE_STYLE_VIDE}`,
     "font-src 'self'",
     `img-src 'self' https://${SUPABASE}`,
     `connect-src 'self' https://${SUPABASE} wss://${SUPABASE}`,

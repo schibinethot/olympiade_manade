@@ -1,6 +1,6 @@
 // Logique de la page d'accueil, sans React : tout ce qui se déduit du calendrier et du palmarès.
 import { VILLE_AFFICHE } from '../donnees/affiche';
-import { jourParis, premierDuMois, prochaineSoiree } from './dates';
+import { formaterDateLongue, formaterHeure, jourParis, premierDuMois, prochaineSoiree } from './dates';
 import type { Calendrier, Palmares } from './donnees';
 
 const FUSEAU = 'Europe/Paris';
@@ -53,6 +53,16 @@ export function lieuSoiree({ arenes, ville }: Pick<Calendrier, 'arenes' | 'ville
   if (!/^ar[eè]nes\b/i.test(arenes)) return `à ${ville} (${arenes})`;
   const nom = `aux a${arenes.slice(1)}`;
   return arenes.includes(ville) ? nom : `${nom}, à ${ville}`;
+}
+
+/**
+ * « le vendredi 20 août 2027 à 21h, aux arènes de Nîmes (date prévisionnelle) » : quand et où
+ * ouvriront les votes, pour la carte « Notez les Olympiades » et la page /noter.
+ */
+export function momentSoiree(soiree: Pick<Calendrier, 'date_soiree' | 'heure' | 'statut' | 'arenes' | 'ville'>): string {
+  const heure = formaterHeure(soiree.heure);
+  const mention = soiree.statut === 'previsionnelle' ? ' (date prévisionnelle)' : '';
+  return `le ${formaterDateLongue(soiree.date_soiree)}${heure ? ` à ${heure}` : ''}, ${lieuSoiree(soiree)}${mention}`;
 }
 
 /** « 20 août », « 1er mai » */

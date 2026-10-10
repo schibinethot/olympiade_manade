@@ -1,8 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useMatches } from 'react-router';
 import { aCalendrier, formaterJourMois, soireeDeReference } from '../lib/accueil';
+import { seDeconnecter, traduireErreurAuth } from '../lib/auth';
 import { ETAT_SOIREE, type EtatSoiree } from '../lib/etat-soiree';
 import { useMaintenant } from '../lib/temps';
+import { useSession } from '../lib/useSession';
 import { Icone } from './Icone';
 import { Logo } from './Logo';
 
@@ -25,8 +27,6 @@ const CLASSE_PASTILLE =
   'flex-1 rounded-2xl px-4 py-3 text-base font-medium text-encre-2 transition-colors group-hover:bg-lin group-aria-[current=page]:bg-encre group-aria-[current=page]:text-sable paysage:flex-none paysage:rounded-full paysage:px-[15px] paysage:py-[9px] paysage:text-[14.5px] paysage:leading-[1.3]';
 
 type Props = {
-  /** Prénom du spectateur connecté (branché en Task 6). Rien n'est affiché sans prénom. */
-  prenom?: string | null;
   /**
    * Rendu indépendant de l'adresse (aucun lien actif, bouton « Noter » toujours présent).
    * Pour le HydrateFallback : __spa-fallback.html est pré-rendu une seule fois, pour « / »,
@@ -42,10 +42,18 @@ type Props = {
  * Sous 1000 px de large, la navigation est un popover natif ouvert par le bouton « Menu » :
  * il fonctionne sans JavaScript (pages pré-rendues), se ferme avec Échap ou un clic à côté.
  * À partir de 1000 px, la même navigation s'affiche en ligne.
+ *
+ * Spectateur connecté : son prénom et « Se déconnecter », dans le menu sous 1000 px, à droite de
+ * l'en-tête au-delà. Le bouton « Noter » reste grisé tant que les votes sont fermés.
  */
-export function Entete({ prenom = null, generique = false, etat = ETAT_SOIREE }: Props) {
+export function Entete({ generique = false, etat = ETAT_SOIREE }: Props) {
   const menu = useRef<HTMLElement>(null);
   const { pathname } = useLocation();
+  const { session, prenom } = useSession();
+  const connecte = session !== null && !generique;
+  // Connecté, de 1000 à 1300 px : la barre porte aussi le prénom et « Se déconnecter », la pastille de
+  // la soirée n'y tient plus (débordement mesuré à 1000 px). La date reste sur la carte de l'accueil.
+  const pastilleConnecte = connecte ? 'paysage:hidden bureau:inline-flex' : '';
 
   // Soirée de référence (Nîmes, sinon la prochaine soirée), quand la page affichée porte le
   // calendrier (accueil, puis Dates) : la pastille suit ainsi les mêmes données que la page.
@@ -90,20 +98,19 @@ export function Entete({ prenom = null, generique = false, etat = ETAT_SOIREE }:
             </li>
           ))}
         </ul>
+        {connecte ? <CompteSpectateur prenom={prenom} variante="menu" /> : null}
       </nav>
 
       <div className="ml-auto flex items-center gap-2.5">
-        {prenom ? (
-          <span className="max-w-[9rem] truncate text-sm font-semibold text-encre-2">{prenom}</span>
-        ) : null}
+        {connecte ? <CompteSpectateur prenom={prenom} variante="barre" /> : null}
         {soiree && !generique ? (
           ouvert ? (
-            <span className={`${CLASSE_PASTILLE_SOIREE} bg-[rgba(194,59,29,.1)] text-rouge`}>
+            <span className={`${CLASSE_PASTILLE_SOIREE} ${pastilleConnecte} bg-[rgba(194,59,29,.1)] text-rouge`}>
               <span aria-hidden="true" className="point-direct size-[7px] rounded-full bg-current" />
               Ce soir · {soiree.ville}
             </span>
           ) : (
-            <span className={`${CLASSE_PASTILLE_SOIREE} bg-lin text-encre-2`}>
+            <span className={`${CLASSE_PASTILLE_SOIREE} ${pastilleConnecte} bg-lin text-encre-2`}>
               <Icone nom="calendrier" className="size-3" />
               Prochaine soirée · {formaterJourMois(soiree.date_soiree)}
             </span>
@@ -146,5 +153,62 @@ export function Entete({ prenom = null, generique = false, etat = ETAT_SOIREE }:
         </button>
       </div>
     </header>
+  );
+}
+
+/**
+ * Prénom du spectateur connecté et « Se déconnecter » (session de cet appareil seulement).
+ * Deux emplacements, un seul affiché à la fois : dans le menu sous 1000 px (« menu »), à droite de
+ * l'en-tête au-delà (« barre »).
+ */
+function CompteSpectateur({ prenom, variante }: { prenom: string | null; variante: 'menu' | 'barre' }) {
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const verrou = useRef(false);
+
+  async function deconnecter() {
+    if (verrou.current) return;
+    verrou.current = true;
+    setEnCours(true);
+    setErreur(null);
+    try {
+      await seDeconnecter();
+    } catch (echec) {
+      setErreur(traduireErreurAuth(echec, 'demande'));
+    } finally {
+      verrou.current = false;
+      setEnCours(false);
+    }
+  }
+
+  const menu = variante === 'menu';
+  return (
+    <div
+      className={
+        menu
+          ? 'mt-1 grid gap-1 border-t border-trait px-4 pt-2 paysage:hidden'
+          : 'hidden max-w-[16rem] shrink-0 flex-col items-end paysage:flex'
+      }
+    >
+      <div className={`flex items-center whitespace-nowrap ${menu ? 'justify-between gap-3' : 'gap-1'}`}>
+        <span className={`truncate font-semibold text-encre ${menu ? 'text-base' : 'max-w-[9rem] text-sm'}`}>
+          <span className="sr-only">Connecté : </span>
+          {prenom}
+        </span>
+        <button
+          type="button"
+          onClick={deconnecter}
+          disabled={enCours}
+          className={`inline-flex min-h-12 items-center rounded-full font-medium text-encre-2 underline underline-offset-2 transition-colors hover:text-encre disabled:cursor-wait disabled:opacity-70 ${
+            menu ? 'px-2 text-base' : 'px-2.5 text-[13.5px]'
+          }`}
+        >
+          Se déconnecter
+        </button>
+      </div>
+      <div role="alert">
+        {erreur ? <p className="pb-1 text-[12.5px] leading-snug text-rouge">{erreur}</p> : null}
+      </div>
+    </div>
   );
 }

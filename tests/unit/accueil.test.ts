@@ -4,6 +4,7 @@ import {
   formaterJourMois,
   instantSoiree,
   lieuSoiree,
+  momentSoiree,
   prochaineSoireeA,
   saisonAccueil,
   soireeDeReference,
@@ -69,6 +70,18 @@ describe('lieuSoiree', () => {
     expect(lieuSoiree({ arenes: 'Arènes de Nîmes', ville: 'Nîmes' })).toBe('aux arènes de Nîmes');
     expect(lieuSoiree({ arenes: 'Arènes André Blanc', ville: 'Mouriès' })).toBe('aux arènes André Blanc, à Mouriès');
     expect(lieuSoiree({ arenes: null, ville: 'Beaucaire' })).toBe('à Beaucaire');
+  });
+});
+
+// Phrase commune à la carte « Notez les Olympiades » et à la page /noter (Task 6).
+describe('momentSoiree', () => {
+  it('donne le jour, l’heure, le lieu et la mention d’une date prévisionnelle', () => {
+    expect(momentSoiree(soiree('2027-08-20', 'Nîmes', { heure: '21:00:00' }))).toBe(
+      'le vendredi 20 août 2027 à 21h, aux arènes de Nîmes (date prévisionnelle)',
+    );
+    expect(momentSoiree(soiree('2027-05-01', 'Mouriès', { heure: null, statut: 'confirmee', arenes: null }))).toBe(
+      'le samedi 1er mai 2027, à Mouriès',
+    );
   });
 });
 

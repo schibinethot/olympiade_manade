@@ -8,5 +8,7 @@ export default [
   route('mentions-legales', 'routes/mentions-legales.tsx'),
   route('confidentialite', 'routes/confidentialite.tsx'),
   route('noter', 'routes/noter.tsx'),
+  route('inscription', 'routes/inscription.tsx'),
+  route('inscription/code', 'routes/inscription-code.tsx'),
   route('*', 'routes/introuvable.tsx'),
 ] satisfies RouteConfig;
