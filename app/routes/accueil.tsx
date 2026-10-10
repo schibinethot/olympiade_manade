@@ -37,7 +37,7 @@ export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs): Pr
 export default function Accueil({ loaderData }: Route.ComponentProps) {
   const { calendrier, palmares, lueLe } = loaderData;
   const maintenant = useMaintenant(lueLe);
-  useRelectureApresInteraction();
+  useRelectureApresInteraction(loaderData);
   // Carte et pastille : la soirée de Nîmes (repli sur la prochaine soirée si Nîmes n'a plus de date).
   const soiree = calendrier ? soireeDeReference(calendrier, maintenant) : null;
   const soireeAffiche = calendrier ? prochaineSoireeA(calendrier, VILLE_AFFICHE, maintenant) : null;

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { estDonneesPreRendu, relectureTerminee } from '../outils/relecture';
 
 // Tests de la fiche complétée par task-3-addendum.md (état « hors soirée »).
 
@@ -105,6 +106,14 @@ test('l’accueil pré-rendu contient les données sans JavaScript', async ({ br
 test('si Supabase ne répond pas, l’accueil garde les données du pré-rendu', async ({ page }) => {
   await page.route('**/rest/v1/**', (route) => route.abort());
   await page.goto('/', { waitUntil: 'networkidle' });
+  // La première interaction relit les données (clientLoader) : Supabase coupé, la page reprend
+  // celles du pré-rendu (fichier .data).
+  const supabaseCoupe = page.waitForEvent('requestfailed', (requete) => requete.url().includes('/rest/v1/'));
+  const archive = page.waitForResponse((reponse) => estDonneesPreRendu(reponse.url()) && reponse.ok());
+  await page.mouse.wheel(0, 300);
+  await supabaseCoupe;
+  await archive;
+  await relectureTerminee(page);
   await expect(page.getByRole('heading', { name: /Dernier vainqueur connu\s+Manade\s+\S+/ })).toBeVisible();
   await expect(page.getByText('Informations momentanément indisponibles')).toHaveCount(0);
 });

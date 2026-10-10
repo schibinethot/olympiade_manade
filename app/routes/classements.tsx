@@ -67,7 +67,7 @@ function AnneeEnDirect({ annee, soirees }: { annee: number; soirees: number }) {
 export default function Classements({ loaderData }: Route.ComponentProps) {
   const { calendrier, palmares, lueLe } = loaderData;
   const maintenant = useMaintenant(lueLe);
-  useRelectureApresInteraction();
+  useRelectureApresInteraction(loaderData);
   const hydrate = useHydrate();
   const [parametres, setParametres] = useSearchParams();
 

@@ -1,4 +1,11 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+/** Lien « Dates » de la navigation, derrière le bouton « Menu » sur téléphone. */
+async function ouvrirDates(page: Page) {
+  const menu = page.getByRole('button', { name: /Menu/ });
+  if (await menu.isVisible()) await menu.click();
+  await page.getByRole('navigation').getByRole('link', { name: 'Dates' }).click();
+}
 
 // Tests du complément du 10/10 (task-4-addendum.md), qui remplacent ceux de la fiche.
 
@@ -35,24 +42,35 @@ test('la page Dates montre toutes les dates de toutes les années', async ({ pag
 });
 
 test('si Supabase est injoignable en navigation, les pages restent lisibles avec un message de repli', async ({ page }) => {
-  await page.goto('/');
-  await page.route('**/rest/v1/**', (route) => route.abort());
   // Mise en place adaptée (assertions inchangées) :
   // - en navigation, le clientLoader relit Supabase puis, en cas d'échec, les données du
-  //   pré-rendu (fichier /dates.data, servi par le site). Ces données-là s'affichent sans
-  //   message, comme sur l'accueil (« l’accueil garde les données du pré-rendu »). Pour voir le
-  //   message de repli, l'archive est coupée aussi : plus aucune donnée n'est joignable ;
+  //   pré-rendu (fichier /dates.data, servi par le site), puis les dernières données affichées
+  //   dans l'onglet. Ces données-là s'affichent sans message (test suivant). Pour voir le message
+  //   de repli, l'archive est coupée aussi, et la visite commence sur /contact, page sans données :
+  //   plus aucune donnée n'est disponible ;
   // - sur téléphone, la navigation est repliée derrière le bouton « Menu » (comme socle.spec.ts) :
   //   un clic direct attendrait jusqu'au délai du test au lieu d'échouer, et le .catch ne
   //   prendrait jamais la main.
+  await page.goto('/contact');
+  await page.route('**/rest/v1/**', (route) => route.abort());
   await page.route(/\.data(\?|$)/, (route) => route.abort());
-  const menu = page.getByRole('button', { name: /Menu/ });
-  if (await menu.isVisible()) await menu.click();
-  await page.getByRole('navigation').getByRole('link', { name: 'Dates' }).click();
+  await ouvrirDates(page);
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   // Délai allongé : la lecture coupée peut attendre la borne de 3 s du navigateur, et le délai par
   // défaut de 5 s ne suffisait pas toujours avec les tests en parallèle.
   await expect(page.getByText(/momentanément indisponibles/)).toBeVisible({ timeout: 10_000 });
+});
+
+test('si Supabase et le pré-rendu sont injoignables en navigation, la page reprend les données déjà affichées', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'networkidle' });
+  await page.route('**/rest/v1/**', (route) => route.abort());
+  await page.route(/\.data(\?|$)/, (route) => route.abort());
+  await ouvrirDates(page);
+  // Calendrier et palmarès de l'accueil : la carte de Nîmes 2026 et son vainqueur.
+  await expect(page.locator('#archives-2026').getByRole('article').filter({ hasText: 'Arlatenco' })).toBeVisible({
+    timeout: 10_000,
+  });
+  await expect(page.getByText(/momentanément indisponibles/)).toHaveCount(0);
 });
 
 // Garde ajoutée : la page pré-rendue ne connaît pas `?annee=`. Un lien direct doit ouvrir l'onglet

@@ -1,7 +1,7 @@
 // Données des pages vitrine qui portent le calendrier et le palmarès (accueil, Classements, Dates).
 import type { AvecCalendrier } from './accueil';
 import { lireCalendrier, lireOuRepli, lirePalmares, type Palmares } from './donnees';
-import { marquerDonneesRelues } from './relecture';
+import { dernieresDonnees, marquerDonneesRelues, retenirDonnees } from './relecture';
 
 export type DonneesVitrine = AvecCalendrier & { palmares: Palmares[] | null };
 
@@ -23,18 +23,28 @@ export async function lireDonneesVitrine(signal?: AbortSignal): Promise<DonneesV
 /**
  * Lecture dans le navigateur (à la première interaction, app/lib/relecture.ts, puis à chaque
  * navigation vers la page) : données fraîches, pour qu'un palmarès complété apparaisse sans
- * redéploiement. Une table que Supabase ne rend pas dans le délai est reprise des données du
- * pré-rendu (fichier .data servi par le site).
- * Si elles manquent aussi, null : la page affiche son message de repli.
+ * redéploiement. Chaque table que Supabase ne rend pas dans le délai est reprise, dans l'ordre, des
+ * données du pré-rendu (fichier .data servi par le site), puis des dernières données affichées dans
+ * l'onglet : hors ligne, la page garde ce qu'elle affiche. Si rien n'existe nulle part, null : la
+ * page affiche son message de repli.
+ *
+ * La relecture n'est comptée comme faite que si les deux tables sont fraîches : sinon, la prochaine
+ * interaction la retente.
  */
 export async function lireDonneesVitrineNavigateur(serverLoader: () => Promise<DonneesVitrine>): Promise<DonneesVitrine> {
   const frais = await lireDonneesVitrine(AbortSignal.timeout(DELAI_LECTURE_NAVIGATEUR_MS));
-  marquerDonneesRelues();
-  if (frais.calendrier && frais.palmares) return frais;
+  if (frais.calendrier && frais.palmares) {
+    marquerDonneesRelues();
+    retenirDonnees(frais);
+    return frais;
+  }
   const archive = await serverLoader().catch(() => null);
-  return {
-    calendrier: frais.calendrier ?? archive?.calendrier ?? null,
-    palmares: frais.palmares ?? archive?.palmares ?? null,
+  const dernieres = dernieresDonnees();
+  const donnees: DonneesVitrine = {
+    calendrier: frais.calendrier ?? archive?.calendrier ?? dernieres.calendrier ?? null,
+    palmares: frais.palmares ?? archive?.palmares ?? dernieres.palmares ?? null,
     lueLe: frais.lueLe,
   };
+  retenirDonnees(donnees);
+  return donnees;
 }

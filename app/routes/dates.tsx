@@ -192,7 +192,7 @@ function SectionAnnee({ section, premiere }: { section: SectionDates; premiere: 
 export default function Dates({ loaderData }: Route.ComponentProps) {
   const { calendrier, palmares, lueLe } = loaderData;
   const maintenant = useMaintenant(lueLe);
-  useRelectureApresInteraction();
+  useRelectureApresInteraction(loaderData);
   const sections = calendrier ? sectionsDates(calendrier, palmares, maintenant) : [];
   const saison = sections.find((s) => s.type === 'saison');
 
