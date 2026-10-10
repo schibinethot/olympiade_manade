@@ -1,16 +1,18 @@
 # Cahier des charges : app de notation de l'Olympiade des manades
 
-> Version 0.4 (brouillon) · 2026-10-10 · Statut : **à valider**
+> Version 0.5 (brouillon) · 2026-10-10 · Statut : **à valider**
 > Document de référence du projet. Toute fonctionnalité livrée doit s'y rattacher.
 
 ---
 
 ## 1. Objectif
 
-Créer **le site et l'app de l'Olympiade des manades**, avec deux usages :
+Créer **le site web et l'app Android de l'Olympiade des manades**, avec deux usages :
 
 1. **Un site vitrine** simple et soigné : photos des Olympiades, classements 2025, 2026 et 2027, dates, contact
 2. **La notation en direct** : le public et les juges notent les manades pendant la soirée depuis leur téléphone. Le spectateur s'inscrit avec son prénom et son email, valide un code reçu par email, puis reçoit une notification chaque fois qu'il peut noter. L'organisateur pilote la soirée depuis son téléphone : il importe le planning, débloque les épreuves et affiche les classements.
+
+**Canaux** : le public passe par le **site web**. L'**app Android** sert d'abord à l'interne (admins et juges), et peut être ouverte au public par un simple réglage (section 3.1).
 
 **Critère de succès global** : une soirée réelle se déroule de bout en bout dans l'app (import du planning, votes, classement final) sans intervention technique pendant l'événement.
 
@@ -19,6 +21,12 @@ Créer **le site et l'app de l'Olympiade des manades**, avec deux usages :
 ## 2. L'événement (recherche du 2026-10-10)
 
 > **Le nom exact « Olympiade des manades » n'apparaît dans aucune source publique accessible.** La recherche a couvert le web, la presse locale et les sites des communes. Facebook et Instagram n'ont pas pu être consultés sans connexion. Le **format**, en revanche, est bien documenté : des soirées « Olympiades camarguaises » ou « des gardians » dans les arènes du Gard, de l'Hérault et des Bouches-du-Rhône. Les éléments ci-dessous servent de **modèle par défaut** de l'app. Ils seront remplacés par les données réelles du client (section 10). Recherche complémentaire, avec d'autres sources : [`docs/recherche-olympiades.md`](recherche-olympiades.md).
+
+### 2.0 Présence en ligne et nom
+
+- **Aucun site ni compte de réseau social propre aux Olympiades** n'existe. Les seules pages officielles sont les actualités des [arènes de Nîmes](https://www.arenesdenimes.com/actu/2026/les-grandes-olympiades-des-gardians-auront-lieu-le-vendredi-21-août.html) (organisateur Casas & Co / SCP), avec leur [billetterie](https://billetterie.arenesdenimes.com) et leurs réseaux ([Facebook](https://www.facebook.com/arenesdenimesscpfrance), [Instagram](https://www.instagram.com/arenesnimesscpfrance/))
+- **Le nom « Olympiade des manades » est libre** : aucun usage trouvé, domaines `olympiadedesmanades.fr` et `.com` non déposés au 10/10/2026
+- **À éviter** : « Olympiades Camarguaises » est le nom commercial d'une offre de team building de [Mana Événements](https://www.mana-evenements.fr/post/la-nouvelle-production-mana-evenements-le-team-building-olympiades-camarguaises)
 
 ### 2.1 Format d'une soirée
 
@@ -60,7 +68,35 @@ Variantes constatées :
 
 Agu, Arlatenco, Aubanel, Clément, Colombet, Conti, Des Chanoines, Devaux, Du Soleil, Gillet, Grand Salan, La Comtesse, La Galère, Lafon, Lescot, Robert Michel, Roumanille, Saint Léonard (Vitou), Vellas, Vinuesa.
 
-Vinuesa a gagné les Grandes Olympiades des Gardians de Nîmes en 2023 et en 2024.
+### 2.3 bis Palmarès connu (base des pages Classements 2025 et 2026)
+
+| Soirée | Vainqueur | Détail | Statut |
+|---|---|---|---|
+| Nîmes 2023 | Vinuesa | Face à Lescot, Clément, Robert Michel. Plus de 3 500 spectateurs | Confirmé ([source](https://www.arenesdenimes.com/actu/2023/temporada-grand-succès-populaire-des-spectacles-camarguais-aux-arènes.html)) |
+| Nîmes 2024 | Vinuesa | Ferrade et attente au fer : Vinuesa. Saut de cheval à cheval : Baptiste Benabent (Grand Salan) | Confirmé ([source](https://www.arenesdenimes.com/actu/2024/iie-grandes-olympiades-des-gardians-un-nouveau-sacre-pour-la-manade-vinuesa.html)) |
+| Nîmes 2025 | Vinuesa | Face à Lescot, Vellas, Robert Michel, Lafon | **À confirmer** : déduit de l'annonce 2026 (« remettra son titre en jeu ») |
+| Nîmes 2026 | Inconnu | Face à Gillet, Robert Michel, Lafon, Arlatenco | Aucun compte rendu publié au 10/10/2026 |
+| Alès 2026 | Vinuesa | Trophée « pour sa régularité » (2e de toutes les épreuves) | Confirmé |
+| Beauvoisin 2026 | Devaux | Face à Clément et La Lauze. Meilleurs : Simon Lestevin (saut cheval à cheval), Anthony Da Silva (rodéo), Bastien Fernandez (saut cheval à taureau), Dylan Guyon et Yoan Visin (attente au fer), manade Clément (capture de la vache) | Confirmé ([source](https://voir-plus.com/2026/08/19/la-fete-votive-de-beauvoisin-incontournable-et-festive/)) |
+
+Aucune note ni aucun classement complet (2e, 3e, points) n'a jamais été publié pour Nîmes. Les résultats « à confirmer » s'affichent comme tels sur le site tant que l'organisateur ne les a pas validés.
+
+### 2.3 ter Dates 2027 prévisionnelles
+
+**Aucune date d'Olympiades 2027 n'est annoncée** au 10/10/2026. Projection (même jour de semaine, même place dans la fête locale), affichée sur la page Dates avec la mention « date prévisionnelle » jusqu'à confirmation :
+
+| Soirée | 2026 | 2027 prévisionnel |
+|---|---|---|
+| Alès, soirée des gardians | ven. 15/05, 21h30 | ven. 07/05/2027 |
+| Aimargues | jeu. 16/07, 21h | jeu. 15/07/2027 |
+| Beaucaire | lun. 20/07 | lun. 19/07/2027 |
+| Pérols, Nuit des gardians | lun. 03/08, 21h30 | lun. 02/08/2027 |
+| Fontvieille | mer. 05/08, 21h30 | mer. 04/08/2027 |
+| Mauguio | mer. 12/08, 22h30 | mer. 11/08/2027 |
+| Saint-Rémy-de-Provence | ven. 14/08, 22h | ven. 13/08/2027 |
+| Beauvoisin | lun. 17/08, 21h30 | lun. 16/08/2027 |
+| Mouriès | jeu. 20/08, 21h30 | jeu. 19/08/2027 |
+| **Nîmes** | **ven. 21/08, 21h** | **ven. 20/08/2027** (toujours un vendredi entre le 18 et le 23 août depuis 2023) |
 
 ### 2.4 Éditions de référence
 
@@ -95,7 +131,18 @@ Vinuesa a gagné les Grandes Olympiades des Gardians de Nîmes en 2023 et en 202
 | **Admin** | Organisateur | Email + mot de passe, app installée sur l'écran d'accueil | Prépare la soirée, importe le planning, débloque les passages, gère les juges, publie les résultats |
 | **Écran géant** | Écran ou vidéoprojecteur dans les arènes | URL dédiée, lecture seule | Affiche le QR code, l'épreuve en cours et le classement |
 
-**Une seule application** sert les cinq usages. L'écran affiché dépend du rôle de la personne connectée. Les droits sont appliqués **par la base de données** (Row Level Security), pas seulement par l'interface. Ainsi, un spectateur ne peut techniquement pas écrire une note de juge.
+**Une seule base de code** sert les cinq usages. L'écran affiché dépend du rôle de la personne connectée. Les droits sont appliqués **par la base de données** (Row Level Security), pas seulement par l'interface. Ainsi, un spectateur ne peut techniquement pas écrire une note de juge.
+
+### 3.1 Canaux d'accès
+
+| Canal | Pour qui | Contenu |
+|---|---|---|
+| **Site web** (navigateur, installable sur l'écran d'accueil) | Le public, et tous les rôles | Vitrine, inscription, notation, classements, notifications web |
+| **App Android** (Google Play) | **Interne par défaut** : admins et juges | Cockpit admin, import du planning, notation jury, notifications natives |
+
+- **Réglage `app_ouverte_au_public`** (désactivé par défaut) : une fois activé, les spectateurs peuvent aussi utiliser l'app Android pour s'inscrire, noter et recevoir les notifications natives. Le site web reste toujours disponible pour le public
+- **Même code** pour les deux canaux : l'app Android est une coque native (Capacitor) autour de l'application web. Toute évolution sort sur les deux canaux en même temps
+- **iPhone** : le même code permet une app iOS plus tard (compte Apple Developer requis). En V1, les admins et juges sur iPhone utilisent le site web installé sur l'écran d'accueil
 
 ---
 
@@ -115,6 +162,7 @@ Objectif : un site **simple, intuitif et soigné**, pensé d'abord pour le tél�
 
 **Photos** :
 
+- 20 photos libres de droits déjà repérées et vérifiées sur Wikimedia Commons (gardians, abrivado, ferrade, arènes de Nîmes) : liste, auteurs et licences dans [`docs/photos-libres.md`](photos-libres.md). Aucune photo libre des Olympiades elles-mêmes n'existe : les photos d'épreuves viendront de l'organisateur ou des manades
 - uniquement des photos dont on a le droit d'usage : photos fournies par l'organisateur ou les manades avec l'accord écrit du photographe, ou photos sous licence libre (Wikimedia Commons), toujours créditées
 - les photos de presse (ICI, Objectif Gard, Midi Libre, arènes de Nîmes) ne sont **pas** reprises sans l'accord du photographe ou du média
 - images optimisées (AVIF ou WebP, tailles adaptées au téléphone) pour rester rapides sur le réseau des arènes
@@ -293,7 +341,7 @@ Après la fermeture des votes, le spectateur peut laisser une **note globale de 
 
 - **Quand** : à chaque déblocage d'un passage ou d'une épreuve (mode déblocage), à l'ouverture de la fenêtre de vote (mode libre) et à la révélation du classement
 - **Contenu** : « C'est le moment de noter ! Ferrade en piste : manade Vinuesa ». Un appui ouvre directement l'écran de notation
-- **Technologie** : notifications Web Push standard, envoyées par le serveur dès que l'admin débloque
+- **Technologie** : sur le site web, notifications Web Push standard. Dans l'app Android, notifications natives via Firebase Cloud Messaging (FCM), plus fiables. Dans les deux cas, l'envoi part du serveur dès que l'admin débloque
 - **Android** : fonctionnent depuis le navigateur dès que le spectateur les accepte
 - **iPhone** : Apple n'autorise les notifications web **que si le site est ajouté à l'écran d'accueil** ([Pushpad](https://pushpad.xyz/blog/ios-special-requirements-for-web-push-notifications), [WebKit](https://webkit.org/?p=16535)). L'app détecte l'iPhone et affiche un guide en 2 étapes (« Partager », puis « Sur l'écran d'accueil ») avant de proposer les notifications
 - **Secours pour tous** : quand l'app est ouverte, un déblocage déclenche une bannière et une vibration, même sans notification
@@ -313,7 +361,8 @@ Après la fermeture des votes, le spectateur peut laisser une **note globale de 
 | Base de données | Supabase Postgres + Row Level Security | Les règles de vote (fenêtre, déblocage, une note par personne) sont appliquées par la base |
 | Authentification | Supabase Auth : code à 6 chiffres par email pour les spectateurs ([doc](https://supabase.com/docs/guides/auth/auth-email-passwordless)), email + mot de passe pour les admins, lien de connexion généré par l'admin pour les juges | Un email vérifié par votant, sans mot de passe à retenir |
 | Emails | SMTP Brevo (entreprise française, données dans l'UE), branché sur Supabase Auth et sur le formulaire de contact | L'envoi intégré de Supabase est limité à 2 emails par heure et réservé aux tests |
-| Notifications | Web Push (clés VAPID). Abonnements enregistrés en base, envoi par une Supabase Edge Function `notifier` déclenchée par un webhook de base de données au déblocage | Standard, gratuit, sans app native |
+| Notifications | Web Push (clés VAPID) pour le site, Firebase Cloud Messaging pour l'app Android. Abonnements enregistrés en base, envoi par une Supabase Edge Function `notifier` déclenchée par un webhook de base de données au déblocage | Gratuit, un seul point d'envoi pour les deux canaux |
+| App Android | Capacitor : coque native Android autour du build web (mode application monopage de React Router), publiée sur Google Play | Une seule base de code, iOS possible plus tard |
 | Temps réel | Supabase Realtime pour admins, juges et écran géant. Relecture périodique pour les spectateurs (voir 5.3) | Respect des quotas Realtime |
 | Fichiers | Supabase Storage (bucket privé `plannings`) | Historique des imports |
 | IA | Supabase Edge Function `extraire-planning` + SDK `@anthropic-ai/sdk`, modèle `claude-opus-5-5` | La clé API reste côté serveur |
@@ -348,7 +397,9 @@ notes_jury         (passage_id, juge_id, note pas 0.5 dans le barème,
                     UNIQUE (passage_id, juge_id)
 avis_soiree        (soiree_id, votant_id, etoiles 1-5, commentaire, cree_le)
                     UNIQUE (soiree_id, votant_id)
-abonnements_push   (id, profil_id, endpoint UNIQUE, p256dh, auth, cree_le)
+abonnements_push   (id, profil_id, canal: web | android, cible UNIQUE,
+                    p256dh, auth, cree_le)   -- cible = endpoint web ou jeton FCM
+parametres         (cle, valeur jsonb)  -- ex. app_ouverte_au_public
 palmares           (id, annee, soiree_nom, lieu, date_soiree, rang, manade_id,
                     vainqueur_epreuves, source_url)
 photos             (id, url, legende, credit, licence, ordre)
@@ -408,7 +459,7 @@ Le réseau 4G est souvent saturé dans les arènes. En conséquence :
 ## 7. Hors périmètre V1
 
 - billetterie, paiement, dons
-- application native publiée sur l'App Store ou le Play Store
+- application iOS publiée sur l'App Store (le code le permet, la publication n'est pas en V1)
 - vote par SMS ou code sur le billet
 - commentaires publics (les avis de la section 4.9 restent privés)
 - autres langues que le français
@@ -433,6 +484,7 @@ Le réseau 4G est souvent saturé dans les arènes. En conséquence :
 11. Un déblocage déclenche une notification reçue en **moins de 15 s** sur Android (navigateur) et sur iPhone (site ajouté à l'écran d'accueil)
 12. Les pages Accueil, Classements (2025, 2026, 2027), Dates et Contact s'affichent correctement sur mobile et ordinateur, avec un score Lighthouse mobile d'au moins 90 en performance et en accessibilité
 13. Un message envoyé par le formulaire de contact arrive dans la boîte email de l'organisateur
+14. L'app Android s'installe depuis Google Play (piste de test interne) : un admin y débloque une épreuve, un juge y note et reçoit la notification native. Avec `app_ouverte_au_public` désactivé, un spectateur ne peut pas s'y connecter ; activé, il le peut
 
 ---
 
@@ -449,7 +501,8 @@ Le réseau 4G est souvent saturé dans les arènes. En conséquence :
 | 6 | PWA, test de charge, tests e2e, recette sur téléphones réels | 1,5 j |
 | 7 | Site vitrine : accueil, classements 2025-2027, dates, contact, mentions légales, gestion des contenus et photos | 2,5 j |
 | 8 | Notifications : abonnement, guide iPhone, envoi au déblocage, bannière de secours | 1,5 j |
-| | **Total** | **≈ 16,5 jours** |
+| 9 | App Android : coque Capacitor, notifications FCM, réglage d'ouverture au public, publication Google Play (test interne) | 2,5 j |
+| | **Total** | **≈ 19 jours** |
 
 ---
 
@@ -465,4 +518,6 @@ Le réseau 4G est souvent saturé dans les arènes. En conséquence :
 8. **Prix du public** : y a-t-il un trophée remis en piste au vainqueur du vote du public ?
 9. **Photos** : l'organisateur ou les manades peuvent-ils fournir des photos des éditions passées, avec l'accord des photographes ?
 10. **Emails** : quelle adresse reçoit les messages du formulaire de contact ? Quel nom et quelle adresse d'expéditeur pour les emails de code ?
-11. **Nom de domaine** du site
+11. **Nom de domaine** du site : `olympiadedesmanades.fr` est libre au 10/10/2026
+12. **Google Play** : compte développeur (25 $ une seule fois) au nom de qui ? Nom et icône de l'app
+13. **Palmarès** : l'organisateur peut-il confirmer les vainqueurs 2025 et 2026 (Nîmes 2025 déduit, Nîmes 2026 inconnu) ?
