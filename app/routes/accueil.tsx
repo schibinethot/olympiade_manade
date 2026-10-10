@@ -29,7 +29,8 @@ export async function loader(): Promise<DonneesVitrine> {
 
 // Dans le navigateur, à la première interaction puis à chaque retour sur l'accueil : données fraîches
 // (un palmarès complété apparaît sans redéploiement). Si Supabase ne répond pas, on garde celles du
-// pré-rendu. Pas de lecture à l'hydratation : la page s'affiche sans charger supabase-js.
+// pré-rendu. Pas de lecture à l'hydratation si le pré-rendu est complet : la page s'affiche sans
+// charger supabase-js (app/lib/relecture.ts).
 export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs): Promise<DonneesVitrine> {
   return lireDonneesVitrineNavigateur(serverLoader);
 }

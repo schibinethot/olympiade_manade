@@ -28,11 +28,28 @@ for (const { chemin, contenu } of PAGES) {
     await expect(contenu(page)).toBeVisible();
     await expect(page.getByText(/momentanément indisponibles/)).toHaveCount(0);
 
-    // Réseau revenu : l'interaction suivante relit Supabase.
-    await context.setOffline(false);
-    const lecture = page.waitForRequest(/\/rest\/v1\/(calendrier|palmares)/);
+    // Pas de nouvel essai immédiat : un défilement continu ne relance pas la relecture en boucle.
+    let nouvelEssai = false;
+    const surRequete = (requete: { url: () => string }) => {
+      if (estDonneesPreRendu(requete.url()) || /\/rest\/v1\//.test(requete.url())) nouvelEssai = true;
+    };
+    page.on('request', surRequete);
     await page.mouse.wheel(0, 200);
-    await lecture;
+    await page.waitForTimeout(1000);
+    page.off('request', surRequete);
+    expect(nouvelEssai).toBe(false);
+
+    // Réseau revenu : passé le délai de nouvel essai, une interaction relit Supabase.
+    await context.setOffline(false);
+    let lue = false;
+    const lecture = page.waitForRequest(/\/rest\/v1\/(calendrier|palmares)/);
+    void lecture.then(() => {
+      lue = true;
+    });
+    await expect(async () => {
+      await page.mouse.wheel(0, 200);
+      expect(lue).toBe(true);
+    }).toPass({ intervals: [500], timeout: 10_000 });
     await relectureTerminee(page);
     await expect(contenu(page)).toBeVisible();
   });

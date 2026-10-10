@@ -5,18 +5,20 @@ import type { Calendrier, Palmares } from './donnees';
 // Relecture différée des pages vitrine (accueil, Classements, Dates). Leurs données sont dans le
 // pré-rendu : la page s'affiche et s'hydrate avec elles, sans charger supabase-js (environ 55 Ko
 // gzip). Les données fraîches sont relues à la première interaction du visiteur (toucher, clic,
-// clavier, molette), une fois par visite. Une navigation dans le site les relit déjà
+// clavier, molette), une fois par visite si elle réussit. Une navigation dans le site les relit déjà
 // (clientLoader) : la relecture n'a alors plus lieu d'être.
 //
 // L'événement « scroll » n'en fait pas partie : la restauration du défilement au rechargement
 // l'émet sans action du visiteur. Un pré-rendu incomplet (build sans Supabase) est relu dès
 // l'hydratation, sans attendre d'interaction.
 //
-// Une relecture qui échoue (hors ligne, Supabase injoignable) n'est pas comptée comme faite : la
-// prochaine interaction la retente. Et la page ne perd jamais ce qu'elle affiche : les dernières
-// données affichées servent de repli (app/lib/donnees-vitrine.ts).
+// Une relecture qui échoue (hors ligne, Supabase injoignable) n'est pas comptée comme faite : une
+// interaction la retente, au plus tôt DELAI_NOUVEL_ESSAI plus tard, pour qu'un défilement continu
+// ne relance pas la relecture en boucle. Et la page ne perd jamais ce qu'elle affiche : les
+// dernières données affichées servent de repli (app/lib/donnees-vitrine.ts).
 
 const INTERACTIONS = ['pointerdown', 'touchstart', 'keydown', 'wheel'] as const;
+const DELAI_NOUVEL_ESSAI = 5000;
 
 /** Tables affichées par les pages vitrine. */
 export type DonneesAffichees = { calendrier: Calendrier[] | null; palmares: Palmares[] | null };
@@ -82,9 +84,13 @@ export function useRelectureApresInteraction(donnees: DonneesAffichees): void {
     const retirer = () => {
       for (const type of INTERACTIONS) window.removeEventListener(type, relire, options);
     };
-    // Relecture échouée : la prochaine interaction la retente, une seule relecture à la fois.
+    // Relecture échouée : une interaction la retente après le délai, une seule relecture à la fois.
+    let nouvelEssai: ReturnType<typeof setTimeout> | undefined;
     const rearmer = () => {
-      if (actif && !relues) armer();
+      if (!actif || relues) return;
+      nouvelEssai = setTimeout(() => {
+        if (actif && !relues) armer();
+      }, DELAI_NOUVEL_ESSAI);
     };
     function relire() {
       retirer();
@@ -94,6 +100,7 @@ export function useRelectureApresInteraction(donnees: DonneesAffichees): void {
     else armer();
     return () => {
       actif = false;
+      clearTimeout(nouvelEssai);
       retirer();
     };
   }, [revalidate, immediate]);

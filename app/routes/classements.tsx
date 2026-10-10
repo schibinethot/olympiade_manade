@@ -22,7 +22,8 @@ export async function loader(): Promise<DonneesVitrine> {
 }
 
 // Dans le navigateur, à la première interaction puis à chaque navigation vers la page : palmarès
-// frais, sinon celui du pré-rendu, sinon le message de repli. Pas de lecture à l'hydratation.
+// frais, sinon celui du pré-rendu, sinon le message de repli. Pas de lecture à l'hydratation si le
+// pré-rendu est complet (app/lib/relecture.ts).
 export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs): Promise<DonneesVitrine> {
   return lireDonneesVitrineNavigateur(serverLoader);
 }
