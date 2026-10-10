@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
 
+// Garde : ces tests ouvrent les pages d'inscription, aucun appel Auth réel ne doit partir.
+test.beforeEach(async ({ page }) => {
+  await page.route('**/auth/v1/**', (route) => route.abort());
+});
+
 test('le serveur de production sert les pages pré-rendues, le repli et les en-têtes', async ({ request }) => {
   const accueil = await request.get('/');
   expect(accueil.status()).toBe(200);
@@ -12,14 +17,23 @@ test('le serveur de production sert les pages pré-rendues, le repli et les en-t
   );
   expect(accueil.headers()['content-security-policy']).not.toContain('unsafe-inline');
 
+  expect(accueil.headers()['x-robots-tag']).toBeUndefined();
   for (const chemin of ['/noter', '/inscription', '/inscription/code']) {
     const page = await request.get(chemin);
     expect(page.status(), chemin).toBe(200);
     expect(await page.text()).toContain('<div');
+    // Task 8 : routes monopage hors des moteurs de recherche, dès l'en-tête HTTP.
+    expect(page.headers()['x-robots-tag'], chemin).toBe('noindex');
   }
 
   const inconnue = await request.get('/page-qui-n-existe-pas');
   expect(inconnue.status()).toBe(404);
+
+  // Task 8 : derrière l'edge HTTPS de Railway, HSTS aussi sur les réponses en texte brut.
+  const fichierInconnu = await request.get('/assets/inconnu', { headers: { 'x-forwarded-proto': 'https' } });
+  expect(fichierInconnu.status()).toBe(404);
+  expect(fichierInconnu.headers()['content-type']).toContain('text/plain');
+  expect(fichierInconnu.headers()['strict-transport-security']).toBe('max-age=31536000');
 });
 
 test('une page non pré-rendue s’ouvre directement par son URL', async ({ page }) => {
