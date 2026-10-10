@@ -93,6 +93,21 @@ describe('schéma', () => {
       }
     }));
 
+  it('refuse NaN et Infinity comme note de jury, même sans le déclencheur du barème', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      // NaN >= 0 est vrai en PostgreSQL : seule la contrainte de table doit suffire ici.
+      await db.query('alter table public.notes_jury disable trigger notes_jury_bareme');
+      for (const note of ['NaN', 'Infinity']) {
+        const code = await doitEtreRefuse(
+          db,
+          'insert into public.notes_jury (passage_id, juge_id, note) values ($1, $2, $3::numeric)',
+          [IDS.passageA, IDS.juge, note],
+        );
+        expect(code, note).toBe('23514');
+      }
+    }));
+
   it('applique le barème sur 10 quand la soirée le demande', () =>
     dansUneTransaction(async (db) => {
       await semerSoiree(db);

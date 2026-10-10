@@ -101,7 +101,8 @@ create table public.notes_jury (
   -- Une soirée qui a des votes s'annule, elle ne se supprime pas.
   passage_id uuid not null references public.passages (id) on delete no action,
   juge_id uuid not null references public.profils (id) on delete cascade,
-  note numeric not null check (note >= 0 and note * 2 = trunc(note * 2)),
+  -- note <= 20 refuse aussi NaN et Infinity, que note >= 0 laisse passer.
+  note numeric not null check (note >= 0 and note <= 20 and note * 2 = trunc(note * 2)),
   commentaire text check (length(commentaire) <= 1000),
   maj_le timestamptz not null default now(),
   primary key (passage_id, juge_id)
