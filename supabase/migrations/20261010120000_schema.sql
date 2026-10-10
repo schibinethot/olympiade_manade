@@ -116,6 +116,12 @@ create table public.avis_soiree (
   primary key (soiree_id, votant_id)
 );
 
+-- La clé primaire commence par le passage ou la soirée : ces index servent la suppression
+-- de compte en cascade et la lecture des votes d'une personne.
+create index notes_public_votant_idx on public.notes_public (votant_id);
+create index notes_jury_juge_idx on public.notes_jury (juge_id);
+create index avis_soiree_votant_idx on public.avis_soiree (votant_id);
+
 -- Horodatage par la base, à l'insertion comme à la modification : un maj_le fourni par le client est écrasé.
 create function prive.horodater_maj() returns trigger
 language plpgsql set search_path = ''

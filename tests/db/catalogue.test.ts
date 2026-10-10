@@ -12,6 +12,28 @@ const FONCTIONS_DE_REGLES = [
   'soiree_visible',
 ];
 
+describe('catalogue : index', () => {
+  it('les notes et les avis sont indexés par votant et par juge (suppression de compte)', () =>
+    dansUneTransaction(async (db) => {
+      await commeSuperutilisateur(db);
+      const { rows } = await db.query(
+        `select c.relname as table, a.attname as colonne
+         from pg_index i
+         join pg_class c on c.oid = i.indrelid
+         join pg_attribute a on a.attrelid = i.indrelid and a.attnum = i.indkey[0]
+         where c.relnamespace = 'public'::regnamespace
+           and (c.relname, a.attname) in (('notes_public', 'votant_id'), ('notes_jury', 'juge_id'),
+                                          ('avis_soiree', 'votant_id'))
+         order by 1, 2`,
+      );
+      expect(rows).toEqual([
+        { table: 'avis_soiree', colonne: 'votant_id' },
+        { table: 'notes_jury', colonne: 'juge_id' },
+        { table: 'notes_public', colonne: 'votant_id' },
+      ]);
+    }));
+});
+
 describe('catalogue : fonctions', () => {
   it('aucune fonction dans le schéma public exposé par la Data API', () =>
     dansUneTransaction(async (db) => {
