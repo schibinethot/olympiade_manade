@@ -43,7 +43,7 @@ insert into public.palmares (annee, evenement, ville, date_soiree, vainqueur, de
   (2025, 'Les Grandes Olympiades des Gardians', 'Nîmes', '2025-08-22', 'Vinuesa',
    'Face à Lescot, Vellas, Robert Michel et Lafon. Présentée comme tenante du titre en 2026.', 'a_confirmer', null),
   (2026, 'Soirée alésienne des gardians', 'Alès', '2026-05-15', 'Vinuesa',
-   'Trophée de la régularité : 2e de toutes les épreuves, face à Devaux et Robert Michel.', 'confirme',
+   'Trophée de la régularité : 2e de toutes les épreuves, face à Arlatenco et Devaux.', 'confirme',
    'https://www.objectifsud.fr/actualites/ales-en-feria-les-gardians-rendent-hommage-a-leur-tradition-dans-une-soiree-de-concours-164007.php'),
   (2026, 'Olympiades de Beauvoisin', 'Beauvoisin', '2026-08-17', 'Devaux',
    'Face à Clément et La Lauze. Saut de cheval à cheval : Simon Lestevin. Rodéo : Anthony Da Silva. Saut de cheval à taureau : Bastien Fernandez. Attente au fer : Dylan Guyon et Yoan Visin. Capture de la vache : manade Clément.',

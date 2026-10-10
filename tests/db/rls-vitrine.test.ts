@@ -83,6 +83,19 @@ describe('vitrine : messages de contact', () => {
       expect(await doitEtreRefuse(db, DEPOSER, ['A', 'a@b.fr', 'x'.repeat(2001)])).toBe('23514');
     }));
 
+  it('refuse de contourner les bornes de longueur avec des blancs', () =>
+    dansUneTransaction(async (db) => {
+      await commeVisiteur(db);
+      expect(await doitEtreRefuse(db, DEPOSER, ['A'.repeat(61), 'a@b.fr', 'Message assez long'])).toBe('23514');
+      expect(await doitEtreRefuse(db, DEPOSER, [' '.repeat(100000) + 'A', 'a@b.fr', 'Message assez long'])).toBe(
+        '23514',
+      );
+      expect(
+        await doitEtreRefuse(db, DEPOSER, ['A', 'a@b.fr', ' '.repeat(5000) + 'Message assez long']),
+      ).toBe('23514');
+      expect(await doitEtreRefuse(db, DEPOSER, ['A', 'a@b.fr', '\n'.repeat(10)])).toBe('23514');
+    }));
+
   it('l’admin lit les messages et les marque traités, un spectateur non', () =>
     dansUneTransaction(async (db) => {
       await semerSoiree(db);

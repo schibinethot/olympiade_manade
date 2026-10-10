@@ -33,9 +33,9 @@ create index palmares_annee_idx on public.palmares (annee);
 
 create table public.messages_contact (
   id uuid primary key default gen_random_uuid(),
-  prenom text not null check (length(btrim(prenom)) between 1 and 60),
+  prenom text not null check (length(prenom) <= 60 and length(btrim(prenom, E' \t\r\n')) >= 1),
   email text not null check (length(email) <= 254 and email ~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$'),
-  message text not null check (length(btrim(message)) between 10 and 2000),
+  message text not null check (length(message) <= 2000 and length(btrim(message, E' \t\r\n')) >= 10),
   cree_le timestamptz not null default now(),
   traite boolean not null default false
 );
