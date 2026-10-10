@@ -118,4 +118,56 @@ describe('schéma', () => {
         await doitEtreRefuse(db, `update public.soirees set slug = 'Nîmes 2027' where id = $1`, [IDS.soiree]),
       ).toBe('23514');
     }));
+
+  it('refuse de retirer une manade qui a des passages, accepte sinon', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      const code = await doitEtreRefuse(
+        db,
+        'delete from public.soiree_manades where soiree_id = $1 and manade_id = $2',
+        [IDS.soiree, IDS.manadeA],
+      );
+      expect(code).toBe('23503');
+      await db.query('insert into public.soiree_manades (soiree_id, manade_id, ordre) values ($1, $2, 3)', [
+        IDS.soiree,
+        IDS.manadeHors,
+      ]);
+      const { rowCount } = await db.query(
+        'delete from public.soiree_manades where soiree_id = $1 and manade_id = $2',
+        [IDS.soiree, IDS.manadeHors],
+      );
+      expect(rowCount).toBe(1);
+    }));
+
+  it('refuse de déplacer une épreuve vers une autre soirée', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      const { rows } = await db.query(
+        `insert into public.soirees (slug, nom, date_soiree, vote_debut, vote_fin)
+         values ('autre-2027', 'Autre', current_date, now(), now() + interval '1 hour') returning id`,
+      );
+      const code = await doitEtreRefuse(db, 'update public.epreuves set soiree_id = $1 where id = $2', [
+        rows[0].id,
+        IDS.epreuve,
+      ]);
+      expect(code).toBe('23514');
+    }));
+
+  it('refuse de baisser le barème sous une note de jury existante', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      await db.query('insert into public.notes_jury (passage_id, juge_id, note) values ($1, $2, 15)', [
+        IDS.passageA,
+        IDS.juge,
+      ]);
+      const code = await doitEtreRefuse(db, 'update public.soirees set bareme_jury = 10 where id = $1', [
+        IDS.soiree,
+      ]);
+      expect(code).toBe('23514');
+      await db.query('update public.notes_jury set note = 10 where passage_id = $1', [IDS.passageA]);
+      const { rowCount } = await db.query('update public.soirees set bareme_jury = 10 where id = $1', [
+        IDS.soiree,
+      ]);
+      expect(rowCount).toBe(1);
+    }));
 });

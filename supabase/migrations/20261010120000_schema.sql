@@ -191,3 +191,65 @@ $$;
 
 create trigger auth_users_creer_profil after insert on auth.users
   for each row execute function public.creer_profil_spectateur();
+
+-- Une manade ne peut pas être retirée d'une soirée où elle a des passages
+create function public.verifier_retrait_manade() returns trigger
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  if exists (
+    select 1
+    from public.passages p
+    join public.epreuves e on e.id = p.epreuve_id
+    where e.soiree_id = old.soiree_id and p.manade_id = old.manade_id
+  ) then
+    raise exception 'La manade % a des passages dans cette soirée', old.manade_id
+      using errcode = 'foreign_key_violation';
+  end if;
+  return old;
+end;
+$$;
+
+create trigger soiree_manades_retrait
+  before delete on public.soiree_manades
+  for each row execute function public.verifier_retrait_manade();
+
+-- Une épreuve ne change jamais de soirée
+create function public.verifier_soiree_de_epreuve() returns trigger
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  if new.soiree_id is distinct from old.soiree_id then
+    raise exception 'Une épreuve ne peut pas changer de soirée'
+      using errcode = 'check_violation';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger epreuves_soiree_fixe
+  before update of soiree_id on public.epreuves
+  for each row execute function public.verifier_soiree_de_epreuve();
+
+-- Le barème d'une soirée ne passe pas sous une note de jury déjà saisie
+create function public.verifier_changement_bareme() returns trigger
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  if exists (
+    select 1
+    from public.notes_jury nj
+    join public.passages p on p.id = nj.passage_id
+    join public.epreuves e on e.id = p.epreuve_id
+    where e.soiree_id = new.id and nj.note > new.bareme_jury
+  ) then
+    raise exception 'Des notes de jury dépassent le nouveau barème (%)', new.bareme_jury
+      using errcode = 'check_violation';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger soirees_bareme_coherent
+  before update of bareme_jury on public.soirees
+  for each row execute function public.verifier_changement_bareme();
