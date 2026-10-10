@@ -209,4 +209,25 @@ describe('modification et suppression directes', () => {
         ]),
       ).toBe('42501');
     }));
+
+  it('avis : refuse de déplacer un avis vers une autre soirée terminée', () =>
+    dansUneTransaction(async (db) => {
+      const autreSoiree = '20000000-0000-4000-8000-0000000000fe';
+      await semerSoiree(db);
+      await modifier(
+        db,
+        `insert into public.soirees (id, slug, nom, date_soiree, vote_debut, vote_fin, statut)
+         values ($1, 'autre-2026', 'Autre soirée', current_date - 30,
+                 now() - interval '30 days', now() - interval '29 days', 'terminee')`,
+        [autreSoiree],
+      );
+      await modifier(db, `update public.soirees set statut = 'terminee' where id = $1`, [IDS.soiree]);
+      await commeUtilisateur(db, IDS.spectateur);
+      await db.query(DONNER_AVIS, [IDS.soiree, IDS.spectateur, 5, 'Super']);
+      expect(
+        await doitEtreRefuse(db, 'update public.avis_soiree set soiree_id = $1', [autreSoiree]),
+      ).toBe('42501');
+      await commeSuperutilisateur(db);
+      expect((await db.query('select soiree_id from public.avis_soiree')).rows).toEqual([{ soiree_id: IDS.soiree }]);
+    }));
 });
