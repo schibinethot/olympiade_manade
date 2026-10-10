@@ -60,16 +60,21 @@ const LECTURE = 'SELECT';
 const VOTE = 'INSERT, SELECT, UPDATE';
 const ADMIN = 'DELETE, INSERT, SELECT, UPDATE';
 const DROITS_ATTENDUS = [
+  { role: 'anon', table: 'calendrier', droits: LECTURE },
   { role: 'anon', table: 'epreuves', droits: LECTURE },
   { role: 'anon', table: 'manades', droits: LECTURE },
+  { role: 'anon', table: 'palmares', droits: LECTURE },
   { role: 'anon', table: 'passages', droits: LECTURE },
   { role: 'anon', table: 'soiree_manades', droits: LECTURE },
   { role: 'anon', table: 'soirees', droits: LECTURE },
   { role: 'authenticated', table: 'avis_soiree', droits: VOTE },
+  { role: 'authenticated', table: 'calendrier', droits: ADMIN },
   { role: 'authenticated', table: 'epreuves', droits: ADMIN },
   { role: 'authenticated', table: 'manades', droits: ADMIN },
+  { role: 'authenticated', table: 'messages_contact', droits: LECTURE },
   { role: 'authenticated', table: 'notes_jury', droits: VOTE },
   { role: 'authenticated', table: 'notes_public', droits: VOTE },
+  { role: 'authenticated', table: 'palmares', droits: ADMIN },
   { role: 'authenticated', table: 'passages', droits: ADMIN },
   { role: 'authenticated', table: 'profils', droits: LECTURE },
   { role: 'authenticated', table: 'soiree_juges', droits: ADMIN },
@@ -97,7 +102,7 @@ describe('catalogue : tables et droits', () => {
       expect(rows).toEqual(DROITS_ATTENDUS);
     }));
 
-  it('le seul droit de colonne est update (prenom) de profils pour authenticated', () =>
+  it('les seuls droits de colonne sont le dépôt de messages de contact et update (prenom) de profils', () =>
     dansUneTransaction(async (db) => {
       await commeSuperutilisateur(db);
       const { rows } = await db.query(
@@ -111,7 +116,31 @@ describe('catalogue : tables et droits', () => {
            and (d.grantee = 0 or r.rolname in ('anon', 'authenticated'))
          order by 1, 2, 3, 4`,
       );
-      expect(rows).toEqual([{ table: 'profils', colonne: 'prenom', role: 'authenticated', droit: 'UPDATE' }]);
+      expect(rows).toEqual([
+        { table: 'messages_contact', colonne: 'email', role: 'anon', droit: 'INSERT' },
+        { table: 'messages_contact', colonne: 'email', role: 'authenticated', droit: 'INSERT' },
+        { table: 'messages_contact', colonne: 'message', role: 'anon', droit: 'INSERT' },
+        { table: 'messages_contact', colonne: 'message', role: 'authenticated', droit: 'INSERT' },
+        { table: 'messages_contact', colonne: 'prenom', role: 'anon', droit: 'INSERT' },
+        { table: 'messages_contact', colonne: 'prenom', role: 'authenticated', droit: 'INSERT' },
+        { table: 'messages_contact', colonne: 'traite', role: 'authenticated', droit: 'UPDATE' },
+        { table: 'profils', colonne: 'prenom', role: 'authenticated', droit: 'UPDATE' },
+      ]);
+    }));
+
+  it('service_role lit et écrit les tables de la vitrine', () =>
+    dansUneTransaction(async (db) => {
+      await commeSuperutilisateur(db);
+      const { rows } = await db.query(
+        `select t.table_name as table, string_agg(p.droit, ', ' order by p.droit) as droits
+         from (values ('calendrier'), ('messages_contact'), ('palmares')) as t (table_name)
+         cross join (values ('DELETE'), ('INSERT'), ('SELECT'), ('UPDATE')) as p (droit)
+         where has_table_privilege('service_role', 'public.' || t.table_name, p.droit)
+         group by t.table_name order by 1`,
+      );
+      expect(rows).toEqual(
+        ['calendrier', 'messages_contact', 'palmares'].map((table) => ({ table, droits: ADMIN })),
+      );
     }));
 
   it('ni anon ni authenticated n’ont TRUNCATE, REFERENCES ou TRIGGER', () =>

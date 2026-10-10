@@ -38,6 +38,7 @@ export async function semerSoiree(db: pg.Client): Promise<void> {
       ('${IDS.nonVerifie}', 'zoe@test.fr', null, '{"prenom": "Zoé", "consentement": true}');
     update public.profils set role = 'admin' where id = '${IDS.admin}';
     update public.profils set role = 'juge' where id in ('${IDS.juge}', '${IDS.jugeNonRattache}');
+    delete from public.manades; -- retire les manades de référence (migration de données), la graine pose les siennes
     insert into public.manades (id, nom) values
       ('${IDS.manadeA}', 'Vinuesa'), ('${IDS.manadeB}', 'Lafon'), ('${IDS.manadeHors}', 'Gillet');
     insert into public.soirees (id, slug, nom, date_soiree, vote_debut, vote_fin, mode_vote, statut) values
