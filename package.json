@@ -3,15 +3,35 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "react-router dev",
+    "build": "react-router build",
+    "preview": "sirv build/client --single __spa-fallback.html",
     "test": "vitest run",
-    "test:db": "vitest run tests/db",
-    "typecheck": "tsc"
+    "test:unit": "vitest run --project unit",
+    "test:db": "vitest run --project db",
+    "test:e2e": "playwright test",
+    "typecheck": "react-router typegen && tsc"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
+    "@react-router/dev": "^8.4.0",
+    "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.6.4",
     "@types/pg": "^8.23.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "pg": "^8.23.1",
+    "sirv-cli": "^3.0.1",
+    "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
+    "vite": "^8.3.4",
     "vitest": "^5.0.3"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.117.3",
+    "isbot": "^5.2.2",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router": "^8.4.0"
   }
 }
