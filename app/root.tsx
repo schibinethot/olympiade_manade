@@ -4,16 +4,22 @@ import type { Route } from './+types/root';
 import { Entete } from './composants/Entete';
 import { PiedDePage } from './composants/PiedDePage';
 import { TitrePage } from './composants/TitrePage';
-import './app.css';
+import feuilleDeStyle from './app.css?url';
 
 const police = (fichier: string) =>
   ({ rel: 'preload', href: `/polices/${fichier}`, as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' }) as const;
 
 export const links: Route.LinksFunction = () => [
-  // Polices du premier écran : interface, logo et titres.
+  // Feuille de style : elle bloque le premier rendu, elle doit partir avant les 24 modules JavaScript.
+  // React 19 remonte en tête du <head> les préchargements (polices, modules) ; avec « precedence »,
+  // il y remonte aussi la feuille, juste après les polices. Sans, elle arrivait en dernier.
+  { rel: 'stylesheet', href: feuilleDeStyle, precedence: 'default' },
+  // Polices du premier écran : interface, logo, titres, et italique des années (affiche de l'accueil,
+  // titres « Classements 2026 » et « Dates 2027 »), sinon découverte tard et source d'un décalage.
   police('inter-latin-wght-normal.woff2'),
   police('kaushan-script-latin-400-normal.woff2'),
   police('playfair-display-latin-wght-normal.woff2'),
+  police('playfair-display-latin-wght-italic.woff2'),
   { rel: 'icon', href: '/favicon.svg', type: 'image/svg+xml' },
 ];
 
