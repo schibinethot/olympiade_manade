@@ -118,4 +118,27 @@ describe('profils et juges', () => {
       await commeUtilisateur(db, IDS.admin);
       expect(await compter(db, 'soiree_juges')).toBe(1);
     }));
+
+  it('ni un juge ni un spectateur ne s’auto-rattachent à une soirée', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      for (const id of [IDS.jugeNonRattache, IDS.spectateur]) {
+        await commeUtilisateur(db, id);
+        expect(
+          await doitEtreRefuse(db, `insert into public.soiree_juges (soiree_id, juge_id) values ($1, $2)`, [
+            IDS.soiree,
+            id,
+          ]),
+        ).toBe('42501');
+      }
+    }));
+
+  it('même un admin ne change pas un rôle via l’API', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      await commeUtilisateur(db, IDS.admin);
+      expect(
+        await doitEtreRefuse(db, `update public.profils set role = 'admin' where id = $1`, [IDS.spectateur]),
+      ).toBe('42501');
+    }));
 });

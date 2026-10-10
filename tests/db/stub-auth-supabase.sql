@@ -37,3 +37,10 @@ language sql stable
 as $$
   select nullif(auth.jwt() ->> 'sub', '')::uuid
 $$;
+
+-- Droits par défaut de Supabase : toute table, fonction ou séquence créée dans
+-- public est ouverte aux rôles de l'API. La sécurité repose sur la RLS et les revoke.
+grant usage on schema public to anon, authenticated, service_role;
+alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
+alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;

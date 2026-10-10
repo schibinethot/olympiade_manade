@@ -11,6 +11,11 @@ alter table public.notes_public enable row level security;
 alter table public.notes_jury enable row level security;
 alter table public.avis_soiree enable row level security;
 
+-- Supabase accorde par défaut tous les droits aux rôles de l'API sur toute table créée
+-- dans public. On repart de zéro : seuls les grants explicites ci-dessous s'appliquent.
+revoke all on all tables in schema public from anon, authenticated;
+alter default privileges in schema public revoke all on tables from anon, authenticated;
+
 grant usage on schema public to anon, authenticated;
 grant select on public.manades, public.soirees, public.soiree_manades, public.epreuves, public.passages
   to anon, authenticated;
@@ -19,6 +24,22 @@ grant insert, update, delete on public.manades, public.soirees, public.soiree_ma
 grant select on public.profils, public.soiree_juges to authenticated;
 -- Seul le prénom est modifiable depuis l'app. Les rôles changent côté serveur (service_role).
 grant update (prenom) on public.profils to authenticated;
+
+-- Défense en profondeur : même si un droit de colonne ressurgit, le rôle ne change pas via l'API.
+-- security invoker (défaut) : current_user est le rôle appelant. Superutilisateur et service_role passent.
+create function public.figer_role_profil() returns trigger
+language plpgsql security invoker set search_path = ''
+as $$
+begin
+  if current_user in ('anon', 'authenticated') and new.role is distinct from old.role then
+    raise exception 'le rôle d''un profil ne se modifie que côté serveur' using errcode = 'insufficient_privilege';
+  end if;
+  return new;
+end
+$$;
+
+create trigger profils_figer_role before update of role on public.profils
+  for each row execute function public.figer_role_profil();
 
 create function public.soiree_visible(p_soiree_id uuid) returns boolean
 language sql stable security definer set search_path = ''
