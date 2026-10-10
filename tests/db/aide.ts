@@ -11,7 +11,24 @@ function client(base: string): pg.Client {
   return new pg.Client({ host: hote, database: base });
 }
 
+/** La base est supprimée puis recréée : on refuse toute cible qui ne soit pas une base de test locale. */
+function verifierCibleLocale(base: string): void {
+  if (!(hote.startsWith('/') || hote === 'localhost' || hote === '127.0.0.1')) {
+    throw new Error(
+      `Base de test refusée : l'hôte « ${hote} » n'est ni un socket local (chemin absolu), ni localhost, ni 127.0.0.1. ` +
+        'Le harnais supprime puis recrée la base, il ne vise jamais un serveur distant.',
+    );
+  }
+  if (!/^[a-z0-9_]+_test$/.test(base)) {
+    throw new Error(
+      `Base de test refusée : le nom « ${base} » ne correspond pas à /^[a-z0-9_]+_test$/. ` +
+        "Le harnais supprime puis recrée la base, il ne vise qu'une base dont le nom finit par _test.",
+    );
+  }
+}
+
 export async function recreerBaseDeTest(): Promise<void> {
+  verifierCibleLocale(NOM_BASE_TEST);
   const admin = client('postgres');
   await admin.connect();
   await admin.query(`drop database if exists ${NOM_BASE_TEST} with (force)`);
