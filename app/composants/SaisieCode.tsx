@@ -2,8 +2,8 @@ import { OTPInput, OTPInputContext } from 'input-otp';
 import { useContext, useEffect, useRef } from 'react';
 import { normaliserCode } from '../lib/auth';
 
-// Saisie du code à 6 chiffres, reprise du composant input-otp de SITE-AM
-// (client/src/components/ui/input-otp.tsx, enveloppe shadcn de la bibliothèque input-otp) :
+// Saisie du code à 6 chiffres, reprise d'un projet interne (enveloppe shadcn de la bibliothèque
+// input-otp), adaptée :
 // - React 19 : plus de forwardRef, le ref est une prop ordinaire ;
 // - Tailwind 4 : animation du curseur déclarée dans @theme (app.css, --animate-caret-blink) ;
 // - style de la maquette (écran spect:inscription, bloc .otp).

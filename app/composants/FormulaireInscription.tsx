@@ -30,7 +30,7 @@ type Props = {
 /**
  * Étape 1 : prénom, email et consentement, puis envoi du code (supabase.auth.signInWithOtp).
  *
- * - Un seul envoi à la fois : verrou synchrone (repris de SITE-AM, GalleryLoginModal) et bouton
+ * - Un seul envoi à la fois : verrou synchrone (repris d'un projet interne) et bouton
  *   désactivé pendant l'envoi.
  * - Même suite pour un email déjà inscrit : rien ne révèle qu'un compte existe.
  * - La demande (prénom, email, heure d'envoi) passe à /inscription/code par l'onglet

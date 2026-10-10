@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-// Repris de SITE-AM (client/src/hooks/useOtpCooldown.ts), même logique et même API.
+// Repris d'un projet interne, même logique et même API.
 // Seul ajout : startCooldown accepte une durée, pour reprendre le décompte après un rechargement
 // de la page du code (l'heure d'envoi est gardée dans l'onglet).
 

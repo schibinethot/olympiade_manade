@@ -22,8 +22,8 @@ const CODE_INCOMPLET = 'Saisissez les 6 chiffres du code reçu par email.';
 /**
  * Étape 2 : saisie du code reçu, « Renvoyer le code » après 60 s, « Changer d'email ».
  *
- * - Pas de vérification automatique à 6 chiffres (SITE-AM la faisait) : le parcours du plan valide
- *   par le bouton « Valider », ou la touche Entrée.
+ * - Pas de vérification automatique à 6 chiffres (le projet d'origine la faisait) : le parcours du
+ *   plan valide par le bouton « Valider », ou la touche Entrée.
  * - Verrou synchrone sur la vérification et sur le renvoi : un double clic ne part qu'une fois.
  * - Code refusé : message, saisie vidée et remise au focus, pour réessayer tout de suite. La
  *   saisie n'est donc jamais désactivée (un champ désactivé ne peut pas reprendre le focus).
