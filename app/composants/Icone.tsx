@@ -2,6 +2,7 @@
 // le texte voisin porte le sens.
 const TRACES = {
   fleche: <path d="M5 12h14M13 6l6 6-6 6" />,
+  chevron: <path d="M6 9l6 6 6-6" />,
   cadenas: (
     <>
       <rect x="5" y="11" width="14" height="9" rx="2" />

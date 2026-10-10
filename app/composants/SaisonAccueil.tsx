@@ -1,7 +1,8 @@
 import { Link } from 'react-router';
-import { saisonAccueil, type EtatLigneSaison } from '../lib/accueil';
+import { saisonAccueil } from '../lib/accueil';
 import { formaterHeure } from '../lib/dates';
 import type { Calendrier } from '../lib/donnees';
+import { BadgeSoiree } from './BadgeSoiree';
 import { Icone } from './Icone';
 
 type Props = {
@@ -9,22 +10,6 @@ type Props = {
   calendrier: Calendrier[] | null;
   maintenant: Date;
 };
-
-const PUCE = 'inline-flex items-center rounded-full px-2.5 py-1.5 text-[10px] leading-none font-bold tracking-[0.12em] whitespace-nowrap uppercase';
-
-/**
- * Badge d'une soirée. Couleurs d'état de la charte (ok, alerte), assombries pour tenir 4,5:1 sur
- * leur fond teinté : #286b44 sur vert pâle 5,3:1, #985512 sur orangé pâle 4,87:1.
- */
-function Badge({ soiree, etat }: { soiree: Calendrier; etat: EtatLigneSaison }) {
-  if (etat === 'terminee') return <span className={`${PUCE} bg-lin text-encre-2`}>Terminée</span>;
-  if (etat === 'annulee') return <span className={`${PUCE} bg-[rgba(194,59,29,.1)] text-rouge`}>Annulée</span>;
-  return soiree.statut === 'confirmee' ? (
-    <span className={`${PUCE} bg-[rgba(47,122,79,.12)] text-[#286b44]`}>Confirmée</span>
-  ) : (
-    <span className={`${PUCE} bg-[rgba(217,130,43,.14)] text-[#985512]`}>Date prévisionnelle</span>
-  );
-}
 
 const MOIS = new Intl.DateTimeFormat('fr-FR', { month: 'short', timeZone: 'UTC' });
 
@@ -85,7 +70,7 @@ export function SaisonAccueil({ calendrier, maintenant }: Props) {
                   </p>
                 </div>
                 <div className="col-start-2 paysage:col-start-auto">
-                  <Badge soiree={soiree} etat={etat} />
+                  <BadgeSoiree soiree={soiree} etat={etat} />
                 </div>
               </li>
             );

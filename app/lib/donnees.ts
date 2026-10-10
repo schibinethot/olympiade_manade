@@ -34,21 +34,28 @@ function client(): SupabaseClient {
   }
 }
 
-export async function lireCalendrier(): Promise<Calendrier[]> {
-  const { data, error } = await client()
+/**
+ * Les lectures acceptent un signal d'abandon. postgrest-js refait jusqu'à trois fois une lecture
+ * qui échoue sur le réseau (après 1, 2 puis 4 s) ; une requête abandonnée n'est pas refaite. Dans
+ * le navigateur, le signal borne donc l'attente d'une navigation quand Supabase ne répond pas.
+ */
+export async function lireCalendrier(signal?: AbortSignal): Promise<Calendrier[]> {
+  const requete = client()
     .from('calendrier')
     .select('id, annee, nom, ville, arenes, date_soiree, heure, statut, lien_billetterie')
     .order('date_soiree');
+  const { data, error } = await (signal ? requete.abortSignal(signal) : requete);
   if (error) throw new ErreurDonnees(`Calendrier indisponible : ${error.message}`);
   return data as Calendrier[];
 }
 
-export async function lirePalmares(): Promise<Palmares[]> {
-  const { data, error } = await client()
+export async function lirePalmares(signal?: AbortSignal): Promise<Palmares[]> {
+  const requete = client()
     .from('palmares')
     .select('id, annee, evenement, ville, date_soiree, vainqueur, detail, statut, source_url')
     .order('annee', { ascending: false })
     .order('date_soiree', { ascending: false });
+  const { data, error } = await (signal ? requete.abortSignal(signal) : requete);
   if (error) throw new ErreurDonnees(`Palmarès indisponible : ${error.message}`);
   return data as Palmares[];
 }

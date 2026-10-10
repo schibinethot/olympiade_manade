@@ -94,7 +94,8 @@ export type DernierVainqueur = {
 
 const ordreResultat = (p: Palmares) => p.date_soiree ?? `${p.annee}-12-31`;
 
-function domaine(url: string): string | null {
+/** Domaine d'une source, sans « www. » : « midilibre.fr ». */
+export function domaine(url: string): string | null {
   try {
     return new URL(url).hostname.replace(/^www\./, '');
   } catch {

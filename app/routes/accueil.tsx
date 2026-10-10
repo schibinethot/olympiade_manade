@@ -6,8 +6,8 @@ import { FormulaireContact } from '../composants/FormulaireContact';
 import { ManadesEdition } from '../composants/ManadesEdition';
 import { SaisonAccueil } from '../composants/SaisonAccueil';
 import { VILLE_AFFICHE } from '../donnees/affiche';
-import { prochaineSoireeA, soireeDeReference, type AvecCalendrier } from '../lib/accueil';
-import { lireCalendrier, lireOuRepli, lirePalmares, type Palmares } from '../lib/donnees';
+import { prochaineSoireeA, soireeDeReference } from '../lib/accueil';
+import { lireDonneesVitrine, lireDonneesVitrineNavigateur, type DonneesVitrine } from '../lib/donnees-vitrine';
 import { ETAT_SOIREE } from '../lib/etat-soiree';
 import { useMaintenant } from '../lib/temps';
 import type { Route } from './+types/accueil';
@@ -20,30 +20,16 @@ export const meta: Route.MetaFunction = () => [
   },
 ];
 
-type DonneesAccueil = AvecCalendrier & { palmares: Palmares[] | null };
-
-async function lireDonneesAccueil(): Promise<DonneesAccueil> {
-  const [calendrier, palmares] = await Promise.all([lireOuRepli(lireCalendrier), lireOuRepli(lirePalmares)]);
-  return { calendrier, palmares, lueLe: new Date().toISOString() };
-}
-
 // Au build : données inscrites dans la page pré-rendue (lisible sans JavaScript). Une lecture qui
 // échoue donne le repli, jamais un build en échec.
-export async function loader(): Promise<DonneesAccueil> {
-  return lireDonneesAccueil();
+export async function loader(): Promise<DonneesVitrine> {
+  return lireDonneesVitrine();
 }
 
 // Au chargement dans le navigateur, puis à chaque retour sur l'accueil : données fraîches (un palmarès
 // complété apparaît sans redéploiement). Si Supabase ne répond pas, on garde celles du pré-rendu.
-export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs): Promise<DonneesAccueil> {
-  const frais = await lireDonneesAccueil();
-  if (frais.calendrier && frais.palmares) return frais;
-  const archive = await serverLoader().catch(() => null);
-  return {
-    calendrier: frais.calendrier ?? archive?.calendrier ?? null,
-    palmares: frais.palmares ?? archive?.palmares ?? null,
-    lueLe: frais.lueLe,
-  };
+export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs): Promise<DonneesVitrine> {
+  return lireDonneesVitrineNavigateur(serverLoader);
 }
 clientLoader.hydrate = true as const;
 

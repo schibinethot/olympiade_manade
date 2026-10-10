@@ -221,7 +221,10 @@
   --couchant-carte: linear-gradient(140deg, #a92e17 0%, #c2441d 52%, #c74f16 100%);
   --couchant-carte-lueur: #b85e10;
 }
-.carte-notez {
+/* Même fond pour la carte de la saison et la soirée du jour de la page Dates (maquette : .season,
+   .dr.now), qui portent aussi du texte blanc. */
+.carte-notez,
+.carte-saison {
   background-color: #b3321a;
   background-image: radial-gradient(110% 80% at 100% 0%, var(--couchant-carte-lueur) 0%, transparent 55%),
     var(--couchant-carte);

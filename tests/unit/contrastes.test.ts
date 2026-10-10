@@ -64,3 +64,23 @@ describe('carte « Notez les Olympiades » sous texte blanc (--couchant-carte et
     expect(minimum).toBeGreaterThanOrEqual(4.5);
   });
 });
+
+describe('page Dates : textes sur les fonds ajoutés', () => {
+  const couleur = (nom: string) => rvbDepuisHex(variable(`color-${nom}`));
+  const sur = (fond: Rvb, couche: Rvb, alpha: number): Rvb =>
+    [0, 1, 2].map((c) => Math.round(couche[c] * alpha + fond[c] * (1 - alpha))) as unknown as Rvb;
+
+  it('lien rouge sur la carte des archives (lin à 50 % sur sable) : 4,5:1 au moins', () => {
+    const fond = sur(couleur('sable'), couleur('lin'), 0.5);
+    expect(contraste(couleur('rouge'), fond)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('« Prochaine soirée » en rouge sur la teinte couchant de la carte : 4,5:1 au moins', () => {
+    const fond = sur(couleur('creme'), rvbDepuisHex('#ec7433'), 0.12);
+    expect(contraste(couleur('rouge'), fond)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('bouton « Billetterie » de la soirée du jour : 4,5:1 au moins', () => {
+    expect(contraste(rvbDepuisHex('#9a2c12'), rvbDepuisHex('#fffaf2'))).toBeGreaterThanOrEqual(4.5);
+  });
+});
