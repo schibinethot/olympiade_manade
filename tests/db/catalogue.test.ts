@@ -51,6 +51,79 @@ const FONCTIONS_DE_REGLES = [
   'soiree_visible',
 ];
 
+// Droits de table attendus pour les rôles de l'API, tels que les migrations RLS les accordent.
+// Toute différence (droit en trop ou manquant) doit être une décision, donc une mise à jour ici.
+const LECTURE = 'SELECT';
+const VOTE = 'INSERT, SELECT, UPDATE';
+const ADMIN = 'DELETE, INSERT, SELECT, UPDATE';
+const DROITS_ATTENDUS = [
+  { role: 'anon', table: 'epreuves', droits: LECTURE },
+  { role: 'anon', table: 'manades', droits: LECTURE },
+  { role: 'anon', table: 'passages', droits: LECTURE },
+  { role: 'anon', table: 'soiree_manades', droits: LECTURE },
+  { role: 'anon', table: 'soirees', droits: LECTURE },
+  { role: 'authenticated', table: 'avis_soiree', droits: VOTE },
+  { role: 'authenticated', table: 'epreuves', droits: ADMIN },
+  { role: 'authenticated', table: 'manades', droits: ADMIN },
+  { role: 'authenticated', table: 'notes_jury', droits: VOTE },
+  { role: 'authenticated', table: 'notes_public', droits: VOTE },
+  { role: 'authenticated', table: 'passages', droits: ADMIN },
+  { role: 'authenticated', table: 'profils', droits: LECTURE },
+  { role: 'authenticated', table: 'soiree_juges', droits: ADMIN },
+  { role: 'authenticated', table: 'soiree_manades', droits: ADMIN },
+  { role: 'authenticated', table: 'soirees', droits: ADMIN },
+];
+
+describe('catalogue : tables et droits', () => {
+  it('aucune table de public sans RLS', () =>
+    dansUneTransaction(async (db) => {
+      await commeSuperutilisateur(db);
+      expect((await db.query(SANS_RLS)).rows).toEqual([]);
+    }));
+
+  it('anon et authenticated ont exactement les droits de table attendus, PUBLIC aucun', () =>
+    dansUneTransaction(async (db) => {
+      await commeSuperutilisateur(db);
+      const { rows } = await db.query(
+        `select grantee as role, table_name as table, string_agg(privilege_type, ', ' order by privilege_type) as droits
+         from information_schema.role_table_grants
+         where table_schema = 'public' and grantee in ('anon', 'authenticated', 'PUBLIC')
+         group by grantee, table_name
+         order by 1, 2`,
+      );
+      expect(rows).toEqual(DROITS_ATTENDUS);
+    }));
+
+  it('le seul droit de colonne est update (prenom) de profils pour authenticated', () =>
+    dansUneTransaction(async (db) => {
+      await commeSuperutilisateur(db);
+      const { rows } = await db.query(
+        `select c.relname as table, a.attname as colonne, coalesce(r.rolname, 'PUBLIC') as role,
+                d.privilege_type as droit
+         from pg_attribute a
+         join pg_class c on c.oid = a.attrelid
+         cross join lateral aclexplode(a.attacl) d
+         left join pg_roles r on r.oid = d.grantee
+         where c.relnamespace = 'public'::regnamespace and a.attacl is not null
+           and (d.grantee = 0 or r.rolname in ('anon', 'authenticated'))
+         order by 1, 2, 3, 4`,
+      );
+      expect(rows).toEqual([{ table: 'profils', colonne: 'prenom', role: 'authenticated', droit: 'UPDATE' }]);
+    }));
+
+  it('ni anon ni authenticated n’ont TRUNCATE, REFERENCES ou TRIGGER', () =>
+    dansUneTransaction(async (db) => {
+      await commeSuperutilisateur(db);
+      const { rows } = await db.query(
+        `select grantee, table_schema, table_name, privilege_type from information_schema.role_table_grants
+         where grantee in ('anon', 'authenticated', 'PUBLIC') and table_schema in ('public', 'prive')
+           and privilege_type in ('TRUNCATE', 'REFERENCES', 'TRIGGER')
+         order by 1, 2, 3, 4`,
+      );
+      expect(rows).toEqual([]);
+    }));
+});
+
 describe('catalogue : index', () => {
   it('les notes et les avis sont indexés par votant et par juge (suppression de compte)', () =>
     dansUneTransaction(async (db) => {
