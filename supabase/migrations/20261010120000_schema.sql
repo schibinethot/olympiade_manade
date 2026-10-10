@@ -192,26 +192,38 @@ $$;
 create trigger auth_users_creer_profil after insert on auth.users
   for each row execute function public.creer_profil_spectateur();
 
--- Une manade ne peut pas être retirée d'une soirée où elle a des passages
+-- Une manade ne peut pas être retirée ni remplacée dans une soirée où elle a des passages.
+-- Sur une suppression en cascade de la soirée, la soirée n'existe plus : pas de contrôle.
 create function public.verifier_retrait_manade() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
 begin
-  if exists (
-    select 1
-    from public.passages p
-    join public.epreuves e on e.id = p.epreuve_id
-    where e.soiree_id = old.soiree_id and p.manade_id = old.manade_id
-  ) then
+  if tg_op = 'UPDATE'
+     and new.soiree_id is not distinct from old.soiree_id
+     and new.manade_id is not distinct from old.manade_id then
+    return new;
+  end if;
+
+  if exists (select 1 from public.soirees s where s.id = old.soiree_id)
+     and exists (
+       select 1
+       from public.passages p
+       join public.epreuves e on e.id = p.epreuve_id
+       where e.soiree_id = old.soiree_id and p.manade_id = old.manade_id
+     ) then
     raise exception 'La manade % a des passages dans cette soirée', old.manade_id
       using errcode = 'foreign_key_violation';
   end if;
-  return old;
+
+  if tg_op = 'DELETE' then
+    return old;
+  end if;
+  return new;
 end;
 $$;
 
 create trigger soiree_manades_retrait
-  before delete on public.soiree_manades
+  before delete or update of soiree_id, manade_id on public.soiree_manades
   for each row execute function public.verifier_retrait_manade();
 
 -- Une épreuve ne change jamais de soirée

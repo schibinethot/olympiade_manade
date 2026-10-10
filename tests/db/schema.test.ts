@@ -170,4 +170,27 @@ describe('schéma', () => {
       ]);
       expect(rowCount).toBe(1);
     }));
+
+  it('supprime une soirée avec ses passages en cascade', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      await db.query('delete from public.soirees where id = $1', [IDS.soiree]);
+      const { rows } = await db.query(
+        `select (select count(*) from public.passages)::int as passages,
+                (select count(*) from public.soiree_manades where soiree_id = $1)::int as engagements`,
+        [IDS.soiree],
+      );
+      expect(rows[0]).toEqual({ passages: 0, engagements: 0 });
+    }));
+
+  it('refuse de remplacer une manade qui a des passages dans soiree_manades', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      const code = await doitEtreRefuse(
+        db,
+        'update public.soiree_manades set manade_id = $1 where soiree_id = $2 and manade_id = $3',
+        [IDS.manadeHors, IDS.soiree, IDS.manadeA],
+      );
+      expect(code).toBe('23503');
+    }));
 });
