@@ -27,7 +27,7 @@ insert into public.palmares (annee, evenement, ville, date_soiree, vainqueur, de
   (2026, 'Olympiades des gardians de la Feria', 'Béziers', '2026-08-15', 'Grand Salan',
    'Ferrade en piste : Vinuesa.', 'confirme', 'https://www.instagram.com/p/DcLfqqljBED/'),
   (2026, 'Olympiades camarguaises', 'Bezouce', '2026-08-06', 'Labourayre',
-   'Labourayre et Clément très récompensées. Vainqueur vu seulement dans un extrait de recherche.', 'a_confirmer',
+   'Résultat à confirmer. Labourayre et Clément très récompensées.', 'a_confirmer',
    'https://www.midilibre.fr/2026/08/08/les-olympiades-ont-rempli-les-arenes-13501325.php');
 
 -- Beaucaire 2027 : veille de l'ouverture de la Madeleine (mercredi 21/07/2027), comme en 2026.
