@@ -14,7 +14,7 @@ export function Logo({ fond = 'clair' }: Props) {
     <span aria-hidden="true" className="inline-flex flex-col leading-none">
       <span
         className={`bg-clip-text pr-[0.08em] font-brush text-[27px] leading-[1.05] text-transparent ${
-          sombre ? 'bg-[image:var(--couchant-nuit)]' : 'bg-couchant-bouton'
+          sombre ? 'bg-[image:var(--couchant-nuit)]' : 'bg-couchant-logo'
         }`}
       >
         Olympiade

@@ -75,10 +75,17 @@
   }
 }
 
-/* Dégradé couchant (charte, section 3). Le bouton avec texte blanc s'arrête à #e86a2e. */
+/* Dégradés couchant (charte, section 3).
+   --couchant-bouton : sous un texte blanc. Le CDC (AA) prime sur la charte, qui s'arrêtait à
+   #e86a2e (3,21:1) : mêmes teintes, assombries pour tenir 4,5:1 partout sous le texte.
+   Blanc sur #b3321a 6,20:1, sur #cb4a23 4,62:1, sur #c74f16 4,61:1 (contrôlé par
+   tests/unit/contrastes.test.ts sur tout le dégradé).
+   --couchant-logo : mot « Olympiade » du logo, valeurs de la maquette. Un logotype n'a pas
+   d'exigence de contraste (WCAG 1.4.3), et le lien du logo porte un aria-label. */
 :root {
   --couchant: linear-gradient(125deg, #b3321a 0%, #dd5527 36%, #ef8236 68%, #f5b14d 100%);
-  --couchant-bouton: linear-gradient(120deg, #b3321a 0%, #d84f25 55%, #e86a2e 100%);
+  --couchant-bouton: linear-gradient(120deg, #b3321a 0%, #cb4a23 55%, #c74f16 100%);
+  --couchant-logo: linear-gradient(120deg, #b3321a 0%, #d84f25 55%, #e86a2e 100%);
   --couchant-nuit: linear-gradient(100deg, #f08a3c, #f6b450);
   --trait-nuit: rgba(255, 232, 200, 0.11);
   --ease-signature: cubic-bezier(0.22, 1, 0.36, 1);
@@ -89,6 +96,9 @@
 }
 @utility bg-couchant-bouton {
   background-image: var(--couchant-bouton);
+}
+@utility bg-couchant-logo {
+  background-image: var(--couchant-logo);
 }
 
 /* ============================================================
@@ -115,11 +125,18 @@
   h4 {
     text-wrap: balance;
   }
-  /* Focus clavier : contour ambre de 3 px (charte, section 7) */
-  :focus-visible {
-    outline: 3px solid var(--color-ambre);
-    outline-offset: 2px;
-  }
+}
+
+/* Focus clavier : contour ambre de 3 px (charte, section 7), doublé d'un anneau encre de 2 px
+   collé à l'élément. L'ambre seul n'a que 1,70:1 sur sable, sous le minimum de 3:1
+   (WCAG 1.4.11) ; l'encre a 15,97:1 sur sable et 16,94:1 sur crème. Sur le fond nuit du
+   pied de page, l'ambre suffit (10,32:1) et l'anneau encre se fond dans le fond.
+   Règle hors couche (@layer) : elle l'emporte sur les ombres posées par les utilitaires
+   Tailwind (bouton « Noter », bouton « Menu »), qui sinon effaceraient l'anneau encre. */
+:focus-visible {
+  outline: 3px solid var(--color-ambre);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--color-encre);
 }
 
 /* ============================================================

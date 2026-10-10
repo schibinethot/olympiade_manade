@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { contraste, rvbDepuisCss } from '../outils/contraste';
 
 test('la navigation mène aux pages vitrine et le pied de page porte la signature', async ({ page }) => {
   await page.goto('/');
@@ -57,4 +58,32 @@ test('aucune erreur JavaScript au chargement des pages', async ({ page }) => {
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   }
   expect(erreurs).toEqual([]);
+});
+
+test('le pied de page affiche l’année de publication', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('contentinfo')).toContainText(`© ${new Date().getFullYear()} Olympiade des Manades`);
+});
+
+test('le focus clavier est un contour ambre doublé d’un anneau encre, à 3:1 au moins sur sable', async ({ page }) => {
+  await page.goto('/');
+  // Le bouton « Noter » porte sa propre ombre (utilitaire Tailwind) : l'anneau doit l'emporter.
+  for (let i = 0; i < 12; i++) {
+    await page.keyboard.press('Tab');
+    if ((await page.evaluate(() => document.activeElement?.textContent?.trim())) === 'Noter') break;
+  }
+  const focus = await page.evaluate(() => {
+    const element = document.activeElement as HTMLElement;
+    const style = getComputedStyle(element);
+    return {
+      texte: element.textContent?.trim(),
+      contour: `${style.outlineStyle} ${style.outlineWidth} ${style.outlineColor}`,
+      ombre: style.boxShadow,
+      fond: getComputedStyle(document.body).backgroundColor,
+    };
+  });
+  expect(focus.texte).toBe('Noter');
+  expect(focus.contour).toBe('solid 3px rgb(245, 177, 77)');
+  expect(focus.ombre).toBe('rgb(28, 25, 18) 0px 0px 0px 2px');
+  expect(contraste(rvbDepuisCss(focus.ombre), rvbDepuisCss(focus.fond))).toBeGreaterThanOrEqual(3);
 });

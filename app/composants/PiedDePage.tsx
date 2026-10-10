@@ -70,7 +70,7 @@ export function PiedDePage() {
       </div>
 
       <p className="-mt-3 flex flex-wrap justify-between gap-x-4 gap-y-1 text-[11.5px] text-nuit-mute tablette:col-span-full">
-        <span>© 2027 Olympiade des Manades</span>
+        <span>© {__ANNEE_PUBLICATION__} Olympiade des Manades</span>
         <span>Aucun traceur publicitaire</span>
       </p>
     </footer>
