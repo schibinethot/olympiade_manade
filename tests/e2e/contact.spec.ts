@@ -98,6 +98,19 @@ test('les mentions légales listent les crédits photos issus des données', asy
   await expect(credits.getByText('Krzysztof Golik')).toBeVisible();
   await expect(credits.getByText('Benjamin Smith')).toBeVisible();
   await expect(credits.getByText(/retouchée/).first()).toBeVisible();
+  // La photo de l'affiche est recadrée sur téléphone (fichier hero-telephone) : le crédit le dit.
+  // Les trois autres fichiers gardent le cadre de l'original.
+  const affiche = credits.getByRole('listitem').filter({ hasText: 'Affiche de l’accueil' });
+  await expect(affiche).toContainText('recadrée et retouchée (niveaux de gris, duotone).');
+  await expect(credits.getByRole('listitem').filter({ hasText: 'recadrée' })).toHaveCount(1);
+  await expect(credits.getByRole('listitem').filter({ hasText: 'retouchée (niveaux de gris, duotone).' })).toHaveCount(4);
+});
+
+test('le crédit sous l’affiche de l’accueil annonce le recadrage', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByText(/^Photo de l’affiche/)).toContainText(
+    'via Wikimedia Commons, recadrée et retouchée (niveaux de gris, duotone).',
+  );
 });
 
 test('la confidentialité annonce les droits, la durée et les sous-traitants', async ({ page }) => {

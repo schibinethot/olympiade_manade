@@ -1,5 +1,5 @@
 import { EDITION_MANADES, VILLE_AFFICHE } from '../donnees/affiche';
-import { AFFICHE, PHOTOS_ACCUEIL, RETOUCHE } from '../donnees/photos-accueil';
+import { AFFICHE, PHOTOS_ACCUEIL } from '../donnees/photos-accueil';
 import { formaterJourMois } from '../lib/accueil';
 import { formaterHeure } from '../lib/dates';
 import type { Calendrier } from '../lib/donnees';
@@ -103,7 +103,7 @@ export function Affiche({ soiree }: Props) {
   );
 }
 
-/** Crédit de la photo de l'affiche, juste dessous (licence CC BY-SA : auteur, licence, retouche). */
+/** Crédit de la photo de l'affiche, juste dessous (licence CC BY-SA : auteur, licence, modifications). */
 export function CreditAffiche({ className = '' }: { className?: string }) {
   const photo = PHOTOS_ACCUEIL.gardian;
   return (
@@ -116,7 +116,7 @@ export function CreditAffiche({ className = '' }: { className?: string }) {
       <a href={photo.lienLicence} className="underline underline-offset-2 hover:text-encre" rel="license">
         {photo.licence}
       </a>
-      , via Wikimedia Commons, {RETOUCHE}.
+      , via Wikimedia Commons, {photo.modification}.
     </p>
   );
 }

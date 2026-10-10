@@ -18,7 +18,12 @@ export type PhotoAccueil = {
   licence: string;
   lienLicence: string;
   fiche: string;
+  /** Modifications apportées à l'original, citées dans le crédit (licence CC BY-SA). */
+  modification: string;
 };
+
+/** Modification des fichiers des épreuves : même cadre que l'original (rapports de taille vérifiés sur Commons). */
+export const RETOUCHE = 'retouchée (niveaux de gris, duotone)';
 
 const BY_SA_4 = { licence: 'CC BY-SA 4.0', lienLicence: 'https://creativecommons.org/licenses/by-sa/4.0/deed.fr' };
 
@@ -35,6 +40,8 @@ export const PHOTOS_ACCUEIL: Record<PhotoAccueil['id'], PhotoAccueil> = {
     licence: 'CC BY-SA 2.0',
     lienLicence: 'https://creativecommons.org/licenses/by-sa/2.0/deed.fr',
     fiche: 'https://commons.wikimedia.org/wiki/File:Gardian_galopant_vers_sa_manade.jpg',
+    // Recadrage téléphone (hero-telephone, 700 × 730) en plus des niveaux de gris et du duotone.
+    modification: 'recadrée et retouchée (niveaux de gris, duotone)',
   },
   manade: {
     id: 'manade',
@@ -45,6 +52,7 @@ export const PHOTOS_ACCUEIL: Record<PhotoAccueil['id'], PhotoAccueil> = {
     auteur: 'Christian Ferrer',
     ...BY_SA_4,
     fiche: 'https://commons.wikimedia.org/wiki/File:Gardian_and_Camargue_cattle,_Saint-Gilles_11.jpg',
+    modification: RETOUCHE,
   },
   chevaux: {
     id: 'chevaux',
@@ -56,6 +64,7 @@ export const PHOTOS_ACCUEIL: Record<PhotoAccueil['id'], PhotoAccueil> = {
     auteur: 'Benjamin Smith / Wikimedia Commons',
     ...BY_SA_4,
     fiche: 'https://commons.wikimedia.org/wiki/File:Saint-Laurent-d%27Aigouze_-_Camargue_horses_-_01.jpg',
+    modification: RETOUCHE,
   },
   arenes: {
     id: 'arenes',
@@ -66,10 +75,9 @@ export const PHOTOS_ACCUEIL: Record<PhotoAccueil['id'], PhotoAccueil> = {
     auteur: 'Krzysztof Golik',
     ...BY_SA_4,
     fiche: 'https://commons.wikimedia.org/wiki/File:Arenes_de_Nimes_(1).jpg',
+    modification: RETOUCHE,
   },
 };
-
-export const RETOUCHE = 'retouchée (niveaux de gris, duotone)';
 
 /**
  * Fichiers de l'affiche de l'accueil (photo « gardian »). Sur téléphone, l'affiche, plus haute que
