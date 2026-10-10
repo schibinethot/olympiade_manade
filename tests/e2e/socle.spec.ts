@@ -56,6 +56,30 @@ test('chaque page vitrine reçoit son propre HTML pré-rendu', async ({ browser 
   await contexte.close();
 });
 
+// Task 8 : React Router pré-rend /classements à l'adresse « /classements/ ». NavLink (option end) n'y
+// reconnaissait pas la page courante, et l'hydratation ne corrige pas un attribut : aucun lien de la
+// navigation ne portait aria-current, ni sans JavaScript ni après l'hydratation.
+test('la navigation signale la page courante sur chaque page pré-rendue, avec ou sans JavaScript', async ({ browser }) => {
+  for (const javaScriptEnabled of [false, true]) {
+    const contexte = await browser.newContext({ javaScriptEnabled });
+    const page = await contexte.newPage();
+    for (const [chemin, lien] of [
+      ['/', 'Accueil'],
+      ['/classements', 'Classements'],
+      ['/dates', 'Dates'],
+    ] as const) {
+      await page.goto(chemin, { waitUntil: 'networkidle' });
+      // Sélecteur CSS : sur téléphone, la navigation est un popover fermé, absent de l'arbre d'accessibilité.
+      const courant = page.locator('nav[aria-label="Navigation principale"] a[aria-current="page"]');
+      await expect(courant, `${chemin}, JavaScript ${javaScriptEnabled}`).toHaveText(lien);
+    }
+    // Page sans lien dans la navigation : aucun lien marqué.
+    await page.goto('/contact', { waitUntil: 'networkidle' });
+    await expect(page.locator('nav[aria-label="Navigation principale"] a[aria-current]')).toHaveCount(0);
+    await contexte.close();
+  }
+});
+
 // Garde ajoutée : aucune erreur JavaScript au chargement, hydratation comprise
 // (pages pré-rendues, route servie par __spa-fallback.html, adresse inconnue).
 test('aucune erreur JavaScript au chargement des pages', async ({ page }) => {

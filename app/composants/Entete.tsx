@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, NavLink, useLocation, useMatches } from 'react-router';
+import { Link, useLocation, useMatches } from 'react-router';
 import { aCalendrier, formaterJourMois, soireeDeReference } from '../lib/accueil';
 import { seDeconnecter, traduireErreurAuth } from '../lib/auth';
 import { ETAT_SOIREE, type EtatSoiree } from '../lib/etat-soiree';
@@ -49,6 +49,10 @@ type Props = {
 export function Entete({ generique = false, etat = ETAT_SOIREE }: Props) {
   const menu = useRef<HTMLElement>(null);
   const { pathname } = useLocation();
+  // React Router pré-rend /classements à l'adresse « /classements/ » : sans la barre finale, la page
+  // courante est reconnue dès le HTML pré-rendu (NavLink, option end, ne la reconnaissait pas, et
+  // l'hydratation ne corrige pas un attribut).
+  const chemin = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
   const { session, prenom } = useSession();
   const connecte = session !== null && !generique;
   // Connecté, de 1000 à 1300 px : la barre porte aussi le prénom et « Se déconnecter », la pastille de
@@ -86,15 +90,13 @@ export function Entete({ generique = false, etat = ETAT_SOIREE }: Props) {
         <ul className="flex flex-col gap-1 paysage:flex-row paysage:gap-0.5">
           {LIENS.map((lien) => (
             <li key={lien.vers}>
-              {generique ? (
-                <Link to={lien.vers} className={CLASSE_LIEN}>
-                  <span className={CLASSE_PASTILLE}>{lien.libelle}</span>
-                </Link>
-              ) : (
-                <NavLink to={lien.vers} end className={CLASSE_LIEN}>
-                  <span className={CLASSE_PASTILLE}>{lien.libelle}</span>
-                </NavLink>
-              )}
+              <Link
+                to={lien.vers}
+                aria-current={!generique && chemin === lien.vers ? 'page' : undefined}
+                className={CLASSE_LIEN}
+              >
+                <span className={CLASSE_PASTILLE}>{lien.libelle}</span>
+              </Link>
             </li>
           ))}
         </ul>
@@ -116,7 +118,7 @@ export function Entete({ generique = false, etat = ETAT_SOIREE }: Props) {
             </span>
           )
         ) : null}
-        {!generique && pathname === '/noter' ? null : ouvert ? (
+        {!generique && chemin === '/noter' ? null : ouvert ? (
           <Link
             to="/noter"
             className={`${CLASSE_NOTER} bg-couchant-bouton text-white shadow-[0_10px_24px_-10px_rgba(194,59,29,0.75),inset_0_1px_0_rgba(255,255,255,0.25)] transition-[filter,transform] hover:brightness-105 active:scale-[0.97]`}
