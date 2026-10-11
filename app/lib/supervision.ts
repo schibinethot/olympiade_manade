@@ -20,6 +20,7 @@ export type Supervision = {
   activeUsers: { authenticatedLast2m: number | null; profilesTotal: number | null; lastHeartbeatAt: string | null };
   votes: { public: Notes; jury: Notes };
   database: { sizeBytes: number | null; connections: { current: number | null; max: number | null } };
+  fileNotes?: { queued: number; oldestQueuedAt: string | null; confirmedLast5m: number; confirmedLastHour: number; rejectedLastHour: number; workersActive: number; lastWorkerAt: string | null } | null;
   server: {
     current: { inflight: number; httpConnections: number; rssBytes: number; eventLoopLagMs: number };
     totals: { requests: number; errors5xx: number; responseBytes: number; cpuMs: number };

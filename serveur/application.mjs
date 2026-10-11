@@ -341,12 +341,20 @@ function repondre(fichiers, req, res) {
  *   racine: string,
  *   supabase: string,
  *   supervision?: ReturnType<typeof import('./supervision.mjs').creerSupervision>
+ *   planningNotation?: ReturnType<typeof import('./planning-notation.mjs').creerPlanningNotation>
  * }} options
  */
-export function creerServeur({ racine, supabase, supervision }) {
+export function creerServeur({ racine, supabase, supervision, planningNotation }) {
   const fichiers = indexer(racine, supabase);
   const serveur = createServer((req, res) => {
     supervision?.observerRequete(req, res);
+    if (planningNotation?.estRoute(req.url)) {
+      planningNotation.repondre(req, res).catch(() => {
+        if (!res.headersSent) texteBrut(req, res, 503, 'Planning indisponible\n', { 'Retry-After': '5' });
+        else res.destroy();
+      });
+      return;
+    }
     if (supervision?.estRoute(req.url)) {
       supervision.repondre(req, res).catch((erreur) => {
         journaliserErreur('échec de la supervision administrateur', erreur);

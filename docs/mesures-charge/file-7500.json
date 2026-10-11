@@ -1,0 +1,67 @@
+{
+  "measuredAt": "2026-10-11T16:58:54.948Z",
+  "scope": "Postgres local direct, transactions avec rôle authenticated et claims JWT simulés; sans HTTP/Auth/Realtime/réseau",
+  "database": {
+    "version": "PostgreSQL 18.3 (Homebrew) on aarch64-apple-darwin25.2.0, compiled by Apple clang version 17.0.0 (clang-1700.6.3.2), 64-bit",
+    "host": "/tmp",
+    "name": "olympiade_file_charge_test",
+    "migrationThrough": "20261011140000_file_notes.sql"
+  },
+  "machine": {
+    "logicalCpuCount": 18,
+    "node": "v24.19.0"
+  },
+  "insertions": {
+    "phase": "insertion",
+    "operations": 7500,
+    "concurrency": 32,
+    "durationMs": 395,
+    "throughputPerSecond": 18988,
+    "latencyMs": {
+      "p50": 1.6,
+      "p95": 2.4,
+      "p99": 3.5,
+      "max": 27.9
+    }
+  },
+  "modifications": {
+    "phase": "modification",
+    "operations": 7500,
+    "concurrency": 32,
+    "durationMs": 385.7,
+    "throughputPerSecond": 19444.7,
+    "latencyMs": {
+      "p50": 1.5,
+      "p95": 2.1,
+      "p99": 6.2,
+      "max": 35.5
+    }
+  },
+  "traitements": [
+    {
+      "workers": 2,
+      "batchSize": 100,
+      "intervalMs": 250,
+      "confirmed": 7500,
+      "durationMs": 10121.7
+    },
+    {
+      "workers": 2,
+      "batchSize": 100,
+      "intervalMs": 250,
+      "confirmed": 7500,
+      "durationMs": 10080.9
+    }
+  ],
+  "file": {
+    "actions": 15000,
+    "attente": 0,
+    "confirmees": 15000
+  },
+  "mode": "Admissions en rafale puis vidage après fermeture, avec deux workers; pas une simulation HTTP complète.",
+  "integrity": {
+    "notes": 7500,
+    "note_min": 6,
+    "note_max": 6
+  }
+}

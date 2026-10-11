@@ -90,6 +90,13 @@ export default function Confidentialite() {
             Lorsque vous vous inscrivez, une donnée de session est enregistrée dans votre navigateur pour vous reconnaître.
             Elle est strictement nécessaire au service, ne sert à aucun suivi et est supprimée à votre déconnexion.
           </p>
+          <p>
+            Vos notes en attente d’envoi sont conservées sur cet appareil pour reprendre en cas de coupure, séparément pour
+            chaque compte. Elles sont envoyées lorsque vous revenez sur le site avec le même compte et une connexion.
+            Les confirmations locales sont conservées au plus 7 jours et les refus au plus 30 jours, avec nettoyage à
+            l’utilisation. Les reçus serveur restent associés à votre compte pour éviter les doublons lors des reprises.
+            Effacer les données du navigateur supprime les notes qui n’ont pas encore été reçues par le serveur.
+          </p>
         </SectionLegale>
 
         <SectionLegale id="soustraitants" titre="Sous-traitants et transferts">

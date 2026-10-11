@@ -61,7 +61,7 @@ Les débits ci-dessous sont des calculs de dimensionnement, pas des mesures de p
 
 Le nominal 5 000 additionne donc environ **657 requêtes/s** vers Supabase pendant une minute de vote : 500 lectures, 83 votes et 74 signaux. La cible de sécurité à 7 500 approche **986 requêtes/s**. Un retour collectif sur l'application, une reconnexion réseau ou un timer remis en phase peut produire un burst supérieur à la moyenne du heartbeat.
 
-La ligne `etat_soiree` et son recalcul n'existent pas encore dans les migrations auditées. Le poll toutes les 10 secondes décrit dans le CDC n'est donc pas testable de bout en bout. La page `/noter` reste un écran d'annonce : le chemin client qui envoie réellement une note n'est pas encore présent. Ces absences interdisent de conclure sur les 500 lectures/s ou sur les erreurs perçues par l'utilisateur.
+Lors de l'audit initial, la ligne `etat_soiree`, son recalcul et le parcours de saisie n'existaient pas. Le complément ci-dessous ajoute `/noter`, sa file durable et un cache du planning, sans constituer une certification des 500 lectures/s. L'instantané des classements reste à implémenter.
 
 ## Mesure locale RLS
 
@@ -90,7 +90,20 @@ CHARGE_USERS=5000 CHARGE_CONCURRENCY=32 \
 
 ## Harnais k6 de staging
 
-`scripts/charge/k6-votes.js` envoie les requêtes par le protocole public réel : clé publishable, JWT individuel `authenticated`, RLS active et upsert REST. Chaque vote accepté est relu immédiatement avec la même session et doit correspondre exactement à l'utilisateur et à la note. Le harnais exerce en parallèle les lectures de `etat_soiree` à `VOTERS / 10` requêtes par seconde et l'appel de présence à raison d'un signal par utilisateur toutes les 67,5 secondes.
+### Complément : file durable, essai SQL local
+
+Le parcours de notes et son traitement en file ont été ajoutés après l'audit initial. Deux essais locaux ont exécuté l'admission de tous les votants, une fermeture avant traitement, le vidage avec deux workers de 100 actions espacés de 250 ms, puis une correction de chaque note et le rejeu d'une ancienne action.
+
+| Comptes distincts | Actions admises et confirmées | Vidage initial | Vidage des corrections | Résultat final |
+|---:|---:|---:|---:|---|
+| 5 000 | 10 000 | 6,68 s | 6,62 s | 5 000 notes, toutes corrigées à 6/10, zéro attente |
+| 7 500 | 15 000 | 10,12 s | 10,08 s | 7 500 notes, toutes corrigées à 6/10, zéro attente |
+
+Mesures brutes : [5 000](mesures-charge/file-5000.json), [7 500](mesures-charge/file-7500.json). PostgreSQL 18.3 local, 32 connexions pour les admissions, 18 processeurs logiques sur le poste. Les admissions et le traitement sont des phases séparées ; ce n'est pas un scénario d'utilisateurs HTTP simultanés. La durée de vidage illustre aussi le compromis : une file conserve et ordonne les actions, mais une rafale peut attendre plusieurs secondes. Aucun « zéro lag » ni capacité hébergée certifiée ne sont déduits de ce test.
+
+### Scénarios HTTP à exécuter sur préproduction
+
+`scripts/charge/k6-votes.js` utilise désormais la file : clé publishable, JWT individuel `authenticated`, admission par RPC, suivi jusqu'à confirmation, puis relecture exacte de `notes_public` avec la même session. Un rejeu identique sur 10 % des actions vérifie l'idempotence. Le harnais exerce en parallèle le planning public mis en cache sur Railway à `VOTERS / 10` requêtes par seconde et l'appel de présence à raison d'un signal par utilisateur toutes les 67,5 secondes. Réception et confirmation ont des métriques séparées.
 
 Garde-fous :
 
@@ -102,7 +115,7 @@ Garde-fous :
 - chaque JWT doit avoir le rôle `authenticated`, le bon `sub`, le bon issuer et au moins cinq minutes de validité ;
 - le harnais ne crée aucun compte, n'envoie aucun OTP et ne supprime aucune donnée.
 
-Les fixtures sont à préparer dans **un projet de staging** avec un passage ouvert et un instantané existant. Exemple pour 5 000 votes étalés sur 60 secondes :
+Les fixtures sont à préparer dans **un projet de staging** avec un passage ouvert, la migration de file appliquée et les traitements Railway activés sur ce même projet. Exemple pour 5 000 votes étalés sur 60 secondes :
 
 ```sh
 k6 run \
@@ -113,7 +126,7 @@ k6 run \
   -e SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx \
   -e SESSIONS_FILE=./sessions.staging.json \
   -e PASSAGE_ID=00000000-0000-4000-8000-000000000000 \
-  -e SOIREE_ID=00000000-0000-4000-8000-000000000000 \
+  -e RAILWAY_STAGING_URL=https://votre-preproduction.up.railway.app \
   -e VOTERS=5000 \
   -e PROFILE=spread60 \
   scripts/charge/k6-votes.js
@@ -123,7 +136,7 @@ Profils disponibles : `spread60`, `spread30` et `burst`. Pour la certification, 
 
 Les profils utilisent un VU par votant pour garantir une session indépendante. Une machine génératrice peut devenir le goulot d'étranglement à 7 500 VU ; surveiller son CPU, sa mémoire, ses sockets et son réseau, ou répartir la charge entre plusieurs générateurs. Un échec du générateur ne doit pas être attribué à Supabase.
 
-Ce harnais couvre un événement court d'environ une minute. Il est **préliminaire** : la certification doit aussi inclure une montée progressive, un palier d'endurance représentatif de toute la soirée et une descente gracieuse. L'absence de `etat_soiree` ou de la RPC `enregistrer_presence` fait volontairement échouer les seuils ; le test ne masque pas une brique manquante.
+Ce harnais couvre un événement court, avec une attente de confirmation bornée à deux minutes. Il est **préliminaire** : la certification doit aussi inclure une montée progressive, un palier d'endurance représentatif de toute la soirée, une fermeture concurrente et une descente gracieuse. Une file non activée, un traitement absent ou une RPC manquante font échouer les contrôles.
 
 Vérifications locales effectuées : analyse syntaxique Node, refus d'un `PGHOST` distant et d'un nom de base non jetable, refus k6 sans opt-in et refus explicite de la référence Supabase de production. `k6 inspect` atteint ensuite la validation stricte du fichier de sessions ; l'exécution réseau n'a pas eu lieu faute de staging et de 5 000 JWT de test.
 

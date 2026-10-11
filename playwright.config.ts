@@ -25,7 +25,7 @@ export default defineConfig({
   // variable déjà présente dans l'environnement l'emporte sur les fichiers .env de Vite).
   webServer: {
     command: 'pnpm build && pnpm start',
-    env: { PORT: String(PORT), VITE_INSCRIPTION_OUVERTE: 'false' },
+    env: { PORT: String(PORT), VITE_INSCRIPTION_OUVERTE: 'false', FILE_NOTES_ACTIVE: 'false' },
     url: `http://localhost:${PORT}`,
     reuseExistingServer: false,
     timeout: 180_000,

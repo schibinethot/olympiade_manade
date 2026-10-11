@@ -7,6 +7,7 @@ import { INSCRIPTION_OUVERTE, TEXTE_INSCRIPTIONS_FERMEES } from '../lib/inscript
 import { useMaintenant } from '../lib/temps';
 import { useSession } from '../lib/useSession';
 import type { Route } from './+types/noter';
+import { NotationPublic } from '../composants/NotationPublic';
 
 export const meta: Route.MetaFunction = () => [
   { title: 'Noter les manades · Olympiade des Manades' },
@@ -22,7 +23,7 @@ export async function clientLoader(): Promise<AvecCalendrier> {
 
 const LIEN = 'font-semibold text-rouge underline underline-offset-2';
 
-// Notation : lot 2. Ici, l'annonce de l'ouverture des votes, et l'inscription pour s'y préparer.
+// Les spectateurs connectés disposent de la saisie et de la file durable ; les autres préparent leur inscription.
 export default function Noter({ loaderData }: Route.ComponentProps) {
   const { calendrier, lueLe } = loaderData;
   const maintenant = useMaintenant(lueLe);
@@ -30,11 +31,11 @@ export default function Noter({ loaderData }: Route.ComponentProps) {
   const { session, prenom, chargement } = useSession();
 
   return (
-    <TitrePage surtitre="Notation du public" titre="Les votes ouvriront le soir de l’Olympiade">
+    <><TitrePage surtitre="Notation du public" titre={session ? 'Notez les manades' : 'Les votes ouvriront le soir de l’Olympiade'}>
       <p>
         {session ? `Bonjour${prenom ? ` ${prenom}` : ''}. ` : ''}
-        {soiree ? `Les votes ouvriront ${momentSoiree(soiree)}. ` : ''}
-        Le soir venu, vous donnerez une note de 1 à 10 à chaque manade, dès la fin de son passage.
+        {!session && soiree ? `Les votes ouvriront ${momentSoiree(soiree)}. ` : ''}
+        {session ? 'Retrouvez les passages proposés et le suivi de vos notes ci-dessous.' : 'Le soir venu, vous donnerez une note de 1 à 10 à chaque manade, dès la fin de son passage.'}
       </p>
       <p className="mt-3 flex flex-wrap gap-x-5 gap-y-1">
         {!session && !chargement ? (
@@ -50,6 +51,6 @@ export default function Noter({ loaderData }: Route.ComponentProps) {
           Voir les dates
         </Link>
       </p>
-    </TitrePage>
+    </TitrePage>{session ? <NotationPublic key={session.user.id} compte={session.user.id} /> : null}</>
   );
 }

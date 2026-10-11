@@ -409,6 +409,12 @@ export function creerSupervision(options = {}) {
       const adresse = new URL(req.url ?? '/', 'http://serveur');
       const heures = adresse.searchParams.get('heures') === '24' ? 24 : 1;
       let snapshot = null;
+      // Agrégats uniquement. Une migration de file absente ne supprime pas les autres mesures.
+      const filePromise = appeler('/rest/v1/rpc/lire_statistiques_file_notes', {
+        method: 'POST',
+        headers: { apikey: publishableKey, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: '{}',
+      }).then(async (r) => r.ok ? await jsonReponse(r) : null).catch(() => null);
       let databaseStatus = 'available';
       try {
         const rpc = await appeler('/rest/v1/rpc/lire_supervision', {
@@ -455,6 +461,7 @@ export function creerSupervision(options = {}) {
         activeUsers: valeurs.activeUsers,
         votes: valeurs.votes,
         database: valeurs.database,
+        fileNotes: await filePromise,
         server: {
           current: instantane(),
           totals: {

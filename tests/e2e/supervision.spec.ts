@@ -16,6 +16,7 @@ const STATS = {
   activeUsers: { authenticatedLast2m: 427, profilesTotal: 820, lastHeartbeatAt: '2026-10-11T10:00:59Z' },
   votes: { public: { total: 8000, modifiedLast5m: 250, modifiedLastHour: 3000 }, jury: { total: 32, modifiedLast5m: 2, modifiedLastHour: 10 } },
   database: { sizeBytes: 50000000, connections: { current: 8, max: 60 } },
+  fileNotes: { queued: 123, oldestQueuedAt: '2026-10-11T10:00:57Z', confirmedLast5m: 600, confirmedLastHour: 2400, rejectedLastHour: 3, workersActive: 2, lastWorkerAt: '2026-10-11T10:01:00Z' },
   server: { current: { inflight: 1, httpConnections: 2, rssBytes: 45000000, eventLoopLagMs: 2 },
     totals: { requests: 120, errors5xx: 2, responseBytes: 1500000, cpuMs: 150 },
     latencyMs: { p95: 25 }, history: [MESURE, { ...MESURE, minute: '2026-10-11T10:01:00Z', requests: 80 }] },
@@ -78,6 +79,9 @@ test('statistiques accessibles sur mobile et desktop, sources honnêtes et expor
   await expect(page.getByText('Capacité à valider par un test de charge')).toBeVisible();
   await expect(page.getByText(/Historique permanent non configuré/)).toBeVisible();
   await expect(page.getByText('Non mesurés ici')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'File d’attente des notes', exact: true })).toBeVisible();
+  await expect(page.getByText('123', { exact: true })).toBeVisible();
+  await expect(page.getByText('Notes en attente', { exact: true })).toBeVisible();
   const requete = page.waitForRequest((r) => r.url().includes('/api/admin/supervision?heures=24'));
   await page.getByRole('button', { name: '24 heures', exact: true }).click();
   expect((await requete).headers().authorization).toBe('Bearer jeton-admin-factice');

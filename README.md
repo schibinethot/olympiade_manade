@@ -12,6 +12,8 @@ L'administration est accessible depuis le pied de page ou `/admin`, avec le mot 
 
 La cible de **5 000 personnes simultanées n'est pas certifiée**. Voir l'[audit de capacité](docs/audit-charge-5000.md), les mesures locales et les scénarios de préproduction à 5 000 puis 7 500 votants.
 
+La [file durable des notes](docs/file-notes.md) relie maintenant `/noter` au stockage local IndexedDB puis à une file PostgreSQL traitée par petits lots. La supervision montre son attente et les traitements actifs. Il faut appliquer sa migration et l'activer explicitement ; une note « reçue » reste distincte d'une note « enregistrée ».
+
 Pour lancer la version avec supervision :
 
 ```sh

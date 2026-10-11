@@ -10,7 +10,8 @@ const HOTE = process.env.PGHOST ?? '/tmp';
 const BASE = process.env.CHARGE_DB_NAME ?? 'olympiade_charge_test';
 const UTILISATEURS = entier('CHARGE_USERS', 5_000, 1, 7_500);
 const CONCURRENCE = entier('CHARGE_CONCURRENCY', 32, 1, 64);
-const DERNIERE_MIGRATION = '20261011120000_plafonds.sql';
+const AVEC_FILE = process.env.CHARGE_QUEUE === 'true';
+const DERNIERE_MIGRATION = AVEC_FILE ? '20261011140000_file_notes.sql' : '20261011120000_plafonds.sql';
 const PASSAGE_ID = '40000000-0000-4000-8000-00000000c001';
 
 function entier(nom, valeurParDefaut, minimum, maximum) {
@@ -113,6 +114,10 @@ const VOTE = `insert into public.notes_public (passage_id, votant_id, note)
   values ($1, $2, $3)
   on conflict (passage_id, votant_id) do update set note = excluded.note`;
 
+function idAction(numero, phase) {
+  return `${phase === 'insertion' ? 'a' : 'b'}0000000-0000-4000-8000-${numero.toString(16).padStart(12, '0')}`;
+}
+
 async function unVote(pool, numero, phase) {
   const debut = performance.now();
   const db = await pool.connect();
@@ -123,7 +128,10 @@ async function unVote(pool, numero, phase) {
       JSON.stringify({ sub: id, role: 'authenticated' }),
     ]);
     await db.query('set local role authenticated');
-    await db.query(VOTE, [PASSAGE_ID, id, phase === 'insertion' ? 8 : 6]);
+    if (AVEC_FILE) {
+      const { rows } = await db.query('select * from mettre_note_en_file($1,$2,$3::smallint)', [idAction(numero, phase), PASSAGE_ID, phase === 'insertion' ? 8 : 6]);
+      if (rows[0]?.statut !== 'en_attente' && rows[0]?.statut !== 'confirmee') throw new Error('Admission refusée');
+    } else await db.query(VOTE, [PASSAGE_ID, id, phase === 'insertion' ? 8 : 6]);
     await db.query('commit');
   } catch (erreur) {
     await db.query('rollback').catch(() => undefined);
@@ -168,6 +176,27 @@ async function mesurerPhase(pool, phase) {
   };
 }
 
+async function viderFile() {
+  const debut = performance.now();
+  const nombres = await Promise.all([1, 2].map(async (n) => {
+    const db = client(BASE); await db.connect();
+    let total = 0;
+    try {
+      await db.query(`select set_config('request.jwt.claims', '{"role":"service_role"}', false)`);
+      await db.query('set role service_role');
+      for (;;) {
+        const { rows } = await db.query('select traiter_file_notes(100,$1) as resultat', [`file-${String(n).padStart(24, '0')}`]);
+        const nombre = rows[0].resultat.confirmees;
+        total += nombre;
+        if (nombre === 0) break;
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+    } finally { await db.end(); }
+    return total;
+  }));
+  return { workers: 2, batchSize: 100, intervalMs: 250, confirmed: nombres.reduce((a, b) => a + b, 0), durationMs: Number((performance.now() - debut).toFixed(1)) };
+}
+
 async function main() {
   verifierCible();
   const debut = new Date().toISOString();
@@ -177,9 +206,21 @@ async function main() {
     const pool = new pg.Pool({ host: HOTE, database: BASE, max: CONCURRENCE });
     let insertions;
     let modifications;
+    const traitements = [];
     try {
       insertions = await mesurerPhase(pool, 'insertion');
+      if (AVEC_FILE) {
+        // Toutes les notes sont admises, puis le vote ferme avant leur matérialisation.
+        await pool.query('update passages set statut_public=\'clos\' where id=$1', [PASSAGE_ID]);
+        traitements.push(await viderFile());
+        await pool.query('update passages set statut_public=\'ouvert\' where id=$1', [PASSAGE_ID]);
+      }
       modifications = await mesurerPhase(pool, 'modification');
+      if (AVEC_FILE) {
+        traitements.push(await viderFile());
+        // Rejouer l'ancienne note après sa correction ne doit jamais rétablir la valeur 8.
+        await unVote(pool, 1, 'insertion');
+      }
     } finally {
       await pool.end();
     }
@@ -191,11 +232,13 @@ async function main() {
        from public.notes_public`,
     );
     const { rows: version } = await controle.query('select version()');
+    const file = AVEC_FILE ? (await controle.query(`select count(*)::int as actions, count(*) filter (where statut='en_attente')::int as attente, count(*) filter (where statut='confirmee')::int as confirmees from file_notes`)).rows[0] : null;
     await controle.end();
 
     if (rows[0].notes !== UTILISATEURS || rows[0].note_min !== 6 || rows[0].note_max !== 6) {
       throw new Error(`Intégrité invalide après charge : ${JSON.stringify(rows[0])}`);
     }
+    if (AVEC_FILE && (file.actions !== UTILISATEURS * 2 || file.attente !== 0 || file.confirmees !== UTILISATEURS * 2)) throw new Error('Intégrité de la file invalide');
 
     console.log(
       JSON.stringify(
@@ -206,6 +249,7 @@ async function main() {
           machine: { logicalCpuCount: cpus().length, node: process.version },
           insertions,
           modifications,
+          ...(AVEC_FILE ? { traitements, file, mode: 'Admissions en rafale puis vidage après fermeture, avec deux workers; pas une simulation HTTP complète.' } : {}),
           integrity: rows[0],
         },
         null,

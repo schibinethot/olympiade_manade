@@ -159,6 +159,7 @@ describe('endpoint administrateur de supervision', () => {
       if (String(url).endsWith('/auth/v1/user')) return json({ id: 'admin-1' });
       if (String(url).includes('/rest/v1/profils?')) return json([{ id: 'admin-1', role: 'admin' }]);
       if (String(url).endsWith('/rest/v1/rpc/lire_supervision')) return json(snapshot);
+      if (String(url).endsWith('/rest/v1/rpc/lire_statistiques_file_notes')) return json({ queued: 42, workersActive: 2 });
       throw new Error(`appel inattendu ${url}`);
     });
     const supervision = creerSupervision({
@@ -181,6 +182,7 @@ describe('endpoint administrateur de supervision', () => {
       supabaseBandwidth: 'unknown',
     });
     expect(corps.activeUsers.authenticatedLast2m).toBe(12);
+    expect(corps.fileNotes).toEqual({ queued: 42, workersActive: 2 });
     expect(corps.server.history).toEqual(snapshot.serverHistory);
     expect(corps.server.totals).toMatchObject({ requests: 100, errors5xx: 2, responseBytes: 5000, cpuMs: 80 });
     const appelRpc = fetchFn.mock.calls.find(([url]) => String(url).includes('lire_supervision'));

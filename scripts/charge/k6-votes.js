@@ -3,6 +3,11 @@ import encoding from 'k6/encoding';
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { SharedArray } from 'k6/data';
+import crypto from 'k6/crypto';
+import { Trend } from 'k6/metrics';
+
+const confirmationMs = new Trend('note_confirmation_ms');
+const commitMs = new Trend('note_commit_ms');
 
 const PROD_REF = 'khwlwpzydlrfocfpvywv';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -45,10 +50,13 @@ if (__ENV.ALLOW_STAGING_LOAD !== 'YES_I_OWN_THIS_STAGING') {
 if (__ENV.TARGET_ENV !== 'staging') throw new Error('TARGET_ENV doit valoir staging.');
 
 const SUPABASE_URL = requis('SUPABASE_URL').replace(/\/$/, '');
+const SITE_URL = requis('RAILWAY_STAGING_URL').replace(/\/$/, '');
+if (!/^https:\/\/[a-z0-9.-]+$/.test(SITE_URL) || SITE_URL === 'https://olympiademanade-production.up.railway.app') {
+  throw new Error('RAILWAY_STAGING_URL doit être une origine HTTPS de préproduction distincte de la production.');
+}
 const PROJECT_REF = requis('EXPECTED_PROJECT_REF');
 const CLE_PUBLIQUE = requis('SUPABASE_PUBLISHABLE_KEY');
 const PASSAGE_ID = requis('PASSAGE_ID');
-const SOIREE_ID = requis('SOIREE_ID');
 const PROFIL = __ENV.PROFILE ?? 'spread60';
 const VOTANTS = entier('VOTERS', 5_000, [5_000, 7_500]);
 
@@ -57,7 +65,7 @@ const cible = SUPABASE_URL.match(/^https:\/\/([a-z0-9-]+\.supabase\.co)$/);
 if (!cible || cible[1] !== `${PROJECT_REF}.supabase.co`) {
   throw new Error('SUPABASE_URL doit être le domaine HTTPS exact du projet EXPECTED_PROJECT_REF.');
 }
-if (!UUID.test(PASSAGE_ID) || !UUID.test(SOIREE_ID)) throw new Error('PASSAGE_ID et SOIREE_ID doivent être des UUID.');
+if (!UUID.test(PASSAGE_ID)) throw new Error('PASSAGE_ID doit être un UUID.');
 verifierClePublique(CLE_PUBLIQUE);
 
 const sessions = new SharedArray('sessions-staging', () => {
@@ -107,7 +115,7 @@ export const options = {
       vus: VOTANTS,
       iterations: 1,
       startTime: '5s',
-      maxDuration: `${Math.max(45, dureeEtalement + 30)}s`,
+      maxDuration: `${dureeEtalement + 150}s`,
       gracefulStop: '0s',
     },
     lectures: {
@@ -134,6 +142,10 @@ export const options = {
     // Un vote accepté mais absent à la relecture est un vote perdu : tolérance zéro.
     'http_req_failed{kind:vote}': ['rate==0'],
     'http_req_duration{kind:vote}': ['p(95)<1000'],
+    // La réception rapide ne prouve pas l'enregistrement rapide : mesure séparée jusqu'au reçu final.
+    // Ce seuil conserve l'objectif exigeant du CDC, même si la file permet une attente plus longue.
+    note_confirmation_ms: ['p(95)<1000'],
+    note_commit_ms: ['p(95)<1000'],
     'http_req_failed{kind:verification}': ['rate==0'],
     'http_req_failed{kind:etat}': ['rate<0.001'],
     'http_req_failed{kind:presence}': ['rate<0.001'],
@@ -157,17 +169,45 @@ export function voter() {
   const session = sessions[index];
   if (!session) throw new Error(`Aucune session pour l'itération de vote ${index}.`);
   if (dureeEtalement > 0 && VOTANTS > 1) sleep((index * dureeEtalement) / (VOTANTS - 1));
+  const bytes = new Uint8Array(crypto.randomBytes(16));
+  bytes[6] = (bytes[6] & 15) | 64; bytes[8] = (bytes[8] & 63) | 128;
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  const requestId = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  const corps = JSON.stringify({ p_request_id: requestId, p_passage_id: PASSAGE_ID, p_note: 8 });
+  const debut = Date.now();
   const reponse = http.post(
-    `${SUPABASE_URL}/rest/v1/notes_public?on_conflict=passage_id,votant_id`,
-    JSON.stringify({ passage_id: PASSAGE_ID, votant_id: session.userId, note: 8 }),
+    `${SUPABASE_URL}/rest/v1/rpc/mettre_note_en_file`,
+    corps,
     {
-      headers: { ...entetes(session), Prefer: 'resolution=merge-duplicates,return=minimal' },
+      headers: entetes(session),
       tags: { kind: 'vote' },
-      timeout: '10s',
+      timeout: '10s', responseType: 'text',
     },
   );
-  const accepte = check(reponse, { 'vote accepté': (r) => [200, 201, 204].includes(r.status) });
+  function recu(r) { try { return JSON.parse(r.body)[0]; } catch { return null; } }
+  let etat = recu(reponse);
+  const accepte = check(reponse, { 'action reçue durablement': (r) => r.status === 200 && etat?.request_id === requestId && ['en_attente', 'confirmee'].includes(etat.statut) });
   if (!accepte) return;
+
+  // Un second envoi identique simule une réponse perdue, sans nouvelle action ni doublon.
+  if (index % 10 === 0) {
+    const rejeu = http.post(`${SUPABASE_URL}/rest/v1/rpc/mettre_note_en_file`, corps, {
+      headers: entetes(session), tags: { kind: 'rejeu' }, timeout: '10s', responseType: 'text',
+    });
+    check(rejeu, { 'rejeu idempotent': (r) => r.status === 200 && recu(r)?.request_id === requestId && recu(r)?.statut !== 'rejetee' });
+  }
+  let tour = 0;
+  while (etat?.statut === 'en_attente' && Date.now() - debut < 120_000) {
+    // Suivi espacé et réparti, comme le navigateur; jamais une boucle de lectures sans délai.
+    sleep(tour++ === 0 ? 0.5 + Math.random() * 0.5 : Math.min(10, 2 ** Math.min(tour - 1, 4)) * (1 + Math.random() * 0.5));
+    const suivi = http.post(`${SUPABASE_URL}/rest/v1/rpc/lire_statuts_file_notes`, JSON.stringify({ p_request_ids: [requestId] }), {
+      headers: entetes(session), tags: { kind: 'suivi' }, timeout: '10s', responseType: 'text',
+    });
+    etat = recu(suivi) ?? etat;
+  }
+  confirmationMs.add(Date.now() - debut);
+  if (!check(etat, { 'action confirmée après écriture': (r) => r?.statut === 'confirmee' })) return;
+  commitMs.add(Date.parse(etat.confirmee_le) - Date.parse(etat.soumise_le));
 
   const verification = http.get(
     `${SUPABASE_URL}/rest/v1/notes_public?passage_id=eq.${encodeURIComponent(PASSAGE_ID)}` +
@@ -193,13 +233,13 @@ export function voter() {
 }
 
 export function lireEtat() {
-  const index = exec.scenario.iterationInTest % sessions.length;
-  const session = sessions[index];
   const reponse = http.get(
-    `${SUPABASE_URL}/rest/v1/etat_soiree?soiree_id=eq.${encodeURIComponent(SOIREE_ID)}&select=soiree_id,instantane,calcule_le`,
-    { headers: entetes(session), tags: { kind: 'etat' }, timeout: '10s', responseType: 'text' },
+    `${SITE_URL}/api/notation/planning`,
+    { tags: { kind: 'etat' }, timeout: '10s', responseType: 'text' },
   );
-  check(reponse, { 'instantané lisible': (r) => r.status === 200 && r.body !== '[]' });
+  check(reponse, { 'planning disponible et file active': (r) => {
+    try { const d = JSON.parse(r.body); return r.status === 200 && d.fileActive === true && d.soirees.length > 0; } catch { return false; }
+  } });
 }
 
 export function signalerPresence() {

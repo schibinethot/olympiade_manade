@@ -1,6 +1,6 @@
 # Cahier des charges : app de notation de l'Olympiade des manades
 
-> Version 0.9 (brouillon) · 2026-10-11 · Statut : **à valider** · Design validé : [charte graphique](charte-graphique.md) et [maquette v1](maquette/README.md)
+> Version 0.10 (brouillon) · 2026-10-11 · Statut : **à valider** · Design validé : [charte graphique](charte-graphique.md) et [maquette v1](maquette/README.md)
 > Document de référence du projet. Toute fonctionnalité livrée doit s'y rattacher.
 
 ---
@@ -273,7 +273,7 @@ L'admin envoie le planning dans le format qu'il a sous la main :
 **Règles communes** :
 
 - une seule note par spectateur inscrit (email vérifié) et par passage. Un nouveau vote remplace l'ancien
-- **l'heure du serveur fait foi**. Une note arrivée après la fermeture est refusée par la base
+- **l'heure du serveur fait foi**. Une action arrivée après la fermeture est refusée par la base. Une action admise dans la file serveur avant la fermeture peut terminer son enregistrement ensuite ; « reçue » et « enregistrée » sont deux états distincts
 - sans réseau, la note est gardée sur le téléphone et envoyée dès le retour de la connexion, si le passage est encore ouvert. Sinon, le spectateur voit « Vote fermé, note non prise en compte »
 
 **Limiter la triche** : chaque vote demande un email vérifié, donc voter deux fois demande deux adresses email. Mesures complémentaires :
@@ -445,7 +445,7 @@ etat_soiree        (soiree_id, instantane jsonb, calcule_le)
 
 ### 5.3 Temps réel et charge
 
-**Cible demandée : 5 000 personnes simultanées. Capacité non encore validée.** L'[audit du 11/10/2026](audit-charge-5000.md) distingue la configuration réellement vérifiée, les calculs théoriques et les mesures locales. Le parcours de vote, l'instantané et sa diffusion restent à implémenter (lot 2).
+**Cible demandée : 5 000 personnes simultanées. Capacité non encore validée.** L'[audit du 11/10/2026](audit-charge-5000.md) distingue la configuration réellement vérifiée, les calculs théoriques et les mesures locales. Le parcours public de saisie et sa file sont implémentés dans le code, à activer après migration. L'instantané des classements et sa diffusion restent à implémenter (lot 2).
 
 Quotas Supabase Realtime en connexions simultanées ([source](https://supabase.com/docs/guides/realtime/quotas)) : 200 sur le plan Free, 500 sur Pro, 10 000 sur Pro sans plafond de dépense. Ces connexions WebSocket sont distinctes des sessions de spectateurs et des connexions PostgreSQL. Le plan et le compute du projet Supabase restent à confirmer ; le plan Railway Pro ne les renseigne pas.
 
@@ -479,6 +479,19 @@ Le réseau 4G est souvent saturé dans les arènes. En conséquence :
 - page spectateur légère (objectif < 200 Ko au premier chargement, hors logos)
 - votes mis en file d'attente localement et renvoyés automatiquement
 - interface admin utilisable même avec une connexion lente (états « envoi… » / « enregistré » explicites)
+
+### 5.4.1 File durable des notes du public
+
+- `/noter` : saisie de 1 à 10 pour les comptes connectés, planning publié relu toutes les 10 à 12 secondes à l'écran. Le planning public passe par un cache Railway de 5 secondes, avec une seule lecture Supabase simultanée par instance, y compris en cas de panne. Les notes personnelles ne sont jamais dans ce cache
+- téléphone : IndexedDB, au plus 200 actions conservées par compte, envoi séquentiel et bail entre onglets. Une correction jamais envoyée peut remplacer la précédente ; dès le premier essai, l'identifiant et son contenu deviennent immuables. Un rechargement ou une réponse perdue ne crée pas de nouvelle action
+- reprise : timeout, temporisation progressive et aléatoire, respect de `Retry-After`, arrêt des envois à la déconnexion et isolation des comptes. Aucun jeton dans la file. Un stockage indisponible produit une erreur visible avant toute promesse de conservation
+- serveur : RPC d'admission contrôlant identité, email confirmé et règles à l'heure serveur ; 100 actions maximum par compte et passage. UUID conservés pour l'idempotence, suppression en cascade avec le compte. Le passage ne peut plus être réattribué dès la première action admise
+- traitement : lots de 100 maximum avec pause de 250 ms par défaut, une transaction à la fois par instance. Les instances se partagent les actions sans traiter simultanément deux corrections d'une même note. Écriture de la note et confirmation dans la même transaction ; un crash provoque soit un rollback, soit une confirmation complète
+- fermeture : une note encore sur le téléphone doit atteindre le serveur avant fermeture. Une note reçue à temps est traitée même si le vote ferme ensuite. Le statut « enregistrée » n'apparaît qu'après confirmation serveur
+- supervision : file restante, âge du plus ancien envoi, confirmations, refus et dernier signal des traitements. Les notes encore sur les téléphones ne sont pas comptées dans le backlog serveur
+- activation : migration `20261011140000_file_notes.sql`, clé exclusivement serveur et `FILE_NOTES_ACTIVE=true`. Le code ne modifie ni les forfaits ni l'infrastructure. Voir le [guide de la file](file-notes.md)
+
+Une file absorbe les pics et permet les reprises ; elle ajoute des écritures et des lectures de suivi. Elle ne rend pas une base lente plus rapide et ne garantit pas « zéro lag ». Le test hébergé doit mesurer séparément réception, attente et confirmation, avec refus explicites et contrôle d'intégrité.
 
 ---
 

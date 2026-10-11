@@ -70,6 +70,7 @@ const DROITS_ATTENDUS = [
   { role: 'authenticated', table: 'avis_soiree', droits: VOTE },
   { role: 'authenticated', table: 'calendrier', droits: ADMIN },
   { role: 'authenticated', table: 'epreuves', droits: ADMIN },
+  { role: 'authenticated', table: 'file_notes', droits: LECTURE },
   { role: 'authenticated', table: 'manades', droits: ADMIN },
   { role: 'authenticated', table: 'messages_contact', droits: LECTURE },
   { role: 'authenticated', table: 'notes_jury', droits: VOTE },
@@ -206,7 +207,7 @@ describe('catalogue : schéma prive', () => {
 });
 
 describe('catalogue : fonctions', () => {
-  it('seules les RPC de supervision prévues vivent dans le schéma public exposé par la Data API', () =>
+  it('seules les RPC de supervision et de file prévues vivent dans le schéma public exposé par la Data API', () =>
     dansUneTransaction(async (db) => {
       await commeSuperutilisateur(db);
       const { rows } = await db.query(
@@ -219,8 +220,12 @@ describe('catalogue : fonctions', () => {
             'enregistrer_metrique_serveur(timestamp with time zone,text,integer,integer,bigint,integer,bigint,numeric,integer,integer,integer[])',
         },
         { fonction: 'enregistrer_presence()' },
+        { fonction: 'lire_statistiques_file_notes()' },
+        { fonction: 'lire_statuts_file_notes(uuid[])' },
         { fonction: 'lire_supervision(integer)' },
+        { fonction: 'mettre_note_en_file(uuid,uuid,smallint)' },
         { fonction: 'nettoyer_metriques_serveur()' },
+        { fonction: 'traiter_file_notes(integer,text)' },
       ]);
     }));
 

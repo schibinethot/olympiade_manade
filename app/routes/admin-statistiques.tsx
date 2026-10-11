@@ -116,6 +116,17 @@ export default function Statistiques() {
           <Indicateur titre="Requêtes serveur" valeur={nombre(data.server.totals.requests)} detail={`Sur la période mesurée (${heures} h maximum). Appels directs à Supabase exclus.`} />
           <Indicateur titre="Erreurs serveur" valeur={nombre(data.server.totals.errors5xx)} detail={data.server.totals.requests ? `${nombre(100 * data.server.totals.errors5xx / data.server.totals.requests, 2)} % des réponses sont des erreurs 5xx.` : 'Aucune requête observée sur la période.'} alerte={data.server.totals.errors5xx > 0} />
         </div>
+        <section className="mt-6" aria-labelledby="titre-file"><h2 id="titre-file" className="mb-4 font-display text-2xl">File d’attente des notes</h2>
+          {!data.fileNotes ? <p className={`${CARTE} text-sm text-encre-2`}>Les mesures de la file sont indisponibles. Vérifiez son installation et la connexion à la base.</p> : <>
+            {data.fileNotes.workersActive === 0 ? <p role="alert" className="mb-4 rounded-xl border border-rouge/30 bg-creme p-4 text-rouge-alerte">Aucun traitement actif détecté depuis 30 secondes. Les notes reçues restent en attente dans la base.</p> : null}
+            <div className="grid gap-4 tablette:grid-cols-2 paysage:grid-cols-4">
+              <Indicateur titre="Notes en attente" valeur={nombre(data.fileNotes.queued)} detail="Actions reçues par le serveur et pas encore enregistrées. Les notes encore sur les téléphones ne sont pas comptées." alerte={data.fileNotes.queued > 1000} />
+              <Indicateur titre="Attente la plus ancienne" valeur={data.fileNotes.oldestQueuedAt ? `${nombre(Math.max(0, (Date.parse(data.generatedAt) - Date.parse(data.fileNotes.oldestQueuedAt)) / 1000))} s` : '0 s'} detail="Âge de la plus ancienne action reçue et toujours en attente." alerte={!!data.fileNotes.oldestQueuedAt && Date.parse(data.generatedAt) - Date.parse(data.fileNotes.oldestQueuedAt) > 10_000} />
+              <Indicateur titre="Confirmations depuis 5 min" valeur={nombre(data.fileNotes.confirmedLast5m)} detail={`${nombre(data.fileNotes.confirmedLastHour)} sur la dernière heure. Une confirmation correspond à une écriture terminée.`} />
+              <Indicateur titre="Traitements actifs" valeur={nombre(data.fileNotes.workersActive)} detail={`${nombre(data.fileNotes.rejectedLastHour)} actions refusées depuis 1 h. Dernier signal : ${data.fileNotes.lastWorkerAt ? heure(data.fileNotes.lastWorkerAt) : 'aucun'}.`} alerte={data.fileNotes.workersActive === 0} />
+            </div>
+          </>}
+        </section>
         <div className="mt-5 grid gap-5 paysage:grid-cols-[1.6fr_1fr]">
           <section className={CARTE} aria-labelledby="titre-trafic"><h2 id="titre-trafic" className="font-display text-2xl">Évolution de l’activité</h2><p className="mt-1 text-sm text-encre-2">Une mesure par minute · intervalles enregistrés uniquement</p>
             <div role="group" aria-label="Mesure du graphique" className="mt-3 flex flex-wrap gap-2">{(['requests', 'authenticatedActiveUsers'] as const).map((cle) => <button key={cle} type="button" aria-pressed={courbe === cle} onClick={() => setCourbe(cle)} className={`${BOUTON} ${courbe === cle ? 'bg-lin' : ''}`}>{cle === 'requests' ? 'Requêtes' : 'Comptes actifs'}</button>)}</div>
