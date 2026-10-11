@@ -127,10 +127,10 @@ export default function Statistiques() {
               <Ligne terme="Notes du jury" valeur={nombre(data.votes.jury.total)} />
               <Ligne terme="Notes touchées depuis 1 h" valeur={nombre(data.votes.public.modifiedLastHour == null || data.votes.jury.modifiedLastHour == null ? null : data.votes.public.modifiedLastHour + data.votes.jury.modifiedLastHour)} />
               <Ligne terme="Volume de la base" valeur={octets(data.database.sizeBytes)} />
-              <Ligne terme="Données servies par Railway" valeur={octets(data.server.totals.responseBytes)} />
+              <Ligne terme="Réponses Railway (volume estimé)" valeur={octets(data.server.totals.responseBytes)} />
               <Ligne terme="Transferts Supabase" valeur="Non mesurés ici" />
             </dl>
-            <p className="mt-3 text-xs text-encre-2">Une note corrigée conserve une seule ligne. Ces compteurs ne représentent pas le nombre total de tentatives d’enregistrement.</p>
+            <p className="mt-3 text-xs text-encre-2">Une note corrigée conserve une seule ligne. Ces compteurs ne représentent pas le nombre total de tentatives d’enregistrement. Le volume des réponses est estimé hors en-têtes ; ce n’est pas le trafic facturé.</p>
           </section>
         </div>
         <section className="mt-6" aria-labelledby="titre-ressources"><h2 id="titre-ressources" className="mb-4 font-display text-2xl">Ressources et temps de réponse</h2>
@@ -146,7 +146,7 @@ export default function Statistiques() {
           <p className="my-3 text-sm text-encre-2">Les 30 dernières minutes enregistrées. L’export contient toute la période disponible.</p>
           <div className="overflow-x-auto"><table className="w-full text-left text-sm tabular-nums"><caption className="sr-only">Mesures serveur enregistrées</caption>
             <thead><tr>{['Heure', 'Requêtes', 'Erreurs 5xx', 'Données', 'p95', 'Mémoire', 'Comptes actifs', 'Instances'].map((t) => <th key={t} scope="col" className="border-b border-trait px-3 py-3 font-semibold">{t}</th>)}</tr></thead>
-            <tbody>{data.server.history.slice(-30).reverse().map((m) => <tr key={m.minute} className="border-b border-trait last:border-0"><td className="px-3 py-3"><time dateTime={m.minute}>{heure(m.minute)}</time></td><td className="px-3 py-3">{nombre(m.requests)}</td><td className="px-3 py-3">{nombre(m.errors5xx)}</td><td className="px-3 py-3">{octets(m.responseBytes)}</td><td className="px-3 py-3">{m.p95Ms == null ? '—' : `${nombre(m.p95Ms)} ms`}</td><td className="px-3 py-3">{octets(m.rssBytes)}</td><td className="px-3 py-3">{nombre(m.authenticatedActiveUsers)}</td><td className="px-3 py-3">{nombre(m.instances)}</td></tr>)}</tbody>
+            <tbody>{data.server.history.slice(-30).reverse().map((m) => <tr key={m.minute} className="border-b border-trait last:border-0"><td className="px-3 py-3"><time dateTime={m.minute}>{heure(m.minute)}</time></td><td className="px-3 py-3">{nombre(m.requests)}</td><td className="px-3 py-3">{nombre(m.errors5xx)}</td><td className="px-3 py-3">{octets(m.responseBytes)}</td><td className="px-3 py-3">{m.p95Ms == null ? '—' : latence(m.p95Ms)}</td><td className="px-3 py-3">{octets(m.rssBytes)}</td><td className="px-3 py-3">{nombre(m.authenticatedActiveUsers)}</td><td className="px-3 py-3">{nombre(m.instances)}</td></tr>)}</tbody>
           </table></div>
         </details>
         <p className="mt-5 text-sm text-encre-2">Mesures techniques agrégées, sans email, adresse IP ni contenu des notes dans ce journal. L’historique permanent conserve 30 jours de mesures.</p>
@@ -174,8 +174,8 @@ function Courbe({ mesures: toutes, indicateur }: { mesures: MesureMinute[]; indi
   // Une interruption de collecte reste un trou visible ; ne pas inventer une activité entre deux points.
   return <figure className="mt-4"><svg viewBox="0 0 640 210" role="img" aria-label={`${unite} : ${mesures.length} minutes observées, maximum ${nombre(Math.max(...mesures.map(valeur)))}.`} className="w-full text-or-ink">
     {[36, 104, 172].map((v) => <line key={v} x1="24" x2="616" y1={v} y2={v} stroke="currentColor" opacity=".18" />)}
-    <text x="24" y="20" fontSize="12" fill="currentColor">{nombre(max)} {unite}</text>
+    <text x="24" y="20" className="text-[22px] tablette:text-[12px]" fill="currentColor">{nombre(max)} {unite}</text>
     {mesures.map((m, i) => <g key={m.minute}>{i > 0 && Date.parse(m.minute) - Date.parse(mesures[i - 1].minute) <= 90_000 ? <line x1={x(mesures[i - 1])} y1={y(mesures[i - 1])} x2={x(m)} y2={y(m)} stroke="currentColor" strokeWidth="2" /> : null}<circle cx={x(m)} cy={y(m)} r={mesures.length > 120 ? 1 : 3} fill="currentColor"><title>{heure(m.minute)} : {nombre(valeur(m))} {unite}</title></circle></g>)}
-    <text x="24" y="201" fontSize="12" fill="currentColor">{heure(mesures[0].minute)}</text><text x="616" y="201" textAnchor="end" fontSize="12" fill="currentColor">{heure(mesures[mesures.length - 1].minute)}</text>
+    <text x="24" y="201" className="text-[22px] tablette:text-[12px]" fill="currentColor">{heure(mesures[0].minute)}</text><text x="616" y="201" textAnchor="end" className="text-[22px] tablette:text-[12px]" fill="currentColor">{heure(mesures[mesures.length - 1].minute)}</text>
   </svg><figcaption className="text-xs text-encre-2">{indicateur === 'requests' ? 'Le trafic du site inclut les fichiers et les pages. Les votes sont envoyés directement à la base.' : 'Comptes connectés ayant signalé leur présence depuis moins de 2 minutes, tous appareils confondus.'}</figcaption></figure>;
 }

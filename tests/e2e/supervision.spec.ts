@@ -108,12 +108,12 @@ test('une panne conserve les dernières mesures avec avertissement, une révocat
 
 test('la présence est espacée et suspendue lorsque l’onglet est masqué', async ({ page }) => {
   await page.clock.install();
+  await page.addInitScript(() => { Math.random = () => 0; });
   await ouvrirSession(page);
   let signaux = 0;
   await page.route('**/rest/v1/rpc/enregistrer_presence', (r) => { signaux++; return r.fulfill({ json: null }); });
   await page.goto('/admin');
   await expect(page.getByRole('link', { name: 'Statistiques et charge →' })).toBeVisible();
-  await page.clock.runFor(31_000);
   await expect.poll(() => signaux).toBe(1);
   await page.clock.runFor(20_000);
   expect(signaux).toBe(1);
@@ -121,6 +121,6 @@ test('la présence est espacée et suspendue lorsque l’onglet est masqué', as
   await page.clock.runFor(90_000);
   expect(signaux).toBe(1);
   await page.evaluate(() => { Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' }); document.dispatchEvent(new Event('visibilitychange')); });
-  await page.clock.runFor(6000);
+  await page.clock.runFor(1);
   await expect.poll(() => signaux).toBe(2);
 });

@@ -90,6 +90,8 @@ describe('statistiques administrateur', () => {
       expect(snapshot.database.connections.current).toBeGreaterThan(0);
       expect(snapshot.database.connections.max).toBeGreaterThan(0);
       expect(snapshot.serverHistory).toEqual([]);
+      expect(await doitEtreRefuse(db, `select public.lire_supervision(null)`)).toBe('22023');
+      expect(await doitEtreRefuse(db, `select public.lire_supervision(2)`)).toBe('22023');
     }));
 
   it('agrège les instances, calcule le p95 par histogramme et échantillonne les actifs', () =>
@@ -122,6 +124,8 @@ describe('statistiques administrateur', () => {
         requests: 200,
         errors5xx: 4,
         responseBytes: 8192,
+        rssBytes: 2000000,
+        inflightMax: 8,
         instances: 2,
         authenticatedActiveUsers: 1,
         httpConnectionsMax: 16,
@@ -156,11 +160,13 @@ describe('statistiques administrateur', () => {
          )`,
         [latences],
       );
+      await commeSuperutilisateur(db);
       await db.query(
         `insert into public.presences_authentifiees (utilisateur_id, dernier_signal)
          values ($1, date_trunc('minute', clock_timestamp()) - interval '31 days')`,
         [IDS.spectateur],
       );
+      await db.query(`set local role service_role`);
       expect((await db.query(`select public.nettoyer_metriques_serveur() as n`)).rows[0].n).toBe(2);
       await commeSuperutilisateur(db);
       expect((await db.query(`select count(*)::int as n from public.supervision_serveur_minutes`)).rows[0].n).toBe(1);

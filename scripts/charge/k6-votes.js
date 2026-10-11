@@ -119,13 +119,26 @@ export const options = {
       preAllocatedVUs: Math.min(500, lecturesParSeconde),
       maxVUs: Math.min(2_000, VOTANTS),
     },
+    presences: {
+      executor: 'constant-arrival-rate',
+      exec: 'signalerPresence',
+      // Un signal par utilisateur toutes les 67,5 s en moyenne (jitter client 60–75 s).
+      rate: VOTANTS,
+      timeUnit: '67.5s',
+      duration: `${Math.max(45, dureeEtalement + 15)}s`,
+      preAllocatedVUs: 100,
+      maxVUs: Math.min(1_000, VOTANTS),
+    },
   },
   thresholds: {
-    'http_req_failed{kind:vote}': ['rate<0.01'],
+    // Un vote accepté mais absent à la relecture est un vote perdu : tolérance zéro.
+    'http_req_failed{kind:vote}': ['rate==0'],
     'http_req_duration{kind:vote}': ['p(95)<1000'],
-    'http_req_failed{kind:etat}': ['rate<0.01'],
+    'http_req_failed{kind:verification}': ['rate==0'],
+    'http_req_failed{kind:etat}': ['rate<0.001'],
+    'http_req_failed{kind:presence}': ['rate<0.001'],
     'dropped_iterations': ['count==0'],
-    'checks': ['rate>0.99'],
+    'checks': ['rate==1'],
   },
 };
 
@@ -138,9 +151,11 @@ function entetes(session) {
 }
 
 export function voter() {
-  const index = exec.vu.idInTest - 1;
+  // L'identifiant de VU est global à tous les scénarios (les lecteurs en consomment aussi).
+  // L'itération est, elle, numérotée de 0 à VOTANTS-1 dans ce scénario à une itération par VU.
+  const index = exec.scenario.iterationInTest;
   const session = sessions[index];
-  if (!session) throw new Error(`Aucune session pour le VU ${exec.vu.idInTest}.`);
+  if (!session) throw new Error(`Aucune session pour l'itération de vote ${index}.`);
   if (dureeEtalement > 0 && VOTANTS > 1) sleep((index * dureeEtalement) / (VOTANTS - 1));
   const reponse = http.post(
     `${SUPABASE_URL}/rest/v1/notes_public?on_conflict=passage_id,votant_id`,
@@ -151,7 +166,30 @@ export function voter() {
       timeout: '10s',
     },
   );
-  check(reponse, { 'vote accepté': (r) => [200, 201, 204].includes(r.status) });
+  const accepte = check(reponse, { 'vote accepté': (r) => [200, 201, 204].includes(r.status) });
+  if (!accepte) return;
+
+  const verification = http.get(
+    `${SUPABASE_URL}/rest/v1/notes_public?passage_id=eq.${encodeURIComponent(PASSAGE_ID)}` +
+      `&votant_id=eq.${encodeURIComponent(session.userId)}&select=votant_id,note`,
+    {
+      headers: entetes(session),
+      tags: { kind: 'verification' },
+      timeout: '10s',
+      responseType: 'text',
+    },
+  );
+  check(verification, {
+    'vote relu exactement': (r) => {
+      if (r.status !== 200) return false;
+      try {
+        const lignes = JSON.parse(r.body);
+        return lignes.length === 1 && lignes[0].votant_id === session.userId && lignes[0].note === 8;
+      } catch {
+        return false;
+      }
+    },
+  });
 }
 
 export function lireEtat() {
@@ -162,4 +200,15 @@ export function lireEtat() {
     { headers: entetes(session), tags: { kind: 'etat' }, timeout: '10s', responseType: 'text' },
   );
   check(reponse, { 'instantané lisible': (r) => r.status === 200 && r.body !== '[]' });
+}
+
+export function signalerPresence() {
+  const index = exec.scenario.iterationInTest % sessions.length;
+  const session = sessions[index];
+  const reponse = http.post(`${SUPABASE_URL}/rest/v1/rpc/enregistrer_presence`, '{}', {
+    headers: entetes(session),
+    tags: { kind: 'presence' },
+    timeout: '10s',
+  });
+  check(reponse, { 'présence acceptée': (r) => [200, 204].includes(r.status) });
 }

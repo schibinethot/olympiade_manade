@@ -216,7 +216,6 @@ export function creerSupervision(options = {}) {
       derniereErreurPersistance = null;
 
       if (now() >= prochainNettoyage) {
-        prochainNettoyage = now() + 60 * MINUTE_MS;
         const nettoyage = await fetchFn(`${supabaseUrl}/rest/v1/rpc/nettoyer_metriques_serveur`, {
           method: 'POST',
           signal: controleur.signal,
@@ -228,6 +227,7 @@ export function creerSupervision(options = {}) {
           body: '{}',
         });
         if (!nettoyage.ok) throw new Error(`nettoyage HTTP ${nettoyage.status}`);
+        prochainNettoyage = now() + 60 * MINUTE_MS;
       }
     } catch (erreur) {
       derniereErreurPersistance = erreur instanceof Error ? erreur.message : String(erreur);
@@ -495,11 +495,9 @@ export function supervisionDepuisEnvironnement(environnement) {
     supabaseUrl: urlSupabase(environnement.VITE_SUPABASE_URL),
     publishableKey: environnement.VITE_SUPABASE_PUBLISHABLE_KEY || null,
     serviceRoleKey: environnement.SUPABASE_SERVICE_ROLE_KEY || null,
-    instanceId: idInstance(
-      environnement.SUPERVISION_INSTANCE_ID ||
-        environnement.RAILWAY_REPLICA_ID ||
-        environnement.RAILWAY_DEPLOYMENT_ID,
-    ),
+    // Un deployment Railway peut avoir plusieurs replicas : seul l'identifiant de replica est
+    // assez précis. Sans lui, un identifiant aléatoire évite que deux processus s'écrasent.
+    instanceId: idInstance(environnement.SUPERVISION_INSTANCE_ID || environnement.RAILWAY_REPLICA_ID),
     timeoutMs: entierBorne(environnement.SUPERVISION_FETCH_TIMEOUT_MS, 5_000, 500, 15_000),
     maxConcurrent: entierBorne(environnement.SUPERVISION_MAX_CONCURRENT, 4, 1, 20),
     ratePerMinute: entierBorne(environnement.SUPERVISION_RATE_LIMIT_PER_MINUTE, 60, 1, 600),

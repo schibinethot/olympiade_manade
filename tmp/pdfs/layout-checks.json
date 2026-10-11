@@ -3349,7 +3349,7 @@
     "y": 436.7,
     "w": 129,
     "h": 12.6,
-    "text": "Contact et imports"
+    "text": "Contact"
   },
   {
     "page": 21,
@@ -3357,7 +3357,7 @@
     "y": 436.7,
     "w": 122,
     "h": 12.6,
-    "text": "Envoi autorisé"
+    "text": "Envoyer"
   },
   {
     "page": 21,
@@ -3365,7 +3365,7 @@
     "y": 436.7,
     "w": 79,
     "h": 12.6,
-    "text": "Pas de gestion"
+    "text": "Envoyer"
   },
   {
     "page": 21,
@@ -3377,8 +3377,40 @@
   },
   {
     "page": 21,
+    "x": 52,
+    "y": 468.3,
+    "w": 129,
+    "h": 12.6,
+    "text": "Imports du planning"
+  },
+  {
+    "page": 21,
+    "x": 201,
+    "y": 468.3,
+    "w": 122,
+    "h": 12.6,
+    "text": "Non"
+  },
+  {
+    "page": 21,
+    "x": 343,
+    "y": 468.3,
+    "w": 79,
+    "h": 12.6,
+    "text": "Non"
+  },
+  {
+    "page": 21,
+    "x": 442,
+    "y": 468.3,
+    "w": 101.28,
+    "h": 12.6,
+    "text": "Importer et valider"
+  },
+  {
+    "page": 21,
     "x": 55,
-    "y": 484.3,
+    "y": 515.9,
     "w": 498.28,
     "h": 28.6,
     "text": "<b>Protection des accès :</b> rôles vérifiés côté serveur, notes publiques limitées à leur aute"
@@ -3386,7 +3418,7 @@
   {
     "page": 21,
     "x": 55,
-    "y": 522.9,
+    "y": 554.5,
     "w": 498.28,
     "h": 28.6,
     "text": "<b>Historique :</b> conserver sources, versions du barème, validations et corrections. Une édit"
@@ -3394,7 +3426,7 @@
   {
     "page": 21,
     "x": 55,
-    "y": 561.5,
+    "y": 593.1,
     "w": 498.28,
     "h": 14.3,
     "text": "<b>Compte :</b> prévoir suppression depuis l’app, gestion des notifications et durée de conserv"
@@ -3402,7 +3434,7 @@
   {
     "page": 21,
     "x": 55,
-    "y": 585.8,
+    "y": 617.4,
     "w": 498.28,
     "h": 28.6,
     "text": "<b>Informations :</b> mentions légales, confidentialité, crédits photo et coordonnées de l’orga"
@@ -3410,7 +3442,7 @@
   {
     "page": 21,
     "x": 42,
-    "y": 628.4,
+    "y": 660.0,
     "w": 511.28,
     "h": 22.8,
     "text": "La politique de conservation, le traitement des résultats après suppression d’un compte et les "
@@ -3705,74 +3737,50 @@
   },
   {
     "page": 23,
-    "x": 54.0,
-    "y": 436.5,
-    "w": 137.09,
-    "h": 23,
-    "text": "01"
-  },
-  {
-    "page": 23,
-    "x": 54.0,
-    "y": 465.5,
-    "w": 137.09,
-    "h": 14,
+    "x": 68.0,
+    "y": 440.5,
+    "w": 121.43,
+    "h": 17,
     "text": "Emails"
   },
   {
     "page": 23,
-    "x": 54.0,
-    "y": 485.5,
-    "w": 137.09,
-    "h": 12,
+    "x": 57.0,
+    "y": 469.5,
+    "w": 132.43,
+    "h": 14.5,
     "text": "Codes et contact"
   },
   {
     "page": 23,
-    "x": 229.09,
-    "y": 436.5,
-    "w": 137.09,
-    "h": 23,
-    "text": "02"
-  },
-  {
-    "page": 23,
-    "x": 229.09,
-    "y": 465.5,
-    "w": 137.09,
-    "h": 14,
+    "x": 242.43,
+    "y": 440.5,
+    "w": 121.43,
+    "h": 17,
     "text": "Imports"
   },
   {
     "page": 23,
-    "x": 229.09,
-    "y": 485.5,
-    "w": 137.09,
-    "h": 12,
+    "x": 231.43,
+    "y": 469.5,
+    "w": 132.43,
+    "h": 14.5,
     "text": "Fichiers et analyse"
   },
   {
     "page": 23,
-    "x": 404.18,
-    "y": 436.5,
-    "w": 137.09,
-    "h": 23,
-    "text": "03"
-  },
-  {
-    "page": 23,
-    "x": 404.18,
-    "y": 465.5,
-    "w": 137.09,
-    "h": 14,
+    "x": 416.85,
+    "y": 440.5,
+    "w": 121.43,
+    "h": 17,
     "text": "Notifications"
   },
   {
     "page": 23,
-    "x": 404.18,
-    "y": 485.5,
-    "w": 137.09,
-    "h": 12,
+    "x": 405.85,
+    "y": 469.5,
+    "w": 132.43,
+    "h": 14.5,
     "text": "Web et Android"
   },
   {

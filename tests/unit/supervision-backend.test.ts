@@ -55,6 +55,44 @@ describe('histogramme de latence', () => {
   });
 });
 
+describe('persistance agrégée', () => {
+  it('écrit un seul agrégat borné après le changement de minute', async () => {
+    let maintenant = Date.parse('2026-10-11T10:00:10Z');
+    const fetchFn = vi.fn<typeof fetch>(async () => new Response(null, { status: 204 }));
+    const supervision = creerSupervision({
+      supabaseUrl: 'https://projet.supabase.co',
+      publishableKey: 'publique',
+      serviceRoleKey: 'secrete-serveur',
+      instanceId: 'srv-test',
+      fetchFn,
+      now: () => maintenant,
+      timers: false,
+    });
+    const base = await servir(supervision);
+    expect((await fetch(`${base}/une-page`)).status).toBe(204);
+
+    maintenant = Date.parse('2026-10-11T10:01:01Z');
+    supervision.avancer();
+    await vi.waitFor(() => expect(fetchFn).toHaveBeenCalledTimes(2)); // mesure puis nettoyage initial
+    const [url, init] = fetchFn.mock.calls[0];
+    expect(String(url)).toContain('/rpc/enregistrer_metrique_serveur');
+    const corps = JSON.parse(String(init?.body));
+    expect(corps).toMatchObject({
+      p_minute: '2026-10-11T10:00:00.000Z',
+      p_instance_id: 'srv-test',
+      p_requetes: 1,
+      p_erreurs_5xx: 0,
+      p_octets_reponse: 0,
+    });
+    expect(corps.p_latences).toHaveLength(9);
+    expect(corps.p_latences.reduce((somme: number, n: number) => somme + n, 0)).toBe(1);
+
+    supervision.avancer();
+    await new Promise((ok) => setTimeout(ok, 0));
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe('endpoint administrateur de supervision', () => {
   it('refuse sans Bearer avant tout appel Supabase', async () => {
     const fetchFn = vi.fn<typeof fetch>();

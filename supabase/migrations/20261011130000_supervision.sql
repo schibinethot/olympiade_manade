@@ -9,7 +9,7 @@ create index presences_authentifiees_dernier_signal_idx
   on public.presences_authentifiees (dernier_signal);
 
 alter table public.presences_authentifiees enable row level security;
-revoke all on public.presences_authentifiees from anon, authenticated;
+revoke all on public.presences_authentifiees from public, anon, authenticated;
 grant select, insert, update, delete on public.presences_authentifiees to service_role;
 
 -- Le client ne choisit jamais l'identité. Un appel répété dans la même minute ne produit
@@ -65,7 +65,7 @@ create table public.supervision_serveur_minutes (
 );
 
 alter table public.supervision_serveur_minutes enable row level security;
-revoke all on public.supervision_serveur_minutes from anon, authenticated;
+revoke all on public.supervision_serveur_minutes from public, anon, authenticated;
 grant select, insert, update, delete on public.supervision_serveur_minutes to service_role;
 
 -- Une seule écriture par instance et par minute. Le nombre d'utilisateurs actifs est calculé
@@ -162,20 +162,32 @@ begin
   if not coalesce(prive.est_admin(), false) then
     raise exception 'Accès administrateur requis' using errcode = '42501';
   end if;
-  if p_heures not in (1, 24) then
+  if p_heures is null or p_heures not in (1, 24) then
     raise exception 'Fenêtre invalide' using errcode = '22023';
   end if;
 
-  with agrege as (
+  with statistiques_public as (
+    select
+      count(*)::bigint as total,
+      count(*) filter (where maj_le > statement_timestamp() - interval '5 minutes')::bigint as cinq_minutes,
+      count(*) filter (where maj_le > statement_timestamp() - interval '1 hour')::bigint as une_heure
+    from public.notes_public
+  ), statistiques_jury as (
+    select
+      count(*)::bigint as total,
+      count(*) filter (where maj_le > statement_timestamp() - interval '5 minutes')::bigint as cinq_minutes,
+      count(*) filter (where maj_le > statement_timestamp() - interval '1 hour')::bigint as une_heure
+    from public.notes_jury
+  ), agrege as (
     select
       m.minute,
       sum(m.requetes)::bigint as requetes,
       sum(m.erreurs_5xx)::bigint as erreurs_5xx,
       sum(m.octets_reponse)::bigint as octets_reponse,
       sum(m.cpu_ms)::bigint as cpu_ms,
-      max(m.rss_octets)::bigint as rss_octets,
+      sum(m.rss_octets)::bigint as rss_octets,
       max(m.retard_boucle_ms)::numeric as retard_boucle_ms,
-      max(m.requetes_simultanees_max)::integer as requetes_simultanees_max,
+      sum(m.requetes_simultanees_max)::integer as requetes_simultanees_max,
       sum(m.connexions_http_max)::integer as connexions_http_max,
       max(m.utilisateurs_authentifies_actifs)::integer as utilisateurs_authentifies_actifs,
       count(*)::integer as instances,
@@ -191,7 +203,7 @@ begin
     from public.supervision_serveur_minutes m
     where m.minute >= date_trunc('minute', clock_timestamp()) - make_interval(hours => p_heures)
     group by m.minute
-    order by m.minute
+    order by m.minute desc
     limit 1440
   ), historique as (
     select coalesce(jsonb_agg(jsonb_build_object(
@@ -244,16 +256,12 @@ begin
       'lastHeartbeatAt', (select max(dernier_signal) from public.presences_authentifiees)
     ),
     'votes', jsonb_build_object(
-      'public', jsonb_build_object(
-        'total', (select count(*) from public.notes_public),
-        'modifiedLast5m', (select count(*) from public.notes_public where maj_le > clock_timestamp() - interval '5 minutes'),
-        'modifiedLastHour', (select count(*) from public.notes_public where maj_le > clock_timestamp() - interval '1 hour')
-      ),
-      'jury', jsonb_build_object(
-        'total', (select count(*) from public.notes_jury),
-        'modifiedLast5m', (select count(*) from public.notes_jury where maj_le > clock_timestamp() - interval '5 minutes'),
-        'modifiedLastHour', (select count(*) from public.notes_jury where maj_le > clock_timestamp() - interval '1 hour')
-      )
+      'public', (select jsonb_build_object(
+        'total', total, 'modifiedLast5m', cinq_minutes, 'modifiedLastHour', une_heure
+      ) from statistiques_public),
+      'jury', (select jsonb_build_object(
+        'total', total, 'modifiedLast5m', cinq_minutes, 'modifiedLastHour', une_heure
+      ) from statistiques_jury)
     ),
     'database', jsonb_build_object(
       'sizeBytes', pg_database_size(current_database()),

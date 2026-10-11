@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { exporterMesures, nombre, octets } from '../../app/lib/supervision';
+import { exporterMesures, latence, nombre, octets } from '../../app/lib/supervision';
 
 describe('affichage des mesures de supervision', () => {
   it('distingue une source indisponible d’une vraie mesure nulle', () => {
@@ -9,6 +9,9 @@ describe('affichage des mesures de supervision', () => {
     expect(octets(null)).toBe('Indisponible');
     expect(octets(0)).toBe('0 o');
     expect(octets(1_500_000)).toBe('1,5 Mo');
+    expect(latence(null)).toBe('Indisponible');
+    expect(latence(3001)).toBe('> 3 000 ms');
+    expect(latence(25)).toBe('≤ 25 ms');
   });
   it('exporte les unités brutes et laisse vides les mesures absentes', () => {
     const csv = exporterMesures([{ minute: '2026-10-11T10:00:00Z', requests: 5, errors5xx: 1,

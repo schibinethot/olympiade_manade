@@ -193,6 +193,10 @@ async function main() {
     const { rows: version } = await controle.query('select version()');
     await controle.end();
 
+    if (rows[0].notes !== UTILISATEURS || rows[0].note_min !== 6 || rows[0].note_max !== 6) {
+      throw new Error(`Intégrité invalide après charge : ${JSON.stringify(rows[0])}`);
+    }
+
     console.log(
       JSON.stringify(
         {
