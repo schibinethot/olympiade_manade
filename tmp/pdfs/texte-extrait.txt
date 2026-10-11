@@ -1,0 +1,742 @@
+DOSSIER FONCTIONNEL ILLUSTRÉ
+Olympiade
+des manades
+Vivre la soirée.
+Noter les prestations.
+Partager les résultats.
+Toutes les fonctions,
+du premier QR code au palmarès.
+Site public • Spectateurs • Jury • Organisation • Écran géant
+Parcours illustrés, règles de notation, administration, import du planning, notifications et
+préparation d’une soirée réelle.
+11 OCTOBRE 2026 / VERSION 1.0
+Conception : TPMGE • Identité du projet avec Atch Élevage
+
+LECTURE DU DOSSIER
+Un projet, cinq usages
+Le périmètre complet, avec les réglages de la première version et les possibilités conservées pour la suite.
+01
+Comprendre le service
+03
+02
+Site, inscription et vote public
+04 - 08
+03
+Jury et toutes les notations
+09 - 13
+04
+Préparer et piloter une soirée
+14 - 18
+05
+Notifications, avis et accès
+19 - 22
+06
+Fonctionnement, recette et livraison
+23 - 26
+07
+Sources et crédits
+27
+V1 prévue
+Fonctions détaillées dans le cahier des charges v0.8 : public sur 10, jury sur 10 ou 20, deux modes
+d’ouverture et trois modes de classement.
+Options conservées
+Critères personnalisés, autres échelles, mesures, préférences et essais multiples restent dans le
+périmètre de conception. Leur présence ici ne signifie pas qu’elles sont déjà développées.
+Base documentaire arrêtée au 11/10/2026. Les maquettes montrent des données simulées. Ce dossier décrit le produit et ses objectifs
+; il ne certifie ni un règlement sportif commun ni l’état du service en production.
+OLYMPIADE DES MANADES / DOSSIER FONCTIONNEL
+02 / 27
+
+01 / VUE D’ENSEMBLE
+Le même événement,
+des accès adaptés
+Chacun voit les actions utiles à son rôle. Les autorisations doivent être contrôlées côté serveur.
+01
+Visiteur
+Consulter les dates, les photos, les palmarès et le contact. Aucun compte nécessaire.
+02
+Spectateur
+Valider son email, noter les passages ouverts, suivre les résultats et donner son avis sur la
+soirée.
+03
+Juge
+Accéder à sa soirée, saisir ses notes et commentaires privés, corriger avant verrouillage.
+04
+Organisateur
+Préparer les données, piloter les votes, suivre les juges et publier le classement final.
+05
+Écran géant
+Diffuser le QR code, la manade en piste et les résultats autorisés. Lecture seule.
+Une soirée comme fil conducteur
+Préparer → publier → ouvrir les passages → collecter les notes → contrôler → révéler et archiver.
+OLYMPIADE DES MANADES / DOSSIER FONCTIONNEL
+03 / 27
+
+02 / SITE VITRINE
+Découvrir, puis participer
+Une entrée simple sur téléphone, avec « Notez les Olympiades » visible dès l’arrivée.
+Accueil de la maquette validée. Date, soirée et informations affichées : démonstration.
+Accueil : accès au vote, prochaine soirée, compte à rebours, photos, présentation des épreuves et
+dernier vainqueur.
+Hors soirée : bouton visible mais indisponible, avec la raison et le prochain rendez-vous.
+Navigation : Classements, Dates, Contact, mentions légales et confidentialité.
+Contenus : textes, images, dates et palmarès modifiables par l’admin ; photos créditées et optimisées.
+Les repères de manades de la maquette sont provisoires. Les vrais logos et fers sont intégrés à partir des fichiers validés par leurs
+propriétaires.
+OLYMPIADE DES MANADES / DOSSIER FONCTIONNEL
+04 / 27
+
+02 / CALENDRIER ET ARCHIVES
+Retrouver une soirée
+et son palmarès
+Un calendrier à jour et des résultats dont la provenance reste visible.
+Maquette du calendrier. Les dates de démonstration ne constituent pas une programmation confirmée.
+Calendrier
+Palmarès
+Date, heure, ville, arènes et lien vers la billetterie
+externe.
+Année, événement, rang, manade et vainqueurs par
+épreuve.
+Statut explicite : prévisionnelle, confirmée, reportée
+ou annulée.
+Source et statut : confirmé ou à confirmer. Aucun
+score inventé.
+Dates 2027 et archives des années précédentes.
+Onglets 2025, 2026 et 2027. Reprise manuelle des
+résultats antérieurs à l’app.
+Les classements des éditions gérées dans l’app seront alimentés par ses résultats. La billetterie et le paiement ne font pas partie de la
+V1.
+OLYMPIADE DES MANADES / DOSSIER FONCTIONNEL
+05 / 27
+
+02 / ACCÈS AU VOTE
+S’inscrire une fois,
+retrouver la saison
+Le public entre par un QR code ou un lien et confirme son adresse email.
+Deux étapes de la maquette : identité puis code email. Informations personnelles fictives.
+Prénom et email, information sur l’utilisation des données et validation du code à 6 chiffres. Un lien email
+sert de secours.
+Session conservée sur le téléphone ; nouvelle authentification si elle expire ou si l’utilisateur se
+déconnecte.
+Inscription en amont encouragée. Activation des notifications proposée ensuite, sans être nécessaire pour
+voter.
+OLYMPIADE DES MANADES / DOSSIER FONCTIONNEL
+06 / 27
+
+02 / NOTATION DU PUBLIC
+Une manade, un passage,
+une note
+La V1 prévoit une note de 1 à 10, facile à saisir d’une main.
+Contexte lisible : épreuve, manade et état du
+passage.
+Dix boutons : la note choisie est mise en évidence.
+Confirmation : distinguer « envoi », « enregistré » et
+« en attente réseau ».
+Correction possible tant que le passage est ouvert.
+La nouvelle note remplace la précédente.
+Une seule note active par compte vérifié et par
+passage.
+Un vote personnel
+Le spectateur consulte ses propres notes et les
+résultats agrégés. Il ne voit pas les votes
+individuels des autres.
+Maquette V1, données simulées. Les boutons affichent une échelle de 1 à 10 ; les autres formats sont décrits page 10.
+OLYMPIADE DES MANADES / DOSSIER FONCTIONNEL
+07 / 27
+
+02 / OUVERTURE DES VOTES
+Deux façons de rythmer
+la soirée
+L’organisateur choisit le mode de vote pour chaque édition.
+Mode libre
+Tous les passages notés sont accessibles pendant la fenêtre de la soirée. Le public peut les noter dans
+l’ordre de son choix. L’admin peut avancer l’ouverture, fermer ou prolonger la fenêtre.
+01
+Ouverture
+Début autorisé
+02
+Votes libres
+Tous les passages
+03
+Fermeture
+Fin côté serveur
+Mode par déblocage
+L’admin ouvre une épreuve entière ou une manade à la fois, puis ferme les passages. Plusieurs
+passages peuvent rester ouverts simultanément.
+01
+À venir
+Vote indisponible
+02
+Débloqué
+Note modifiable
+03
+Fermé
+Vote refusé
+Le serveur décide de la recevabilité
+Une note envoyée après la fermeture n’est pas comptée, même si elle avait été préparée sur le
+téléphone avant la coupure du réseau.
+OLYMPIADE DES MANADES / DOSSIER FONCTIONNEL
+08 / 27
+
+03 / JURY
+Noter avec précision
+Un accès personnel à la soirée et une interface différente de celle du public.
+Espace jury de la maquette, sur tablette. Les noms, notes et commentaires sont fictifs.
+Accès : lien personnel ou QR code créé par l’admin, limité aux soirées attribuées.
+V1 : barème sur 10 ou sur 20, saisie au demi-point et commentaire privé facultatif.
+Ouverture indépendante : les passages jury suivent le public par défaut, mais l’admin peut laisser les juges
+finaliser ensuite.
+Suivi : notes manquantes visibles pour l’organisateur, correction tant que le jury est ouvert, puis
+verrouillage.
+Option d’ergonomie : grille manades × épreuves et saisie au clavier sur ordinateur.
+OLYMPIADE DES MANADES / DOSSIER FONCTIONNEL
+09 / 27
+
+03 / CATALOGUE DE NOTATION
+Conserver toutes
+les possibilités
+La V1 pose un socle simple. Les autres formats restent des options de conception, à activer selon le
+règlement de l’édition.
+Mode
+Réglages prévus
+Positionnement
+Note globale
+Échelle, bornes, pas et décimales.
+V1 : public /10 ; jury /10 ou /20.
+Critères
+Nom, explication, niveaux, maximum et coefficient.
+Option conservée ; grille à
+définir.
+Points
+Total saisi ou points attribués à des éléments du
+barème.
+Option conservée.
+Places
+Rang et conversion en points ; ex æquo explicites.
+V1 : points par place ; règles à
+préciser.
+Mesures
+Réussite, décompte ou durée ; unité et sens du
+classement.
+Option non confirmée dans les
+sources étudiées.
+Vote public
+alternatif
+Étoiles, favori ou préférences classées.
+Option conservée en
+complément du /10.
+Appréciation et prix
+Commentaire sans score, prix spécial,
+démonstration.
+Prix et démonstrations ; aucun
+score forcé.
+Avis sur la soirée
+1 à 5 étoiles et commentaire privé.
+V1 ; distinct des performances.
+Aucune grille officielle préremplie
+Un exemple sur 20 est documenté, mais les critères et leurs points ne sont pas connus. Chaque
+modèle doit porter une origine : démonstration, proposition ou règlement validé pour l’édition.
+OLYMPIADE DES MANADES / DOSSIER FONCTIONNEL
+10 / 27
+
+03 / CRITÈRES PERSONNALISÉS
+Une grille explicable
+avant la première note
+Exemple de configuration à discuter avec un organisateur. Ces critères ne sont pas un règlement retrouvé.
+EXEMPLE FICTIF / OPTION CONSERVÉE
+Critère proposé
+Note saisie
+Poids
+Maîtrise
+Décrire les niveaux attendus.
+8 / 10
+50 %
+Précision
+Définir les gestes observables.
+7 / 10
+30 %
+Coordination
+Préciser l’évaluation collective.
+9 / 10
+20 %
+8 × 50 % + 7 × 30 % + 9 × 20 %
+7,9 / 10
+Pour chaque critère : intitulé, consigne, caractère obligatoire, bornes, pas et coefficient.
+Critères sur des échelles différentes : conversion explicite vers une même échelle avant pondération.
+Avant ouverture : prévisualiser un cas de calcul et valider le modèle de l’édition.
+Après ouverture : conserver la version utilisée. Toute correction du barème doit être tracée, recalculée
+et revalidée.
+Le catalogue des épreuves ne crée pas automatiquement ces critères. Les exemples « maîtrise », « précision » et « coordination »
+restent modifiables et facultatifs.
+OLYMPIADE DES MANADES / DOSSIER FONCTIONNEL
+11 / 27
+
+03 / CLASSEMENT GÉNÉRAL
+Deux méthodes
+à rendre visibles
+Le nom de la méthode doit accompagner le résultat. Les calculs ci-dessous sont pédagogiques.
+1. Moyenne des notes
+Chaque épreuve compte selon le coefficient retenu. Exemple avec des coefficients égaux : (8 + 9 + 7
++ 8) / 4 = 8 / 10. Une note absente n’est jamais transformée en zéro.
+2. Cumul de points par place
+Exemple à 4 manades : 1er = 4 points, 2e = 3, 3e = 2 et 4e = 1. La régularité peut l’emporter.
+Équipe fictive
+Ép. 1
+Ép. 2
+Ép. 3
+Ép. 4
+Total
+A - 2e partout
+3
+3
+3
+3
+12
+B - 2 victoires
+4
+1
+4
+1
+10
+C - 2 victoires
+1
+4
+1
+4
+10
+D - 3e partout
+2
+2
+2
+2
+8
+Un exemple, pas une reconstitution d’Alès
+Les comptes rendus montrent qu’un vainqueur général peut n’avoir gagné aucune épreuve. Ils ne
+donnent pas la formule complète utilisée. La table ci-dessus illustre une possibilité de l’app.
+À fixer avant usage : attribution des points aux ex æquo, nombre de manades pris en compte, épreuves annulées, coefficients et règle
+de classement si des notes manquent.
+OLYMPIADE DES MANADES / DOSSIER FONCTIONNEL
+12 / 27
+
+03 / JURY ET PUBLIC
+Séparés ou combinés,
+toujours compréhensibles
+Trois modes de résultat sont prévus : deux classements, combiné pondéré, ou jury seul officiel.
+Jury
+Exemple : 17 / 20
+Conversion de la V1 : 8,5 / 10
+Public
+Exemple : moyenne 8 / 10
+Nombre de votes affiché.
+Exemple : jury 70 % + public 30 %
+8,5 × 0,70 + 8 × 0,30 = 8,35 / 10
+Poids configurable : le 70/30 du prototype est un exemple produit, pas un barème officiel trouvé.
+Traçabilité : conserver les composantes jury et public ; ne pas mélanger les avis sur la soirée.
+Visibilité : afficher le classement en direct ou le masquer jusqu’à la révélation.
+Égalités : même rang dans la V1. Tout départage supplémentaire doit être annoncé.
+Données incomplètes : résultat provisoire. Ne pas réaffecter silencieusement le poids d’une composante
+manquante.
+La division par deux concerne ici la conversion V1 de /20 vers /10. Une autre échelle exigera une conversion définie dans son propre
+barème. Seuil de votes et arrondis restent à paramétrer.
+OLYMPIADE DES MANADES / DOSSIER FONCTIONNEL
+13 / 27
+
+04 / PRÉPARATION
+Créer une soirée
+sans repartir de zéro
+L’organisateur réutilise l’annuaire, les modèles d’épreuves et les réglages d’une édition précédente.
+01
+Créer
+Ou dupliquer
+02
+Préparer
+Données et règles
+03
+Publier
+Après contrôle
+Bloc
+Fonctions
+Identité de la soirée
+Nom, date, heure, arènes, ville, fenêtre de vote, message public.
+Manades et équipes
+Annuaire réutilisable, ville et logo ; inscriptions et ordre des passages.
+Composition des équipes et gardians : extension conservée.
+Programme
+Importer, choisir un modèle ou saisir à la main ; ajouter, réordonner et modifier les
+épreuves.
+Passages
+Une manade dans une épreuve ; statut public et statut jury. Démonstrations
+visibles mais non notées.
+Accès et règles
+Juges attribués, modes de vote, barèmes, classements et visibilité. QR code
+partageable et affiche PDF.
+Cycle de vie
+Brouillon → publiée → en cours → terminée.
+Une soirée peut aussi être reportée ou annulée, avec un message explicite pour le public.
+OLYMPIADE DES MANADES / DOSSIER FONCTIONNEL
+14 / 27
+
+04 / IMPORT DU PLANNING
+Du document au planning,
+avec une revue humaine
+PDF, photo, Word ou tableur : l’IA prépare un brouillon que l’admin corrige et valide.
+Écran de revue de la maquette. L’application du brouillon est une action explicite.
+Formats prévus : PDF, JPG, PNG, WebP, HEIC converti, DOCX, XLSX, XLS et CSV ; limite prévue de 20 Mo.
+Extraction : nom, date, lieu, horaires, manades et épreuves ; rapprochement avec l’annuaire.
+Contrôle : horaires absents, doublons, lignes illisibles et nouvelles manades signalés. Descriptions proposées
+par l’IA identifiées.
+Validation : tableau modifiable, puis « Appliquer au planning ». Aucun remplacement silencieux du planning
+publié.
+Historique : fichier d’origine, résultat, auteur, date et erreurs. Saisie manuelle disponible en secours.
+OLYMPIADE DES MANADES / DOSSIER FONCTIONNEL
+15 / 27
+
+04 / ORGANISATION EN DIRECT
+Piloter depuis le bord
+de la piste
+Une action principale : ouvrir ou fermer les votes au bon moment.
+Cockpit de démonstration sur ordinateur. La version téléphone reprend les mêmes actions.
+Débloquer : toute une épreuve ou une seule manade ; fermer les passages concernés.
+Suivre : compteurs de votes, inscriptions, progression et juges n’ayant pas encore noté.
+Adapter : passer à l’épreuve suivante, décaler la suite de +N minutes, dissocier le jury du public.
+Publier : masquer ou révéler le classement, verrouiller les notes et terminer la soirée.
+Confirmer : les actions définitives ou sensibles demandent une confirmation claire.
+OLYMPIADE DES MANADES / DOSSIER FONCTIONNEL
+16 / 27
+
+04 / RÉSULTATS
+Contrôler avant
+la remise des prix
+Chaque total doit être explicable à partir des notes et des règles de la soirée.
+Maquette des résultats : choix de la méthode, pondération et visibilité. Valeurs fictives.
+Avant publication
+Après validation
+Vérifier les notes attendues et les passages encore
+ouverts.
+Verrouiller le jury et identifier le classement comme
+final.
+Consulter le détail par épreuve, les composantes et
+les vainqueurs.
+Révéler au public et sur l’écran géant selon le mode
+retenu.
+Résoudre les erreurs et tracer les corrections.
+Exporter CSV et PDF avec règles, date et état des
+résultats.
+Les champs de traçabilité dans les exports font partie des compléments à prévoir. Une correction après publication doit conserver
+l’ancienne version et entraîner une nouvelle validation.
+OLYMPIADE DES MANADES / DOSSIER FONCTIONNEL
+17 / 27
+
+04 / ÉCRAN GÉANT
+Faire participer
+toutes les tribunes
+Un affichage en lecture seule, pensé pour les arènes et le vidéoprojecteur.
+Écran 16:9 de la maquette. QR code, adresse et date : démonstration, pas un accès de vote à diffuser.
+QR code permanent vers la soirée, accompagné d’une adresse lisible.
+Contexte en cours : épreuve, manade en piste et invitation à voter quand le passage est ouvert.
+Classement autorisé : suit le choix de l’organisateur ; message d’attente si les résultats sont masqués.
+Affichage autonome : plein écran et actualisation automatique, sans accès aux commandes admin.
+Recette sur place : vérifier lisibilité à distance, contraste, réseau et scan du QR code.
+OLYMPIADE DES MANADES / DOSSIER FONCTIONNEL
+18 / 27
+
+05 / NOTIFICATIONS ET RÉSEAU
+Informer sans perdre
+la confiance du votant
+Les états affichés doivent refléter ce qui a réellement été reçu par le serveur.
+01
+Déblocage
+Décision de l’admin
+02
+Notification
+Lien vers le passage
+03
+Vote reçu
+Confirmation serveur
+Situation
+Comportement prévu
+Notifications autorisées
+Prévenir à l’ouverture, au déblocage et à la révélation du classement ; accès
+direct au bon écran.
+Plusieurs déblocages
+Regrouper les notifications rapprochées. Aucune notification hors des soirées ;
+désactivation dans les réglages.
+App déjà ouverte
+Bannière de secours ; vibration si le navigateur et le téléphone la permettent.
+Connexion perdue
+Conserver la note localement et afficher « en attente d’envoi ». Ne pas
+annoncer « enregistré ».
+Réseau de retour
+Envoyer la note ; le serveur vérifie à nouveau que le passage est ouvert.
+Vote fermé entre-temps
+Afficher « Vote fermé, note non prise en compte ». Le classement ne doit pas
+l’inclure.
+Objectifs à vérifier sur de vrais téléphones
+Déblocage visible en moins de 10 s ; notification visée en moins de 15 s. La livraison dépend du
+réseau, du système et de l’autorisation donnée par l’utilisateur.
+OLYMPIADE DES MANADES / DOSSIER FONCTIONNEL
+19 / 27
+
+05 / AVIS ET CONTACT
+Écouter les spectateurs
+Les retours sur la soirée servent à l’organisation et ne changent jamais les notes des manades.
+Avis après la soirée
+1 à 5 étoiles, un commentaire facultatif de 500
+caractères et un seul avis par spectateur et par
+soirée.
+Lecture privée
+Les admins voient la moyenne, le nombre d’avis et
+les commentaires. Aucun fil de commentaires
+public en V1.
+Formulaire de contact
+Prénom, email et message ; protection anti-robot,
+enregistrement puis transmission à l’organisateur.
+Suivi du traitement côté admin.
+Bas de l’écran de classement de la maquette. La collecte réelle des avis doit respecter la fermeture de la soirée.
+OLYMPIADE DES MANADES / DOSSIER FONCTIONNEL
+20 / 27
+
+05 / DONNÉES ET DROITS
+Une administration
+qui garde la trace
+Les données publiques, les notes personnelles et les commandes de l’organisateur ont des accès différents.
+Donnée ou action
+Visiteur / public
+Juge
+Admin
+Dates, photos, palmarès
+Consulter
+Consulter
+Gérer
+Note du public
+Sa propre note
+Selon accès public
+Suivre les résultats
+Note jury
+Pas d’écriture
+Ses soirées et
+notes
+Suivre, verrouiller
+Planning et passages
+Consulter
+Consulter
+Modifier, ouvrir, fermer
+Commentaires jury
+Non
+Les siens
+Lire
+Avis sur la soirée
+Son avis
+Selon accès public
+Lire les retours
+Contact et imports
+Envoi autorisé
+Pas de gestion
+Consulter et traiter
+Protection des accès : rôles vérifiés côté serveur, notes publiques limitées à leur auteur, juges rattachés
+aux bonnes soirées.
+Historique : conserver sources, versions du barème, validations et corrections. Une édition garde ses
+propres participants.
+Compte : prévoir suppression depuis l’app, gestion des notifications et durée de conservation documentée.
+Informations : mentions légales, confidentialité, crédits photo et coordonnées de l’organisateur
+accessibles.
+La politique de conservation, le traitement des résultats après suppression d’un compte et les textes de confidentialité doivent être
+finalisés avant l’ouverture au public.
+OLYMPIADE DES MANADES / DOSSIER FONCTIONNEL
+21 / 27
+
+05 / SUPPORTS ET IDENTITÉ
+Le téléphone d’abord,
+les autres écrans aussi
+Une identité cohérente, avec trois ambiances pour reconnaître immédiatement son espace.
+Jour
+Site et organisation
+Nuit
+Public en direct
+Étang
+Jury
+Support
+Usage prévu
+Web mobile
+Accès principal du public, sans installation. Site installable sur l’écran d’accueil.
+Android
+Application destinée d’abord aux admins et juges ; accès public activable par
+l’organisateur.
+iPhone
+Site web installable en V1. Guide d’installation pour les notifications sur les
+appareils compatibles.
+Tablette et ordinateur
+Organisation, revue du planning, suivi du jury et résultats ; interfaces adaptées
+à la largeur.
+Écran géant
+Vue 16:9, lecture seule, lisible à distance.
+Accessibilité : contrastes visés AA, navigation clavier, focus visible, animations réduites sur demande et
+états expliqués par du texte.
+Gestes : cibles de 48 px minimum ; notes publiques de 52 px ; commandes principales du jury de 72 px.
+Identité : Inter, Playfair Display, titre manuscrit court, palette sable et couchant, signatures Atch Élevage et
+TPMGE.
+OLYMPIADE DES MANADES / DOSSIER FONCTIONNEL
+22 / 27
+
+06 / FONCTIONNEMENT
+Une donnée fiable,
+plusieurs interfaces
+Vue de principe pour comprendre où sont appliquées les règles, sans figer les versions des outils.
+Web public
+Jury et admin
+Écran géant
+Serveur et base de données
+Accès • fenêtres de vote • unicité • calculs • historique
+01
+Emails
+Codes et contact
+02
+Imports
+Fichiers et analyse
+03
+Notifications
+Web et Android
+Socle envisagé : application web commune, base Supabase et application Android issue du même
+produit.
+Secrets côté serveur : les navigateurs ne reçoivent pas les clés d’administration ni celles de l’analyse de
+documents.
+Mises à jour : suivi direct pour l’organisation et l’écran ; état agrégé léger pour les spectateurs.
+Exploitation : journal des erreurs, sauvegardes, export des résultats et absence de déploiement pendant
+une soirée.
+Les fournisseurs, modèles d’IA, tarifs et quotas sont des paramètres techniques à revalider au moment de l’implémentation. Ils ne
+conditionnent pas le fonctionnement présenté dans ce dossier.
+OLYMPIADE DES MANADES / DOSSIER FONCTIONNEL
+23 / 27
+
+06 / RECETTE
+Ce qui devra fonctionner
+avant la première soirée
+Ces critères sont des objectifs de validation. Le présent PDF ne constitue pas un rapport de tests du logiciel.
+01
+Accueil et inscription
+Accès au vote visible ; premier vote en moins de 2 minutes dans des conditions réseau définies.
+02
+Règles de vote
+Modes libre et déblocage respectés côté serveur ; doublon remplacé ; fermeture opposable.
+03
+Droits
+Public incapable d’écrire une note jury ; juge limité à ses soirées ; écran en lecture seule.
+04
+Calculs
+Trois modes, deux méthodes et deux barèmes V1 ; tests des égalités et données manquantes.
+05
+Imports
+Quatre documents réels : PDF, photo, Word et Excel ; brouillon contrôlé puis appliqué.
+06
+Direct et notifications
+Déblocage visé en moins de 10 s ; notifications en moins de 15 s sur appareils compatibles.
+07
+Charge et coupures
+4 500 votants simulés, ou 1,5 fois l’affluence si supérieure ; aucun vote accepté perdu.
+08
+Parcours complet
+Créer, importer, noter, corriger, fermer, révéler et exporter sur téléphones réels.
+09
+Vitrine et contact
+Pages adaptées aux écrans, crédits et sources ; message effectivement reçu par l’organisateur.
+10
+Android et qualité
+Installation en test interne, notifications natives et réglage public ; audits performance et accessibilité.
+OLYMPIADE DES MANADES / DOSSIER FONCTIONNEL
+24 / 27
+
+06 / LIVRAISON
+Un socle opérationnel,
+puis les variantes
+Le cahier des charges précise une V1 ; le cadrage conserve les autres possibilités sans les confondre avec
+les fonctions déjà livrées.
+Étape
+Périmètre à couvrir
+1. Préparer
+Accès, rôles, annuaire, soirées, programme, import, réglages et contenus
+publics.
+2. Faire voter
+Inscription email, notes publiques /10, notes jury /10 ou /20, statuts et
+corrections.
+3. Piloter et publier
+Cockpit, classements, visibilité, écran géant, CSV/PDF, avis et contact.
+4. Utiliser sur le terrain
+Notifications, réseau dégradé, Android, charge et répétition d’une soirée
+complète.
+5. Étendre les règles
+Critères, autres échelles, mesures, essais multiples, bonus/pénalités et
+votes alternatifs.
+Possibilités conservées, hors V1 détaillée
+Équipes et gardians par édition ; historique par manade ; statistiques multi-soirées ; championnat de
+saison avec règles comparables. Les variantes de notation devront être ajoutées au modèle de
+données et testées.
+Hors V1
+Billetterie et paiements, votes par SMS, application iOS publiée, commentaires publics, langues
+supplémentaires, newsletter et espaces publicitaires.
+Le CDC v0.8 est un brouillon et mentionne un avancement technique. Cet avancement n’a pas été audité pour ce document : les
+captures proviennent de la maquette, pas d’une recette de production.
+OLYMPIADE DES MANADES / DOSSIER FONCTIONNEL
+25 / 27
+
+06 / PRÉPARER LE PILOTE
+Les choix d’une
+première édition réelle
+Le produit peut être préparé dès maintenant. Les décisions ci-dessous rendent ses règles applicables à une
+soirée donnée.
+1
+Événement
+Nom, date, horaires, arènes, affluence attendue, manades et ordre de passage. Prévoir report ou
+annulation.
+2
+Règlement
+Épreuves retenues, composition du jury, échelles, critères éventuels, essais, bonus/pénalités et
+coefficients.
+3
+Classement
+Moyenne ou points ; sort des ex æquo, absences et annulations ; composante manquante ; minimum
+de votes ; arrondis.
+4
+Public
+Mode libre ou déblocage ; prix du public ; classement séparé, combiné ou jury seul ; moment de la
+révélation.
+5
+Organisation
+Admins et juges habilités, procédure de correction, validation finale, répétition et solution de
+secours.
+6
+Contenus et diffusion
+Photos et logos autorisés, domaine, adresses email, palmarès validés, QR affichés, matériel de
+projection et compte Android.
+Une feuille de notation existante aidera à reproduire les usages réels. À défaut, l’organisateur peut définir et valider sa propre grille
+avant l’ouverture des votes.
+OLYMPIADE DES MANADES / DOSSIER FONCTIONNEL
+26 / 27
+
+07 / SOURCES ET CRÉDITS
+Un dossier traçable
+Documents du projet consultés le 11 octobre 2026. Les illustrations d’interface proviennent de la maquette
+v1.
+Références du projet
+ CDC-MASTER.md - cahier des charges v0.8, daté du 11/10/2026, statut brouillon.
+recherche-olympiades.md - recherche, modes de notation et décisions de cadrage.
+charte-graphique.md et maquette/src.html - identité et écrans de référence.
+Sources sportives de la recherche
+Programme de Cabannes : les quatre épreuves
+Beaucaire 2026 : annonce du Club Taurin Beaucairois
+Alès 2026 : note sur 20 et résultat général, Objectif Sud
+Beauvoisin 2025 : variantes des épreuves, Voir Plus
+Eyguières 2008 : récompenses et points, Salluvii
+Photographies dans les captures et la couverture
+Gardian galopant vers sa manade
+afroboof • CC BY-SA 2.0 • via Wikimedia Commons.
+Arènes de Nîmes (couverture et captures)
+Krzysztof Golik • CC BY-SA 4.0 • via Wikimedia Commons.
+Gardian et taureaux, Saint-Gilles
+Christian Ferrer • CC BY-SA 4.0 • via Wikimedia Commons.
+Chevaux de Camargue, Saint-Laurent-d’Aigouze
+Benjamin Smith / Wikimedia Commons • CC BY-SA 4.0 • via Wikimedia Commons.
+Retouches déjà présentes dans la maquette : niveaux de gris et duotone. Les adaptations photographiques conservent leur licence CC
+BY-SA respective. Les photos de contexte ne sont pas présentées comme des images des Olympiades elles-mêmes. Typographies :
+Inter et Playfair Display ; logo et signatures issus de la charte du projet.
+OLYMPIADE DES MANADES / DOSSIER FONCTIONNEL
+27 / 27

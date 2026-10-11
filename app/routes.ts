@@ -10,5 +10,7 @@ export default [
   route('noter', 'routes/noter.tsx'),
   route('inscription', 'routes/inscription.tsx'),
   route('inscription/code', 'routes/inscription-code.tsx'),
+  route('admin', 'routes/admin.tsx'),
+  route('admin/statistiques', 'routes/admin-statistiques.tsx'),
   route('*', 'routes/introuvable.tsx'),
 ] satisfies RouteConfig;

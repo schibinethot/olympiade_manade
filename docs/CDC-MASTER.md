@@ -1,6 +1,6 @@
 # Cahier des charges : app de notation de l'Olympiade des manades
 
-> Version 0.8 (brouillon) · 2026-10-11 · Statut : **à valider** · Design validé : [charte graphique](charte-graphique.md) et [maquette v1](maquette/README.md)
+> Version 0.9 (brouillon) · 2026-10-11 · Statut : **à valider** · Design validé : [charte graphique](charte-graphique.md) et [maquette v1](maquette/README.md)
 > Document de référence du projet. Toute fonctionnalité livrée doit s'y rattacher.
 
 ---
@@ -440,18 +440,37 @@ etat_soiree        (soiree_id, instantane jsonb, calcule_le)
 - un spectateur ne peut écrire que ses propres notes, son avis et ses abonnements aux notifications
 - `messages_contact` : insertion ouverte à tous (avec anti-robot vérifié côté serveur), lecture réservée aux admins
 - les spectateurs ne lisent jamais les notes brutes des autres, seulement l'instantané agrégé
+- `presences_authentifiees` : aucun accès direct du navigateur ; RPC de présence liée à `auth.uid()`, au plus une écriture par compte toutes les 60 secondes
+- `supervision_serveur_minutes` : écriture par le serveur uniquement ; lecture des agrégats par RPC réservée aux admins, rôle revérifié en base
 
 ### 5.3 Temps réel et charge
 
-Quotas Supabase Realtime en connexions simultanées ([source](https://supabase.com/docs/guides/realtime/quotas)) : 200 sur le plan Free, 500 sur Pro, 10 000 sur Pro sans plafond de dépense. Une soirée comme Nîmes compte **3 000 spectateurs**, ce qui dépasse le quota Pro standard.
+**Cible demandée : 5 000 personnes simultanées. Capacité non encore validée.** L'[audit du 11/10/2026](audit-charge-5000.md) distingue la configuration réellement vérifiée, les calculs théoriques et les mesures locales. Le parcours de vote, l'instantané et sa diffusion restent à implémenter (lot 2).
+
+Quotas Supabase Realtime en connexions simultanées ([source](https://supabase.com/docs/guides/realtime/quotas)) : 200 sur le plan Free, 500 sur Pro, 10 000 sur Pro sans plafond de dépense. Ces connexions WebSocket sont distinctes des sessions de spectateurs et des connexions PostgreSQL. Le plan et le compute du projet Supabase restent à confirmer ; le plan Railway Pro ne les renseigne pas.
 
 Pour ne pas dépendre de ces quotas :
 
 - **admins, juges, écran géant** (quelques dizaines de connexions) : Realtime, mise à jour immédiate
-- **spectateurs** : l'app relit l'**instantané** `etat_soiree` toutes les 10 s, et immédiatement quand le téléphone revient sur l'app. Cet instantané tient en une ligne JSON recalculée côté serveur au plus une fois toutes les 5 s, donc chaque lecture coûte une seule ligne
+- **spectateurs** : l'app relit l'**instantané** `etat_soiree` toutes les 10 s, avec phases décalées entre utilisateurs et reprise répartie au retour au premier plan. Cet instantané tient en une ligne JSON recalculée côté serveur au plus une fois toutes les 5 s. À 5 000 personnes, cela représente **500 lectures/s** ; une ligne JSON ne garantit pas à elle seule que cette charge sera tenue
 - objectif : **un déblocage est visible chez tous les spectateurs en moins de 10 s**
-- **test de charge obligatoire** (k6) avant la première soirée, avec **4 500 votants simulés** (1,5 × 3 000) ou 1,5 × l'affluence annoncée par le client si elle est supérieure
+- **test de charge obligatoire** (k6) avant la première soirée : palier de **5 000 votants simulés**, puis **7 500** (marge 1,5 × 5 000), ou 1,5 × l'affluence annoncée si elle est supérieure. Préproduction équivalente, JWT utilisateurs distincts et règles RLS réelles ; montée progressive, votes répartis puis rafale, relecture des notes et fermeture de vote. Le test SQL local n'est pas une certification du service hébergé
 - plan Supabase **Pro** pendant la saison des soirées
+- **inscription préalable** : SMTP de production, quotas Auth et capacité d'envoi vérifiés avant ouverture. L'envoi intégré à 2 emails/h et les redirections localhost observés le 11/10 ne conviennent pas au public
+
+### 5.3.1 Écran de supervision administrateur
+
+Routes `/admin` (connexion par mot de passe d'un compte admin existant) et `/admin/statistiques`. Toutes les lectures sont protégées côté serveur et en base ; les métadonnées modifiables du compte ne donnent aucun droit.
+
+- comptes actifs : comptes authentifiés ayant envoyé un signal depuis moins de 2 minutes, sans compter les visiteurs anonymes ni assimiler plusieurs onglets à plusieurs personnes ; émission toutes les 60 à 75 secondes lorsque l'app est visible, démarrage réparti sur 30 secondes
+- notes du public et du jury : lignes enregistrées, notes créées ou modifiées depuis 5 minutes et 1 heure ; il ne s'agit pas du nombre de tentatives d'écriture
+- serveur : requêtes, erreurs 5xx, octets de réponse, p95 estimé par histogramme, temps CPU, mémoire du processus, retard de la boucle et connexions HTTP ; ne mesure pas le temps réseau du téléphone ni les requêtes directes à Supabase
+- base : taille et connexions PostgreSQL ; volumes de transfert Supabase affichés comme non mesurés tant qu'une source fiable n'est pas connectée
+- historique par minute, périodes 1 h / 24 h, courbes et export CSV ; actualisation visible toutes les 30 s, erreurs et données périmées signalées
+- persistance : un agrégat par instance et par minute, clé serveur `SUPABASE_SERVICE_ROLE_KEY` uniquement ; historique et derniers signaux conservés 30 jours, purge périodique. Sans clé serveur, historique local depuis le dernier démarrage, explicitement signalé
+- aucun email, IP, jeton ou contenu des notes dans le journal de supervision ; un UUID de compte et son dernier signal sont gardés dans la table privée de présence. L'échec d'un signal ne bloque jamais le vote
+
+Le déploiement de cette supervision nécessite la migration `20261011130000_supervision.sql` et la configuration des variables du serveur. L'ajout du code ne vaut ni déploiement ni validation des 5 000 utilisateurs.
 
 ### 5.4 Contraintes réseau
 
@@ -501,12 +520,13 @@ Le réseau 4G est souvent saturé dans les arènes. En conséquence :
 6. Un déblocage par l'admin est visible chez les spectateurs en **moins de 10 s**
 7. L'import d'un planning en PDF, en photo, en Word et en Excel produit un brouillon d'épreuves correct sur **4 fichiers de test réels**, après au plus 2 corrections manuelles par fichier
 8. Les classements (3 modes × 2 méthodes, barèmes 10 et 20) donnent les résultats attendus sur un jeu de données de référence, dont le cas « Vinuesa à Alès 2026 » : une manade 2e partout et vainqueur au cumul de points (tests unitaires)
-9. Le test de charge tient **4 500 votants simulés** sans erreur ni vote perdu
+9. Le test de charge de préproduction tient **5 000 votants simultanés**, puis **7 500** pour la marge, avec p95 d'enregistrement < 1 s, taux d'erreur < 0,1 %, aucune note acquittée perdue et aucune duplication. Toute erreur explicite doit être traitée par la file de reprise ; la fermeture interdit une écriture tardive. Les ressources et la file d'attente restent bornées
 10. Un parcours complet (création de soirée, import, votes, résultats) passe en test e2e Playwright sur mobile
 11. Un déblocage déclenche une notification reçue en **moins de 15 s** sur Android (navigateur) et sur iPhone (site ajouté à l'écran d'accueil)
 12. Les pages Accueil, Classements (2025, 2026, 2027), Dates et Contact s'affichent correctement sur mobile et ordinateur, avec un score Lighthouse mobile d'au moins 90 en performance et en accessibilité
 13. Un message envoyé par le formulaire de contact arrive dans la boîte email de l'organisateur
 14. L'app Android s'installe depuis Google Play (piste de test interne) : un admin y débloque une épreuve, un juge y note et reçoit la notification native. Avec `app_ouverte_au_public` désactivé, un spectateur ne peut pas s'y connecter ; activé, il le peut
+15. L'admin consulte et exporte les mesures de connexion et de charge ; visiteurs et spectateurs sont refusés par l'API et la base. La supervision reste sans effet sur l'enregistrement d'une note en cas de panne de collecte
 
 ---
 
@@ -533,6 +553,7 @@ Le réseau 4G est souvent saturé dans les arènes. En conséquence :
 | 0 | **En grande partie fait.** Schéma, règles de vote, RLS et tests en place sur Supabase (8 migrations sur 9 appliquées ; reste le plafond du contact). Code email à 6 chiffres configuré. Reste : SMTP Brevo, Turnstile, liens de connexion des juges, second facteur admin, droits explicites `service_role` sur les 10 tables du socle (avant le 30/10/2026). PR #1 ouverte, non fusionnée |
 | 7 | **En ligne** sur `olympiademanade-production.up.railway.app`, depuis la branche `feat/lot-vitrine` (empilée sur la PR #1). Lighthouse mobile 93 à 94 en performance, 100 en accessibilité, mesuré sur le build local (critère 12). Inscription construite mais fermée par le drapeau. Reste : envoi du contact par email (critère 13), données structurées `Event` de la page Dates, Turnstile du contact |
 | 1 à 6, 8, 9 | Non commencés |
+| Supervision | Code ajouté sur `feat/supervision-charge` : connexion admin, écran statistiques, présence et historique serveur. Migration et variables à déployer ; capacité 5 000 non certifiée (voir audit) |
 
 ---
 

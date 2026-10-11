@@ -30,8 +30,9 @@ export default function Confidentialite() {
             <li>
               <strong>Visiteurs du site</strong>&nbsp;: nos hébergeurs traitent des données techniques de connexion (adresse
               IP, date et heure, pages demandées, type de navigateur) pour assurer le fonctionnement et la sécurité du site.
-              Nous n’utilisons aucun outil de mesure d’audience. Aucune autre donnée n’est collectée tant que vous n’écrivez
-              pas ou ne vous inscrivez pas. Base légale&nbsp;: intérêt légitime à sécuriser le service (art. 6(1)(f) RGPD).
+              Le serveur conserve aussi des compteurs techniques agrégés (requêtes, erreurs, volume de données et temps
+              de réponse), sans adresse IP ni historique individuel de navigation dans ces compteurs.
+              Nous n’utilisons aucun outil de mesure d’audience publicitaire. Base légale&nbsp;: intérêt légitime à sécuriser le service (art. 6(1)(f) RGPD).
               Durée&nbsp;: celle fixée par chaque hébergeur pour ses journaux techniques.
             </li>
             <li>
@@ -40,6 +41,12 @@ export default function Confidentialite() {
             </li>
             <li>
               <strong>Inscription au vote</strong>&nbsp;: prénom et email, puis un code reçu par email pour vous connecter.
+            </li>
+            <li>
+              <strong>Disponibilité du service</strong>&nbsp;: lorsque vous êtes connecté et que l’application est visible,
+              un signal périodique met à jour la dernière activité de votre compte pour estimer le nombre de comptes actifs.
+              Il ne contient ni la page visitée, ni l’adresse IP, ni le contenu de vos notes. Seuls les administrateurs
+              peuvent consulter les statistiques agrégées.
             </li>
           </ul>
         </SectionLegale>
@@ -69,6 +76,7 @@ export default function Confidentialite() {
         <SectionLegale id="duree" titre="Durée de conservation">
           <ul>
             <li>Comptes spectateurs inactifs&nbsp;: supprimés après 24 mois d’inactivité.</li>
+            <li>Mesures techniques agrégées et derniers signaux d’activité&nbsp;: conservation de 30 jours.</li>
             <li>
               Messages de contact&nbsp;: conservés le temps nécessaire pour vous répondre, puis supprimés. La durée exacte
               sera fixée avec l’organisateur.

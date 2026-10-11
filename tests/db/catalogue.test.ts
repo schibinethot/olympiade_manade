@@ -206,14 +206,22 @@ describe('catalogue : schéma prive', () => {
 });
 
 describe('catalogue : fonctions', () => {
-  it('aucune fonction dans le schéma public exposé par la Data API', () =>
+  it('seules les RPC de supervision prévues vivent dans le schéma public exposé par la Data API', () =>
     dansUneTransaction(async (db) => {
       await commeSuperutilisateur(db);
       const { rows } = await db.query(
         `select p.oid::regprocedure::text as fonction from pg_proc p
          where p.pronamespace = 'public'::regnamespace order by 1`,
       );
-      expect(rows).toEqual([]);
+      expect(rows).toEqual([
+        {
+          fonction:
+            'enregistrer_metrique_serveur(timestamp with time zone,text,integer,integer,bigint,integer,bigint,numeric,integer,integer,integer[])',
+        },
+        { fonction: 'enregistrer_presence()' },
+        { fonction: 'lire_supervision(integer)' },
+        { fonction: 'nettoyer_metriques_serveur()' },
+      ]);
     }));
 
   it('toute fonction security definer de prive porte un search_path', () =>

@@ -4,6 +4,7 @@
 
 import { fileURLToPath } from 'node:url';
 import { creerServeur, hoteSupabase, journaliserErreur, portDepuis } from './application.mjs';
+import { supervisionDepuisEnvironnement } from './supervision.mjs';
 
 const RACINE = fileURLToPath(new URL('../build/client/', import.meta.url));
 
@@ -13,7 +14,11 @@ let serveur;
 let port;
 try {
   port = portDepuis(process.env.PORT);
-  serveur = creerServeur({ racine: RACINE, supabase: hoteSupabase(process.env.VITE_SUPABASE_URL) });
+  serveur = creerServeur({
+    racine: RACINE,
+    supabase: hoteSupabase(process.env.VITE_SUPABASE_URL),
+    supervision: supervisionDepuisEnvironnement(process.env),
+  });
 } catch (erreur) {
   journaliserErreur(`démarrage impossible (lancer pnpm build avant pnpm start) : ${RACINE}`, erreur);
   process.exit(1);

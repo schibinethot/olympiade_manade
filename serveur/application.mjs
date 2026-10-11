@@ -24,7 +24,7 @@ export const SUPABASE_PAR_DEFAUT = 'khwlwpzydlrfocfpvywv.supabase.co';
 const REPLI = '/__spa-fallback.html';
 
 // Routes de l'application sans pré-rendu : elles s'hydratent depuis le repli.
-const ROUTES_MONOPAGE = new Set(['/noter', '/inscription', '/inscription/code']);
+const ROUTES_MONOPAGE = new Set(['/noter', '/inscription', '/inscription/code', '/admin', '/admin/statistiques']);
 
 // L'edge de Railway garde ses connexions ouvertes 60 s : le serveur doit les garder plus longtemps,
 // sinon il ferme une connexion au moment où l'edge l'utilise (erreurs 502 intermittentes).
@@ -277,11 +277,12 @@ function texteBrut(req, res, statut, texte, enTetes = {}) {
     ...EN_TETES_COMMUNS,
     ...enTetesHttps(req),
     'Content-Type': 'text/plain; charset=utf-8',
+    'Content-Length': String(Buffer.byteLength(texte)),
     'Content-Security-Policy': CSP_RESSOURCE,
     'Cache-Control': 'no-cache',
     ...enTetes,
   });
-  res.end(texte);
+  res.end(req.method === 'HEAD' ? undefined : texte);
 }
 
 /**
@@ -336,11 +337,24 @@ function repondre(fichiers, req, res) {
 
 /**
  * Serveur HTTP du build, sans écoute. Lève une erreur si le build est illisible ou incomplet.
- * @param {{ racine: string, supabase: string }} options
+ * @param {{
+ *   racine: string,
+ *   supabase: string,
+ *   supervision?: ReturnType<typeof import('./supervision.mjs').creerSupervision>
+ * }} options
  */
-export function creerServeur({ racine, supabase }) {
+export function creerServeur({ racine, supabase, supervision }) {
   const fichiers = indexer(racine, supabase);
   const serveur = createServer((req, res) => {
+    supervision?.observerRequete(req, res);
+    if (supervision?.estRoute(req.url)) {
+      supervision.repondre(req, res).catch((erreur) => {
+        journaliserErreur('échec de la supervision administrateur', erreur);
+        if (!res.headersSent) texteBrut(req, res, 500, 'Erreur interne\n');
+        else res.destroy();
+      });
+      return;
+    }
     try {
       repondre(fichiers, req, res);
     } catch (erreur) {
@@ -351,5 +365,6 @@ export function creerServeur({ racine, supabase }) {
   });
   serveur.keepAliveTimeout = DELAI_CONNEXION_MS;
   serveur.headersTimeout = DELAI_EN_TETES_MS;
+  supervision?.attacherServeur(serveur);
   return Object.assign(serveur, { fichiers: fichiers.size });
 }

@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "react-router dev",
     "build": "react-router build",
-    "start": "node serveur/statique.mjs",
+    "start": "node --env-file-if-exists=.env.local serveur/statique.mjs",
     "preview": "sirv build/client --single __spa-fallback.html",
     "test": "vitest run",
     "test:unit": "vitest run --project unit",

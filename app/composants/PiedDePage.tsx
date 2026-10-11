@@ -8,6 +8,7 @@ const LIENS = [
   { vers: '/mentions-legales', libelle: 'Mentions légales' },
   { vers: '/confidentialite', libelle: 'Confidentialité' },
   { vers: '/contact', libelle: 'Contact' },
+  { vers: '/admin', libelle: 'Administration' },
 ] as const;
 
 const CARTE =

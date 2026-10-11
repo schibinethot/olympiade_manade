@@ -81,7 +81,7 @@ describe('creerServeur', () => {
   });
 
   it('exclut des moteurs de recherche les routes monopage et les adresses inconnues', async () => {
-    for (const chemin of ['/noter', '/inscription', '/inscription/code']) {
+    for (const chemin of ['/noter', '/inscription', '/inscription/code', '/admin', '/admin/statistiques']) {
       const reponse = await fetch(base + chemin);
       expect(reponse.status, chemin).toBe(200);
       expect(reponse.headers.get('x-robots-tag'), chemin).toBe('noindex');

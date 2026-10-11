@@ -4,6 +4,7 @@ import type { Route } from './+types/root';
 import { Entete } from './composants/Entete';
 import { PiedDePage } from './composants/PiedDePage';
 import { TitrePage } from './composants/TitrePage';
+import { SuiviPresence } from './composants/SuiviPresence';
 import feuilleDeStyle from './app.css?url';
 
 const police = (fichier: string) =>
@@ -69,6 +70,7 @@ function Coque({ children, generique = false }: { children: ReactNode; generique
 export default function App() {
   return (
     <Coque>
+      <SuiviPresence />
       <Outlet />
     </Coque>
   );
