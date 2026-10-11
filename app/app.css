@@ -1,0 +1,443 @@
+@import "tailwindcss";
+
+/* ============================================================
+   Polices auto-hébergées (licence SIL OFL, sous-ensemble latin)
+   Fichiers et licences : public/polices/
+   ============================================================ */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/polices/inter-latin-wght-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Playfair Display";
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url("/polices/playfair-display-latin-wght-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Playfair Display";
+  font-style: italic;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url("/polices/playfair-display-latin-wght-italic.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Kaushan Script";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/polices/kaushan-script-latin-400-normal.woff2") format("woff2");
+}
+
+/* ============================================================
+   Jetons : bloc @theme de la charte graphique, section 3
+   ============================================================ */
+@theme {
+  --color-sable: #f7f4ed;  --color-creme: #fcfbf7;  --color-lin: #efe7d8;  --color-trait: #e3dacb;
+  --color-encre: #1c1912;  --color-encre-2: #5a5246;  --color-encre-3: #857a68;
+  --color-or: #b78649;  --color-or-ink: #88693c;  --color-or-clair: #e2c08a;
+  --color-nuit: #120e0a;  --color-nuit-2: #1b1510;  --color-nuit-3: #271f18;
+  --color-nuit-txt: #f6efe4;  --color-nuit-mute: #b5a690;
+  --color-rouge: #c23b1d;  --color-orange: #ec7433;  --color-ambre: #f5b14d;  --color-peche: #ffd6ad;
+  --color-etang-nuit: #0d1417;  --color-etang-2: #152027;  --color-etang-3: #1f2e36;  --color-etang-clair: #9cc0d0;
+  --color-ok: #2f7a4f;  --color-ok-vif: #5cc68e;  --color-alerte: #d9822b;
+  /* Hors charte : rouge assombri pour un texte posé sur un fond teinté de rouge (alertes, badge
+     « Annulée », pastille « Ce soir ») ; le rouge de la charte n'y tient que 4,23 à 4,60:1. */
+  --color-rouge-alerte: #a93217;
+  --font-brush: "Kaushan Script", "Brush Script MT", cursive;
+  --font-display: "Playfair Display", Georgia, "Times New Roman", serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Curseur clignotant de la saisie du code (maquette : .otp span.cur::after). */
+  --animate-caret-blink: caret-blink 1s steps(1) infinite;
+  @keyframes caret-blink {
+    50% {
+      opacity: 0;
+    }
+  }
+}
+
+/* Points de rupture de la charte (section 6), sur la largeur du conteneur `app`
+   posé par la coque (classe @container/app) : téléphone < 640 px,
+   iPad portrait à partir de 640, iPad paysage à partir de 1000, ordinateur à partir de 1300. */
+@custom-variant tablette {
+  @container app (width >= 640px) {
+    @slot;
+  }
+}
+@custom-variant paysage {
+  @container app (width >= 1000px) {
+    @slot;
+  }
+}
+@custom-variant bureau {
+  @container app (width >= 1300px) {
+    @slot;
+  }
+}
+
+/* Dégradés couchant (charte, section 3).
+   --couchant-bouton : sous un texte blanc. Le CDC (AA) prime sur la charte, qui s'arrêtait à
+   #e86a2e (3,21:1) : mêmes teintes, assombries pour tenir 4,5:1 partout sous le texte.
+   Blanc sur #b3321a 6,20:1, sur #cb4a23 4,62:1, sur #c74f16 4,61:1 (contrôlé par
+   tests/unit/contrastes.test.ts sur tout le dégradé).
+   --couchant-logo : mot « Olympiade » du logo, valeurs de la maquette. Un logotype n'a pas
+   d'exigence de contraste (WCAG 1.4.3), et le lien du logo porte un aria-label. */
+:root {
+  --couchant: linear-gradient(125deg, #b3321a 0%, #dd5527 36%, #ef8236 68%, #f5b14d 100%);
+  --couchant-bouton: linear-gradient(120deg, #b3321a 0%, #cb4a23 55%, #c74f16 100%);
+  --couchant-logo: linear-gradient(120deg, #b3321a 0%, #d84f25 55%, #e86a2e 100%);
+  --couchant-nuit: linear-gradient(100deg, #f08a3c, #f6b450);
+  --trait-nuit: rgba(255, 232, 200, 0.11);
+  --ease-signature: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@utility bg-couchant {
+  background-image: var(--couchant);
+}
+@utility bg-couchant-bouton {
+  background-image: var(--couchant-bouton);
+}
+@utility bg-couchant-logo {
+  background-image: var(--couchant-logo);
+}
+
+/* ============================================================
+   Ambiance Jour : fond sable, texte encre
+   ============================================================ */
+@layer base {
+  html {
+    background-color: var(--color-sable);
+    color: var(--color-encre);
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    min-height: 100dvh;
+    background-color: var(--color-sable);
+    color: var(--color-encre);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+  }
+}
+
+/* Focus clavier : contour ambre de 3 px (charte, section 7), doublé d'un anneau encre de 2 px
+   collé à l'élément. L'ambre seul n'a que 1,70:1 sur sable, sous le minimum de 3:1
+   (WCAG 1.4.11) ; l'encre a 15,97:1 sur sable et 16,94:1 sur crème. Sur le fond nuit du
+   pied de page, l'ambre suffit (10,32:1) et l'anneau encre se fond dans le fond.
+   Règle hors couche (@layer) : elle l'emporte sur les ombres posées par les utilitaires
+   Tailwind (bouton « Noter », bouton « Menu »), qui sinon effaceraient l'anneau encre. */
+:focus-visible {
+  outline: 3px solid var(--color-ambre);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--color-encre);
+}
+
+/* ============================================================
+   Photos en duotone (charte, section 5) : la photo en niveaux de gris
+   est passée dans --photo, colorée par les deux calques du dessus.
+   ============================================================ */
+.duo {
+  background-color: #5a1a0b;
+  background-image: linear-gradient(#4a170a, #4a170a),
+    linear-gradient(170deg, #ffe2bd 0%, #f5a25c 50%, #d2482a 100%), var(--photo);
+  background-blend-mode: screen, multiply, normal;
+  background-size: cover;
+  background-position: var(--position, center);
+}
+
+/* Visuel des pages d'inscription (maquette : .ins-vis.ph-arenes). */
+.photo-arenes {
+  --photo: url("/photos/arenes-640.webp");
+}
+
+/* Voile de ce visuel, sous le texte blanc. La maquette (.ins-vis::before) allait de 10 % à 60 %
+   d'opacité : le texte blanc y tombait sous 4,5:1 sur les zones claires de la photo. Même teinte
+   brune, de 60 % en haut à 82 % en bas : 4,5:1 au moins sur le pixel le plus clair du duotone
+   (contrôlé par tests/unit/contrastes.test.ts). */
+:root {
+  --voile-inscription-haut: rgba(66, 19, 7, 0.6);
+  --voile-inscription-bas: rgba(66, 19, 7, 0.82);
+}
+.voile-inscription {
+  background-image: linear-gradient(180deg, var(--voile-inscription-haut), var(--voile-inscription-bas));
+}
+
+/* Voile de l'affiche, posé sur la photo en duotone, sous les textes. La maquette éclairait le haut à
+   droite, sous la date : le texte blanc y tombait à 2:1. Ici, un dégradé assombrit le haut (petits
+   textes « ARÈNES DE », date et heure : 4,5:1 au moins) et un autre le bas, jusque sous le titre au
+   pinceau (3:1 au moins, cheval blanc compris) et la ligne des manades (4,5:1 au moins). Même teinte
+   brune que l'aplat du duotone (#4a170a), pour garder le duotone. La lumière chaude reste au centre,
+   sur le cavalier, sans texte dessus. Ratios mesurés au pixel le plus clair : voir le rapport de la
+   Task 3. */
+.voile-affiche {
+  background-image:
+    linear-gradient(180deg, rgba(58, 17, 6, 0.74) 0%, rgba(58, 17, 6, 0.52) 15%, rgba(58, 17, 6, 0.2) 27%, rgba(58, 17, 6, 0) 37%),
+    linear-gradient(0deg, rgba(66, 19, 7, 0.78) 0%, rgba(66, 19, 7, 0.62) 20%, rgba(66, 19, 7, 0.46) 38%, rgba(66, 19, 7, 0.2) 52%, rgba(66, 19, 7, 0) 62%),
+    radial-gradient(60% 42% at 62% 44%, rgba(255, 226, 180, 0.22), transparent 70%);
+}
+
+/* Même duotone que .duo, pour une <img> (affiche de l'accueil, photos des épreuves) : l'image, puis le
+   dégradé en « multiply », puis l'aplat en « screen », isolés dans le cadre. L'image peut être dans un
+   <picture> (AVIF ou WebP) ou dans un <noscript>. */
+.duo-calques {
+  position: relative;
+  isolation: isolate;
+  background-color: #5a1a0b;
+}
+.duo-calques img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.duo-calques::before,
+.duo-calques::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.duo-calques::before {
+  z-index: 1;
+  background: linear-gradient(170deg, #ffe2bd 0%, #f5a25c 50%, #d2482a 100%);
+  mix-blend-mode: multiply;
+}
+.duo-calques::after {
+  z-index: 2;
+  background: #4a170a;
+  mix-blend-mode: screen;
+}
+
+/* Grain d'affiche (maquette : .grain), en calque posé dans un cadre isolé. Texture servie par le
+   site : un SVG en data: URI serait bloqué par la CSP (img-src 'self'). */
+.grain {
+  pointer-events: none;
+  background-image: url("/textures/grain.svg");
+  mix-blend-mode: soft-light;
+  opacity: 0.55;
+}
+
+/* Carte « Notez les Olympiades ». La maquette mène le dégradé jusqu'à #ec7a35 et pose une lueur
+   ambre #f6b450 en haut à droite : le texte blanc y tombe à 2,8:1 et 1,8:1. Mêmes directions, teintes
+   assombries pour tenir 4,5:1 partout sous le texte (CDC, AA) : la lueur devient un or brûlé de même
+   clarté que le fond (blanc sur #b85e10 : 4,52:1). Contrôlé par tests/unit/contrastes.test.ts,
+   mélanges de la lueur et du fond compris. */
+:root {
+  --couchant-carte: linear-gradient(140deg, #a92e17 0%, #c2441d 52%, #c74f16 100%);
+  --couchant-carte-lueur: #b85e10;
+}
+/* Même fond pour la carte de la saison et la soirée du jour de la page Dates (maquette : .season,
+   .dr.now), qui portent aussi du texte blanc. */
+.carte-notez,
+.carte-saison {
+  background-color: #b3321a;
+  background-image: radial-gradient(110% 80% at 100% 0%, var(--couchant-carte-lueur) 0%, transparent 55%),
+    var(--couchant-carte);
+}
+
+/* Fond du bloc « Dernier vainqueur connu » (maquette : .champion). */
+.fond-champion {
+  background-color: var(--color-nuit);
+  background-image: radial-gradient(90% 120% at 100% 0%, rgba(183, 134, 73, 0.32), transparent 60%);
+}
+
+/* Pastille « En direct » (état « ouvert », lot 2) : seul élément animé en continu (charte, section 5). */
+@keyframes pulsation-direct {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 110, 70, 0.65);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(255, 110, 70, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 110, 70, 0);
+  }
+}
+.point-direct {
+  animation: pulsation-direct 1.6s infinite;
+}
+
+/* ============================================================
+   Signature « Signé TPMGE » (spec agence), adaptée au fond nuit
+   du pied de page : badge translucide blanc, label blanc atténué.
+   Adaptation : le lien fait 48 px de haut (cible tactile de la charte),
+   la pastille visible garde la taille de la spec. Elle est dessinée par
+   ::before, le liseré conique par ::after, et le reflet est rogné par
+   son propre conteneur (.tpmge-badge__shine).
+   ============================================================ */
+@property --tpmge-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+.tpmge-badge {
+  --tpmge-label: rgba(255, 255, 255, 0.5);
+  --tpmge-border: rgba(255, 255, 255, 0.14);
+  --tpmge-bg: rgba(255, 255, 255, 0.04);
+  --tpmge-shine: rgba(255, 255, 255, 0.4);
+  --tpmge-marge: 13px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55em;
+  min-height: 48px;
+  padding: 0 12px 0 13px;
+  border-radius: 999px;
+  text-decoration: none;
+  isolation: isolate;
+  transition: transform 380ms var(--ease-signature);
+}
+.tpmge-badge::before {
+  content: "";
+  position: absolute;
+  inset: var(--tpmge-marge) 0;
+  border-radius: 999px;
+  background: var(--tpmge-bg);
+  box-shadow: inset 0 0 0 1px var(--tpmge-border), 0 1px 0 rgba(0, 0, 0, 0.4);
+  transition:
+    box-shadow 380ms ease,
+    background 380ms ease;
+  z-index: 0;
+}
+.tpmge-badge::after {
+  content: "";
+  position: absolute;
+  inset: calc(var(--tpmge-marge) - 1px) -1px;
+  border-radius: 999px;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--tpmge-angle),
+    rgba(124, 58, 237, 0) 0deg,
+    rgba(124, 58, 237, 0.7) 70deg,
+    rgba(219, 39, 119, 0.75) 140deg,
+    rgba(245, 158, 11, 0.7) 210deg,
+    rgba(79, 70, 229, 0.65) 280deg,
+    rgba(124, 58, 237, 0) 360deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.7;
+  animation: tpmge-conic 14s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+.tpmge-badge__shine {
+  position: absolute;
+  inset: var(--tpmge-marge) 0;
+  border-radius: 999px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+.tpmge-badge__shine::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, var(--tpmge-shine) 50%, transparent 65%);
+  transform: translateX(-110%);
+  opacity: 0;
+  transition:
+    transform 0ms,
+    opacity 200ms ease;
+}
+.tpmge-badge:hover {
+  transform: translateY(-0.5px);
+}
+.tpmge-badge:hover::before {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22), 0 1px 0 rgba(0, 0, 0, 0.4);
+}
+.tpmge-badge:hover .tpmge-badge__shine::before {
+  opacity: 1;
+  transform: translateX(110%);
+  transition:
+    transform 900ms var(--ease-signature),
+    opacity 200ms ease;
+}
+.tpmge-badge__label {
+  position: relative;
+  z-index: 2;
+  color: var(--tpmge-label);
+  font: 500 9px/1 var(--font-sans);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  transition:
+    color 320ms ease,
+    letter-spacing 320ms ease;
+}
+.tpmge-badge:hover .tpmge-badge__label {
+  color: rgba(255, 255, 255, 0.92);
+  letter-spacing: 0.14em;
+}
+.tpmge-mark {
+  position: relative;
+  z-index: 2;
+  font: 800 10px/1 var(--font-sans);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #8b5cf6;
+  background-image: linear-gradient(110deg, #4f46e5, #7c3aed, #db2777, #f59e0b, #db2777, #7c3aed, #4f46e5);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: tpmge-flow 7s linear infinite;
+  transition: filter 0.3s ease;
+}
+.tpmge-badge:hover .tpmge-mark {
+  filter: brightness(1.18) saturate(1.15);
+  animation-duration: 2.5s;
+}
+@keyframes tpmge-conic {
+  to {
+    --tpmge-angle: 360deg;
+  }
+}
+@keyframes tpmge-flow {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 200% 50%;
+  }
+}
+
+/* ============================================================
+   prefers-reduced-motion : toutes les animations sont coupées
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+  .tpmge-badge__shine {
+    display: none;
+  }
+  .tpmge-mark {
+    background-position: 0% 50%;
+  }
+}

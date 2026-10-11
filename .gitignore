@@ -3,4 +3,11 @@ node_modules/
 .env
 .env.*
 !.env.example
+# Front : build, types générés par React Router, sorties Playwright
+/build/
+/.react-router/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
 docs/maquette/dist/

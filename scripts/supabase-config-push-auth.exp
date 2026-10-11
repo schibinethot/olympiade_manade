@@ -1,0 +1,27 @@
+#!/usr/bin/env expect
+# Pousse seulement la partie Auth de supabase/config.toml vers le projet Supabase distant.
+#
+# Répond « y » à la seule question « Do you want to push auth config to remote? » et « n » à
+# toutes les autres (API, base, stockage...). Si la CLI pose une question inconnue, le script
+# la tue sans répondre. Lancer d'abord scripts/supabase-config-diff.exp et relire l'écart.
+#
+# Usage, depuis n'importe quel dossier : expect scripts/supabase-config-push-auth.exp
+# Écrit sur le projet distant : à lancer seulement après accord.
+
+set racine [file dirname [file dirname [file normalize [info script]]]]
+cd $racine
+set timeout 120
+
+spawn supabase config push --project-ref khwlwpzydlrfocfpvywv --agent no
+expect {
+  -nocase -re {push auth config to remote\? *\[y/n\] *$} { send "y\r"; exp_continue }
+  -nocase -re {\[y/n\] *$} { send "n\r"; exp_continue }
+  eof {}
+  timeout {
+    puts "\nDÉLAI DÉPASSÉ : question inconnue, la CLI est arrêtée sans réponse."
+    exec kill -9 [exp_pid]
+    exit 2
+  }
+}
+lassign [wait] pid id erreur_systeme code
+exit $code

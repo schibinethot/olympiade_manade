@@ -1,0 +1,11 @@
+// Variables d'environnement du front, lues par Vite dans .env.local (ignoré par git).
+// Seule la clé publishable de Supabase va dans le front.
+interface ImportMetaEnv {
+  readonly VITE_SUPABASE_URL?: string;
+  readonly VITE_SUPABASE_PUBLISHABLE_KEY?: string;
+  /** Ouverture publique de l'inscription : seule la chaîne « true » l'active (app/lib/inscription-ouverte.ts). */
+  readonly VITE_INSCRIPTION_OUVERTE?: string;
+}
+
+// Année de publication, injectée au build par `define` (vite.config.ts).
+declare const __ANNEE_PUBLICATION__: number;
