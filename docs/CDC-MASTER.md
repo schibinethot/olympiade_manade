@@ -1,6 +1,6 @@
 # Cahier des charges : app de notation de l'Olympiade des manades
 
-> Version 0.7 (brouillon) · 2026-10-11 · Statut : **à valider** · Design validé : [charte graphique](charte-graphique.md) et [maquette v1](maquette/README.md)
+> Version 0.8 (brouillon) · 2026-10-11 · Statut : **à valider** · Design validé : [charte graphique](charte-graphique.md) et [maquette v1](maquette/README.md)
 > Document de référence du projet. Toute fonctionnalité livrée doit s'y rattacher.
 
 ---
@@ -66,7 +66,7 @@ Variantes constatées :
 
 ### 2.3 Manades rencontrées (annuaire pré-rempli)
 
-Agu, Arlatenco, Aubanel, Clément, Colombet, Conti, Des Chanoines, Devaux, Du Soleil, Gillet, Grand Salan, La Comtesse, La Galère, Lafon, Lescot, Robert Michel, Roumanille, Saint Léonard (Vitou), Vellas, Vinuesa.
+Agu, Arlatenco, Aubanel, Bon, Clément, Colombet, Conti, Des Chanoines, Devaux, Du Soleil, Gillet, Grand Salan, La Comtesse, La Galère, La Lauze, Labourayre, Lafon, Lescot, Robert Michel, Roumanille, Saint Léonard (Vitou), Vellas, Vinuesa.
 
 ### 2.3 bis Palmarès connu (base des pages Classements 2025 et 2026)
 
@@ -74,29 +74,44 @@ Agu, Arlatenco, Aubanel, Clément, Colombet, Conti, Des Chanoines, Devaux, Du So
 |---|---|---|---|
 | Nîmes 2023 | Vinuesa | Face à Lescot, Clément, Robert Michel. Plus de 3 500 spectateurs | Confirmé ([source](https://www.arenesdenimes.com/actu/2023/temporada-grand-succès-populaire-des-spectacles-camarguais-aux-arènes.html)) |
 | Nîmes 2024 | Vinuesa | Ferrade et attente au fer : Vinuesa. Saut de cheval à cheval : Baptiste Benabent (Grand Salan) | Confirmé ([source](https://www.arenesdenimes.com/actu/2024/iie-grandes-olympiades-des-gardians-un-nouveau-sacre-pour-la-manade-vinuesa.html)) |
-| Nîmes 2025 | Vinuesa | Face à Lescot, Vellas, Robert Michel, Lafon | **À confirmer** : déduit de l'annonce 2026 (« remettra son titre en jeu ») |
-| Nîmes 2026 | Inconnu | Face à Gillet, Robert Michel, Lafon, Arlatenco | Aucun compte rendu publié au 10/10/2026 |
+| Nîmes 2025 | Vinuesa | Troisième victoire consécutive, face à Lescot, Vellas, Robert Michel, Lafon | Confirmé ([source](https://www.instagram.com/p/DcLfqqljBED/)) |
+| **Nîmes 2026** | **Arlatenco** | 1. Arlatenco, 2. Vinuesa (à quelques points), 3. Robert Michel, 4. Gillet, 5. Lafon. Saut de cheval à taureau : Yannis Helly (Arlatenco) | Confirmé ([Midi Libre](https://www.midilibre.fr/2026/08/22/bravoure-technique-et-tradition-la-manade-arlatenco-remporte-les-olympiades-des-gardians-dans-les-arenes-de-nimes-13518449.php)) |
 | Alès 2026 | Vinuesa | Trophée « pour sa régularité » (2e de toutes les épreuves) | Confirmé |
 | Beauvoisin 2026 | Devaux | Face à Clément et La Lauze. Meilleurs : Simon Lestevin (saut cheval à cheval), Anthony Da Silva (rodéo), Bastien Fernandez (saut cheval à taureau), Dylan Guyon et Yoan Visin (attente au fer), manade Clément (capture de la vache) | Confirmé ([source](https://voir-plus.com/2026/08/19/la-fete-votive-de-beauvoisin-incontournable-et-festive/)) |
+| Eyguières 2026 | Clément | Souvenir Sébastien Roux | Confirmé |
+| Aimargues 2026 | Clément | Ferrade : Aubanel. Saut de cheval à cheval : ex aequo Sarah Clément et Anna Vinuesa. Attente au fer : Vinuesa | Confirmé |
+| Beaucaire 2026 | Vinuesa | 5e édition | Confirmé |
+| Bezouce 2026 | Labourayre | Labourayre et Clément très récompensées | **À confirmer** |
+| Saint-Rémy 2026 | Bon | Face à Colombet, Gillet, Saint Léonard, Arlatenco | Confirmé |
+| Béziers 2026 | Grand Salan | Ferrade : Vinuesa | Confirmé |
+| Mouriès 2026 | Clément | 9e édition, face à Vellas, Gillet, La Comtesse | Confirmé |
 
-Aucune note ni aucun classement complet (2e, 3e, points) n'a jamais été publié pour Nîmes. Les résultats « à confirmer » s'affichent comme tels sur le site tant que l'organisateur ne les a pas validés.
+Sources complètes (Midi Libre, publications publiques des manades et des organisateurs) dans la migration `20261011090200_palmares_2026_dates_2027.sql`. Seule Nîmes 2026 a un classement complet publié (rangs, sans les notes). Les résultats « à confirmer » s'affichent comme tels sur le site tant que l'organisateur ne les a pas validés.
 
 ### 2.3 ter Dates 2027 prévisionnelles
 
-**Aucune date d'Olympiades 2027 n'est annoncée** au 10/10/2026. Projection (même jour de semaine, même place dans la fête locale), affichée sur la page Dates avec la mention « date prévisionnelle » jusqu'à confirmation :
+**Une seule date 2027 est annoncée** au 11/10/2026 : la Fête des Gardians d'Arles (jeux de gardians), sam. 01/05/2027 à 15h30. Les autres sont projetées (même jour de semaine, même place dans la fête locale) et affichées sur la page Dates avec la mention « date prévisionnelle » jusqu'à confirmation :
 
 | Soirée | 2026 | 2027 prévisionnel |
 |---|---|---|
+| Arles, Fête des Gardians | n/a | **sam. 01/05/2027, 15h30 (confirmée)** |
 | Alès, soirée des gardians | ven. 15/05, 21h30 | ven. 07/05/2027 |
+| Eyguières | lun. 13/07, 21h30 | mar. 13/07/2027 |
 | Aimargues | jeu. 16/07, 21h | jeu. 15/07/2027 |
-| Beaucaire | lun. 20/07 | lun. 19/07/2027 |
+| Beaucaire | lun. 20/07 | mar. 20/07/2027 (veille de l'ouverture de la Madeleine, comme en 2026) |
+| Marsillargues | ven. 31/07, 21h30 | ven. 30/07/2027 |
+| Sommières, Rencontre des manades | sam. 01/08, 21h30 | sam. 31/07/2027 |
 | Pérols, Nuit des gardians | lun. 03/08, 21h30 | lun. 02/08/2027 |
 | Fontvieille | mer. 05/08, 21h30 | mer. 04/08/2027 |
+| Bezouce | jeu. 06/08, 21h | jeu. 05/08/2027 |
 | Mauguio | mer. 12/08, 22h30 | mer. 11/08/2027 |
 | Saint-Rémy-de-Provence | ven. 14/08, 22h | ven. 13/08/2027 |
+| Béziers, Feria | sam. 15/08 | sam. 14/08/2027 |
 | Beauvoisin | lun. 17/08, 21h30 | lun. 16/08/2027 |
+| Le Crès | lun. 17/08, 21h | lun. 16/08/2027 |
 | Mouriès | jeu. 20/08, 21h30 | jeu. 19/08/2027 |
 | **Nîmes** | **ven. 21/08, 21h** | **ven. 20/08/2027** (toujours un vendredi entre le 18 et le 23 août depuis 2023) |
+| Raphèle-lès-Arles | ven. 28/08, 21h30 | ven. 27/08/2027 |
 
 ### 2.4 Éditions de référence
 
@@ -404,10 +419,13 @@ avis_soiree        (soiree_id, votant_id, etoiles 1-5, commentaire, cree_le)
 abonnements_push   (id, profil_id, canal: web | android, cible UNIQUE,
                     p256dh, auth, cree_le)   -- cible = endpoint web ou jeton FCM
 parametres         (cle, valeur jsonb)  -- ex. app_ouverte_au_public
-palmares           (id, annee, soiree_nom, lieu, date_soiree, rang, manade_id,
-                    vainqueur_epreuves, source_url)
-photos             (id, url, legende, credit, licence, ordre)
-contenus           (cle, titre, texte, maj_le)   -- textes de la vitrine
+calendrier         (id, annee, nom, ville, arenes, date_soiree, heure,
+                    statut: previsionnelle | confirmee | annulee,
+                    lien_billetterie, soiree_id)   -- page Dates
+palmares           (id, annee, evenement, ville, date_soiree, vainqueur, detail,
+                    statut: confirme | a_confirmer, source_url)
+photos             (id, url, legende, credit, licence, ordre)   -- lot 1, pas encore créée
+contenus           (cle, titre, texte, maj_le)   -- lot 1, pas encore créée ; textes de la vitrine
 messages_contact   (id, prenom, email, message, cree_le, traite)
 imports_planning   (id, soiree_id, fichier, type, statut, resultat jsonb,
                     erreur, auteur, cree_le)
@@ -497,16 +515,24 @@ Le réseau 4G est souvent saturé dans les arènes. En conséquence :
 | Lot | Contenu | Estimation |
 |---|---|---|
 | 0 | Socle : dépôt, projet Supabase, schéma, RLS + tests, authentification (code email, admins, juges), SMTP | 2 j |
-| 1 | Admin préparation : soirées, annuaire des manades, épreuves (modèle par défaut et saisie manuelle), passages, réglages, QR code | 2 j |
+| 1 | Admin préparation : soirées, annuaire des manades, épreuves (modèle par défaut et saisie manuelle), passages, réglages, QR code. Gestion de la vitrine (dates, palmarès, textes, photos), reprise du lot 7 | 2,5 j |
 | 2 | Vote public : deux modes, déblocage par épreuve ou par manade, file d'attente hors-ligne, instantané, classements, avis sur la soirée | 3 j |
 | 3 | Import IA du planning : Edge Function, conversions, écran de revue | 1,5 j |
 | 4 | Jury : liens de connexion, notation, barème, verrouillage | 1 j |
 | 5 | Cockpit en direct et écran géant | 1,5 j |
 | 6 | PWA, test de charge, tests e2e, recette sur téléphones réels | 1,5 j |
-| 7 | Site vitrine : accueil, classements 2025-2027, dates, contact, mentions légales, gestion des contenus et photos. **En ligne depuis le 11/10/2026** ; la gestion des contenus depuis l'admin passe au lot 1 | 2,5 j |
+| 7 | Site vitrine : accueil, classements 2025-2027, dates, contact, mentions légales. **En ligne depuis le 11/10/2026** ; la gestion des contenus depuis l'admin passe au lot 1 | 2 j |
 | 8 | Notifications : abonnement, guide iPhone, envoi au déblocage, bannière de secours | 1,5 j |
 | 9 | App Android : coque Capacitor, notifications FCM, réglage d'ouverture au public, publication Google Play (test interne) | 2,5 j |
 | | **Total** | **≈ 19 jours** |
+
+### 9.1 État au 11/10/2026
+
+| Lot | État |
+|---|---|
+| 0 | **En grande partie fait.** Schéma, règles de vote, RLS et tests en place sur Supabase (8 migrations sur 9 appliquées ; reste le plafond du contact). Code email à 6 chiffres configuré. Reste : SMTP Brevo, Turnstile, liens de connexion des juges, second facteur admin, droits explicites `service_role` sur les 10 tables du socle (avant le 30/10/2026). PR #1 ouverte, non fusionnée |
+| 7 | **En ligne** sur `olympiademanade-production.up.railway.app`, depuis la branche `feat/lot-vitrine` (empilée sur la PR #1). Lighthouse mobile 93 à 94 en performance, 100 en accessibilité, mesuré sur le build local (critère 12). Inscription construite mais fermée par le drapeau. Reste : envoi du contact par email (critère 13), données structurées `Event` de la page Dates, Turnstile du contact |
+| 1 à 6, 8, 9 | Non commencés |
 
 ---
 
@@ -524,4 +550,4 @@ Le réseau 4G est souvent saturé dans les arènes. En conséquence :
 10. **Emails** : quelle adresse reçoit les messages du formulaire de contact ? Quel nom et quelle adresse d'expéditeur pour les emails de code ?
 11. **Nom de domaine** du site : `olympiadedesmanades.fr` est libre au 10/10/2026
 12. **Google Play** : compte développeur (25 $ une seule fois) au nom de qui ? Nom et icône de l'app
-13. **Palmarès** : l'organisateur peut-il confirmer les vainqueurs 2025 et 2026 (Nîmes 2025 déduit, Nîmes 2026 inconnu) ?
+13. **Palmarès** : l'organisateur peut-il confirmer les vainqueurs 2025 et 2026 trouvés dans la presse et sur les réseaux (section 2.3 bis), dont Bezouce 2026, encore « à confirmer » ?
