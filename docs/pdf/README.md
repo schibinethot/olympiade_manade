@@ -1,6 +1,8 @@
 # Dossier fonctionnel illustré
 
-Le PDF final se trouve dans `output/pdf/olympiade-des-manades-dossier-fonctionnel-illustre.pdf`.
+Le PDF archivé est `docs/pdf/olympiade-des-manades-dossier-fonctionnel-illustre.pdf` ; le générateur écrit dans `output/pdf/`.
+
+**Archive du 11 octobre 2026, antérieure au CDC consolidé v0.11.** Ses options de notation ne constituent pas une seconde spécification ; le périmètre et l’état livré sont ceux de `docs/CDC-MASTER.md` §1.1 et §9.1. Le PDF n’a pas été régénéré avec les corrections du 12 octobre.
 
 ## Sources
 

@@ -124,7 +124,7 @@ describe('creerServeur', () => {
   it('autorise dans la CSP l’hôte Supabase donné', async () => {
     const csp = (await fetch(base)).headers.get('content-security-policy') ?? '';
     expect(csp).toContain('connect-src \'self\' https://abcdefgh.supabase.co wss://abcdefgh.supabase.co');
-    expect(csp).toContain('img-src \'self\' https://abcdefgh.supabase.co');
+    expect(csp).toContain('img-src \'self\' data: https://abcdefgh.supabase.co');
     expect(csp).not.toContain(SUPABASE_PAR_DEFAUT);
   });
 });

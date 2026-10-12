@@ -1,11 +1,17 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from '../outils/test-e2e';
+import { simulerTurnstile } from '../outils/turnstile';
 
+const FACTEUR = { id: 'totp-admin', factor_type: 'totp', status: 'verified', friendly_name: 'Administration' };
+function jeton(aal: 'aal1' | 'aal2') {
+  const encoder = (valeur: unknown) => Buffer.from(JSON.stringify(valeur)).toString('base64url');
+  return `${encoder({ alg: 'HS256', typ: 'JWT' })}.${encoder({ sub: '00000000-0000-4000-8000-00000000000a', aal, exp: Math.floor(Date.now() / 1000) + 3600 })}.c2lnbmF0dXJl`;
+}
 const SESSION = {
-  access_token: 'jeton-admin-factice', token_type: 'bearer', expires_in: 3600,
+  access_token: jeton('aal2'), token_type: 'bearer', expires_in: 3600,
   expires_at: Math.floor(Date.now() / 1000) + 3600, refresh_token: 'refresh-factice',
   user: { id: '00000000-0000-4000-8000-00000000000a', aud: 'authenticated', role: 'authenticated',
-    email: 'admin@example.test', app_metadata: {}, user_metadata: { prenom: 'Camille', role: 'admin' }, created_at: new Date().toISOString() },
+    email: 'admin@example.test', factors: [FACTEUR], app_metadata: {}, user_metadata: { prenom: 'Camille', role: 'admin' }, created_at: new Date().toISOString() },
 };
 const MESURE = { minute: '2026-10-11T10:00:00Z', requests: 120, errors5xx: 2,
   responseBytes: 1500000, cpuMs: 150, rssBytes: 45000000, eventLoopLagMs: 2,
@@ -23,12 +29,14 @@ const STATS = {
 };
 
 test.beforeEach(async ({ page }) => {
+  await simulerTurnstile(page);
   // Aucune identité ni écriture réelle : toutes les API de Supabase sont interceptées.
   await page.route('**/auth/v1/**', (r) => r.abort());
   await page.route('**/rest/v1/**', (r) => r.fulfill({ json: [] }));
 });
-async function ouvrirSession(page: Page, role = 'admin') {
-  await page.addInitScript((session) => localStorage.setItem('olympiade-auth', JSON.stringify(session)), SESSION);
+async function ouvrirSession(page: Page, role = 'admin', session = SESSION) {
+  await page.addInitScript((valeur) => localStorage.setItem('olympiade-auth', JSON.stringify(valeur)), session);
+  await page.route('**/auth/v1/user', (r) => r.fulfill({ json: session.user }));
   await page.route('**/rest/v1/profils*', (r) => r.fulfill({ json: [{ prenom: 'Camille', role }] }));
 }
 async function mesures(page: Page) {
@@ -54,11 +62,21 @@ test('le rôle de user_metadata ne donne pas accès au back-office', async ({ pa
   expect(lectures).toBe(0);
 });
 
-test('connexion administrateur par mot de passe puis ouverture des statistiques', async ({ page }) => {
+test('connexion administrateur avec captcha, mot de passe puis TOTP avant les statistiques', async ({ page }) => {
   let envoyes: Record<string, unknown> | null = null;
+  let codeTotp: Record<string, unknown> | null = null;
+  let lectures = 0;
+  page.on('request', (r) => { if (r.url().includes('/api/admin/supervision')) lectures++; });
+  const premierFacteur = { ...SESSION, access_token: jeton('aal1') };
   await page.route('**/auth/v1/token*', async (r) => {
     envoyes = r.request().postDataJSON();
-    await r.fulfill({ json: SESSION });
+    await r.fulfill({ json: premierFacteur });
+  });
+  await page.route('**/auth/v1/user', (r) => r.fulfill({ json: SESSION.user }));
+  await page.route('**/auth/v1/factors/totp-admin/challenge', (r) => r.fulfill({ json: { id: 'challenge-test', type: 'totp', expires_at: 9999999999 } }));
+  await page.route('**/auth/v1/factors/totp-admin/verify', (r) => {
+    codeTotp = r.request().postDataJSON();
+    return r.fulfill({ json: SESSION });
   });
   await page.route('**/rest/v1/profils*', (r) => r.fulfill({ json: [{ prenom: 'Camille', role: 'admin' }] }));
   await mesures(page);
@@ -66,9 +84,46 @@ test('connexion administrateur par mot de passe puis ouverture des statistiques'
   await page.getByLabel('Email administrateur').fill('admin@example.test');
   await page.getByLabel('Mot de passe').fill('mot-de-passe-factice');
   await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
+  await expect(page.getByLabel('Code de l’application d’authentification')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Statistiques et charge →' })).toHaveCount(0);
+  expect(lectures).toBe(0);
+  await page.getByLabel('Code de l’application d’authentification').fill('123456');
+  await page.getByRole('button', { name: 'Vérifier le second facteur' }).click();
   await page.getByRole('link', { name: 'Statistiques et charge →' }).click();
   await expect(page.getByText('427', { exact: true })).toBeVisible();
-  expect(envoyes).toMatchObject({ email: 'admin@example.test', password: 'mot-de-passe-factice' });
+  expect(envoyes).toMatchObject({ email: 'admin@example.test', password: 'mot-de-passe-factice', gotrue_meta_security: { captcha_token: 'jeton-turnstile' } });
+  expect(codeTotp).toMatchObject({ challenge_id: 'challenge-test', code: '123456' });
+});
+
+test('une session admin AAL1 ne lit aucune statistique même par URL directe', async ({ page }) => {
+  await ouvrirSession(page, 'admin', { ...SESSION, access_token: jeton('aal1') });
+  let lectures = 0;
+  page.on('request', (r) => { if (r.url().includes('/api/admin/supervision')) lectures++; });
+  await page.goto('/admin/statistiques');
+  await expect(page.getByRole('link', { name: 'Accéder à l’administration' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Actualiser', exact: true })).toHaveCount(0);
+  expect(lectures).toBe(0);
+  await page.getByRole('link', { name: 'Accéder à l’administration' }).click();
+  await expect(page.getByLabel('Code de l’application d’authentification')).toBeVisible();
+});
+
+test('un premier admin configure son TOTP et le QR reste visible avec la CSP', async ({ page }) => {
+  await ouvrirSession(page, 'admin', { ...SESSION, access_token: jeton('aal1'), user: { ...SESSION.user, factors: [] } });
+  await page.route('**/auth/v1/factors', (r) => r.fulfill({ json: {
+    id: 'nouveau-totp', type: 'totp', totp: { secret: 'CLEDETEST', uri: 'otpauth://totp/test', qr_code: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32"/></svg>' },
+  } }));
+  await page.route('**/auth/v1/factors/nouveau-totp/challenge', (r) => r.fulfill({ json: { id: 'enrolement-test', type: 'totp', expires_at: 9999999999 } }));
+  await page.route('**/auth/v1/factors/nouveau-totp/verify', (r) => r.fulfill({ json: SESSION }));
+  await page.goto('/admin');
+  await page.getByRole('button', { name: 'Configurer mon application' }).click();
+  const qr = page.getByRole('img', { name: 'QR code à scanner dans l’application d’authentification' });
+  await expect(qr).toBeVisible();
+  await expect.poll(() => qr.evaluate((element) => (element as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  await expect(page.getByText('CLEDETEST', { exact: true })).toBeVisible();
+  await page.getByLabel('Code de l’application d’authentification').fill('123456');
+  await page.getByRole('button', { name: 'Vérifier le second facteur' }).click();
+  await expect(page.getByRole('link', { name: 'Statistiques et charge →' })).toBeVisible();
+  await expect(page.getByText('CLEDETEST', { exact: true })).toHaveCount(0);
 });
 
 test('statistiques accessibles sur mobile et desktop, sources honnêtes et export CSV', async ({ page }) => {
@@ -84,7 +139,7 @@ test('statistiques accessibles sur mobile et desktop, sources honnêtes et expor
   await expect(page.getByText('Notes en attente', { exact: true })).toBeVisible();
   const requete = page.waitForRequest((r) => r.url().includes('/api/admin/supervision?heures=24'));
   await page.getByRole('button', { name: '24 heures', exact: true }).click();
-  expect((await requete).headers().authorization).toBe('Bearer jeton-admin-factice');
+  expect((await requete).headers().authorization).toBe(`Bearer ${SESSION.access_token}`);
   await expect(page.getByText('427', { exact: true })).toBeVisible();
   const telechargement = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Exporter les mesures' }).click();

@@ -28,9 +28,10 @@ async function messageDuRefus(db: pg.Client, sql: string): Promise<string> {
 }
 
 describe('plafond des messages de contact', () => {
-  it('10 dépôts anonymes en 10 minutes passent, le 11e est refusé avec un message clair', () =>
+  it('10 dépôts serveur en 10 minutes passent, le 11e est refusé avec un message clair', () =>
     dansUneTransaction(async (db) => {
-      await commeVisiteur(db);
+      await commeSuperutilisateur(db);
+      await db.query('set local role service_role');
       await deposer(db, 10);
       expect(await doitEtreRefuse(db, DEPOSER)).toBe(PLAFOND_ATTEINT);
       expect(await messageDuRefus(db, DEPOSER)).toMatch(/Trop de messages de contact/);
@@ -38,16 +39,16 @@ describe('plafond des messages de contact', () => {
       expect((await db.query(`select count(*)::int as n from public.messages_contact`)).rows[0].n).toBe(10);
     }));
 
-  it('tous visiteurs confondus : les dépôts des visiteurs et des spectateurs connectés comptent ensemble', () =>
+  it('les droits directs de la table sont révoqués pour anon et authenticated', () =>
     dansUneTransaction(async (db) => {
       await semerSoiree(db);
       await commeVisiteur(db);
-      await deposer(db, 6);
+      expect(await doitEtreRefuse(db, DEPOSER)).toBe('42501');
       await commeUtilisateur(db, IDS.spectateur);
-      await deposer(db, 4);
-      expect(await doitEtreRefuse(db, DEPOSER)).toBe(PLAFOND_ATTEINT);
-      await commeVisiteur(db);
-      expect(await doitEtreRefuse(db, DEPOSER)).toBe(PLAFOND_ATTEINT);
+      expect(await doitEtreRefuse(db, DEPOSER)).toBe('42501');
+      await commeSuperutilisateur(db);
+      await db.query('set local role service_role');
+      await deposer(db, 1);
     }));
 
   it('un message créé il y a plus de 10 minutes ne compte pas', () =>
@@ -58,7 +59,7 @@ describe('plafond des messages de contact', () => {
          select 'Ancien', 'ancien@exemple.fr', 'Message déposé plus tôt', now() - interval '10 minutes 1 second'
          from generate_series(1, 10)`,
       );
-      await commeVisiteur(db);
+      await db.query('set local role service_role');
       await deposer(db, 10);
       expect(await doitEtreRefuse(db, DEPOSER)).toBe(PLAFOND_ATTEINT);
     }));

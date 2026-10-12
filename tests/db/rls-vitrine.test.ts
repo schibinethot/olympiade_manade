@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { commeUtilisateur, commeVisiteur, dansUneTransaction, doitEtreRefuse } from './aide';
+import { commeSuperutilisateur, commeUtilisateur, commeVisiteur, dansUneTransaction, doitEtreRefuse } from './aide';
 import { IDS, modifier, semerSoiree } from './graine';
 
 const DEPOSER = `insert into public.messages_contact (prenom, email, message) values ($1, $2, $3)`;
+
+async function commeService(db: Parameters<typeof dansUneTransaction>[0] extends (db: infer T) => unknown ? T : never) {
+  await commeSuperutilisateur(db);
+  await db.query('set local role service_role');
+}
 
 describe('vitrine : calendrier et palmarès', () => {
   it('un visiteur lit le calendrier et le palmarès de référence', () =>
@@ -64,7 +69,7 @@ describe('vitrine : calendrier et palmarès', () => {
   it('l’admin met à jour le palmarès et le calendrier', () =>
     dansUneTransaction(async (db) => {
       await semerSoiree(db);
-      await commeUtilisateur(db, IDS.admin);
+      await commeUtilisateur(db, IDS.admin, 'aal2');
       const r = await db.query(
         `update public.palmares set statut = 'confirme' where annee = 2025 and evenement like '%Grandes Olympiades%'`,
       );
@@ -77,10 +82,10 @@ describe('vitrine : calendrier et palmarès', () => {
 });
 
 describe('vitrine : messages de contact', () => {
-  it('un visiteur dépose un message mais ne peut pas le relire', () =>
+  it('un visiteur ne dépose ni ne relit un message directement', () =>
     dansUneTransaction(async (db) => {
       await commeVisiteur(db);
-      await db.query(DEPOSER, ['Léa', 'lea@exemple.fr', 'Bonjour, quelle est la date 2027 ?']);
+      expect(await doitEtreRefuse(db, DEPOSER, ['Léa', 'lea@exemple.fr', 'Bonjour, quelle est la date 2027 ?'])).toBe('42501');
       expect(await doitEtreRefuse(db, `select * from public.messages_contact`)).toBe('42501');
     }));
 
@@ -97,7 +102,7 @@ describe('vitrine : messages de contact', () => {
 
   it('refuse un email invalide et un message trop court ou trop long', () =>
     dansUneTransaction(async (db) => {
-      await commeVisiteur(db);
+      await commeService(db);
       expect(await doitEtreRefuse(db, DEPOSER, ['A', 'pas-un-email', 'Message assez long'])).toBe('23514');
       expect(await doitEtreRefuse(db, DEPOSER, ['A', 'a@b.fr', 'court'])).toBe('23514');
       expect(await doitEtreRefuse(db, DEPOSER, ['A', 'a@b.fr', 'x'.repeat(2001)])).toBe('23514');
@@ -105,7 +110,7 @@ describe('vitrine : messages de contact', () => {
 
   it('refuse de contourner les bornes de longueur avec des blancs', () =>
     dansUneTransaction(async (db) => {
-      await commeVisiteur(db);
+      await commeService(db);
       expect(await doitEtreRefuse(db, DEPOSER, ['A'.repeat(61), 'a@b.fr', 'Message assez long'])).toBe('23514');
       expect(await doitEtreRefuse(db, DEPOSER, [' '.repeat(100000) + 'A', 'a@b.fr', 'Message assez long'])).toBe(
         '23514',
@@ -119,11 +124,11 @@ describe('vitrine : messages de contact', () => {
   it('l’admin lit les messages et les marque traités, un spectateur non', () =>
     dansUneTransaction(async (db) => {
       await semerSoiree(db);
-      await commeVisiteur(db);
+      await commeService(db);
       await db.query(DEPOSER, ['Léa', 'lea@exemple.fr', 'Bonjour, quelle est la date 2027 ?']);
       await commeUtilisateur(db, IDS.spectateur);
       expect((await db.query(`select * from public.messages_contact`)).rowCount).toBe(0);
-      await commeUtilisateur(db, IDS.admin);
+      await commeUtilisateur(db, IDS.admin, 'aal2');
       expect((await db.query(`select * from public.messages_contact`)).rowCount).toBe(1);
       expect((await db.query(`update public.messages_contact set traite = true`)).rowCount).toBe(1);
       expect(await doitEtreRefuse(db, `update public.messages_contact set message = 'modifié par admin'`)).toBe(

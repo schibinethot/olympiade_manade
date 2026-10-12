@@ -90,7 +90,15 @@ export default function Statistiques() {
 
     {acces === 'chargement' ? <p role="status" className="mt-8">Vérification de l’accès…</p> : acces !== 'autorise' ?
       <div className={`${CARTE} mt-8`}>
-        <p role={acces === 'anonyme' ? 'status' : 'alert'}>{acces === 'anonyme' ? 'Connectez-vous pour consulter les statistiques.' : acces === 'refuse' ? 'Ces statistiques sont réservées aux administrateurs.' : 'Impossible de vérifier vos droits. Réessayez depuis l’administration.'}</p>
+        <p role={acces === 'anonyme' ? 'status' : 'alert'}>{acces === 'anonyme'
+          ? 'Connectez-vous pour consulter les statistiques.'
+          : acces === 'refuse'
+            ? 'Ces statistiques sont réservées aux administrateurs.'
+            : acces === 'enrolement-requis'
+              ? 'Activez l’authentification à deux facteurs depuis la page d’administration.'
+              : acces === 'deux-facteurs-requis'
+                ? 'Vérifiez votre code d’authentification à deux facteurs depuis la page d’administration.'
+                : 'Impossible de vérifier vos droits. Réessayez depuis l’administration.'}</p>
         <Link to="/admin" className={`${BOUTON} mt-4`}>Accéder à l’administration</Link>
       </div> : <>
       <section aria-label="Objectif de capacité" className="mt-7 flex flex-wrap items-center justify-between gap-4 rounded-[22px] bg-encre p-6 text-sable">

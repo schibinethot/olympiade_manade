@@ -103,7 +103,7 @@ describe('catalogue : tables et droits', () => {
       expect(rows).toEqual(DROITS_ATTENDUS);
     }));
 
-  it('les seuls droits de colonne sont le dépôt de messages de contact et update (prenom) de profils', () =>
+  it('les seuls droits de colonne concernent les updates administrés', () =>
     dansUneTransaction(async (db) => {
       await commeSuperutilisateur(db);
       const { rows } = await db.query(
@@ -118,14 +118,24 @@ describe('catalogue : tables et droits', () => {
          order by 1, 2, 3, 4`,
       );
       expect(rows).toEqual([
-        { table: 'messages_contact', colonne: 'email', role: 'anon', droit: 'INSERT' },
-        { table: 'messages_contact', colonne: 'email', role: 'authenticated', droit: 'INSERT' },
-        { table: 'messages_contact', colonne: 'message', role: 'anon', droit: 'INSERT' },
-        { table: 'messages_contact', colonne: 'message', role: 'authenticated', droit: 'INSERT' },
-        { table: 'messages_contact', colonne: 'prenom', role: 'anon', droit: 'INSERT' },
-        { table: 'messages_contact', colonne: 'prenom', role: 'authenticated', droit: 'INSERT' },
         { table: 'messages_contact', colonne: 'traite', role: 'authenticated', droit: 'UPDATE' },
         { table: 'profils', colonne: 'prenom', role: 'authenticated', droit: 'UPDATE' },
+      ]);
+    }));
+
+  it('anon et authenticated n’ont aucun INSERT de colonne sur messages_contact', () =>
+    dansUneTransaction(async (db) => {
+      await commeSuperutilisateur(db);
+      const { rows } = await db.query(
+        `select rolname as role,
+                has_column_privilege(rolname, 'public.messages_contact', 'prenom', 'INSERT') as prenom,
+                has_column_privilege(rolname, 'public.messages_contact', 'email', 'INSERT') as email,
+                has_column_privilege(rolname, 'public.messages_contact', 'message', 'INSERT') as message
+           from pg_roles where rolname in ('anon', 'authenticated') order by rolname`,
+      );
+      expect(rows).toEqual([
+        { role: 'anon', prenom: false, email: false, message: false },
+        { role: 'authenticated', prenom: false, email: false, message: false },
       ]);
     }));
 

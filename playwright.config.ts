@@ -25,7 +25,12 @@ export default defineConfig({
   // variable déjà présente dans l'environnement l'emporte sur les fichiers .env de Vite).
   webServer: {
     command: 'pnpm build && pnpm start',
-    env: { PORT: String(PORT), VITE_INSCRIPTION_OUVERTE: 'false', FILE_NOTES_ACTIVE: 'false' },
+    // Le script Turnstile est toujours intercepté localement par tests/outils/turnstile.ts. Les
+    // secrets vides garantissent que le vrai endpoint /api/contact reste fermé durant les E2E.
+    env: {
+      PORT: String(PORT), VITE_INSCRIPTION_OUVERTE: 'false', FILE_NOTES_ACTIVE: 'false',
+      VITE_TURNSTILE_SITE_KEY: 'test-site-key', TURNSTILE_SECRET_KEY: '', SUPABASE_SERVICE_ROLE_KEY: '',
+    },
     url: `http://localhost:${PORT}`,
     reuseExistingServer: false,
     timeout: 180_000,

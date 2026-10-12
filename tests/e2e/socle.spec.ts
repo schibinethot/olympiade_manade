@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../outils/test-e2e';
 import { contraste, rvbDepuisCss } from '../outils/contraste';
 
 test('la navigation mène aux pages vitrine et le pied de page porte la signature', async ({ page }) => {

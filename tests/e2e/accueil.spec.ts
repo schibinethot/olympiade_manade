@@ -1,5 +1,8 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../outils/test-e2e';
+import { simulerTurnstile } from '../outils/turnstile';
 import { estDonneesPreRendu, relectureTerminee } from '../outils/relecture';
+
+test.beforeEach(async ({ page }) => { await simulerTurnstile(page); });
 
 // Tests de la fiche complétée par task-3-addendum.md (état « hors soirée »).
 
@@ -17,14 +20,14 @@ test('sur mobile, « Notez les Olympiades », le bouton grisé et la raison sont
 });
 
 // Mise en place adaptée (consigne du contrôleur) : horloge au 18/08/2027 au lieu du 15/08.
-// Correctif avant relecture : la carte vise la soirée de Nîmes (celle de l'affiche et du vote), le
-// vendredi 20/08/2027. Mouriès, prochaine date tous événements confondus, reste dans « Saison 2027 ».
+// La carte vise la prochaine soirée du calendrier : Mouriès, le jeudi 19/08/2027. L'affiche reste
+// celle de Nîmes.
 test('l’accueil présente l’affiche, la prochaine soirée, le compte à rebours, les 4 épreuves et le dernier vainqueur', async ({ page }) => {
   await page.clock.setFixedTime(new Date('2027-08-18T12:00:00+02:00'));
   await page.goto('/');
   await expect(page.getByText(/ARÈNES DE/i).first()).toBeVisible();
   await expect(page.getByText('Mouriès').first()).toBeVisible();
-  await expect(page.getByText(/vendredi 20 août 2027 à 21h, aux arènes de Nîmes/).first()).toBeVisible();
+  await expect(page.getByText(/jeudi 19 août 2027 à 21h30, aux arènes André Blanc, à Mouriès/).first()).toBeVisible();
   await expect(page.getByText(/prévisionnelle/i).first()).toBeVisible();
   for (const epreuve of ['Ferrade en piste', 'Saut de cheval à cheval', 'Saut de cheval à taureau', 'Attente au fer']) {
     await expect(page.getByRole('heading', { name: epreuve })).toBeVisible();
@@ -35,26 +38,29 @@ test('l’accueil présente l’affiche, la prochaine soirée, le compte à rebo
   }
 });
 
-test('la carte et la pastille visent la soirée de Nîmes, même si d’autres soirées viennent avant', async ({ page }, info) => {
+test('la carte et la pastille visent la prochaine soirée du calendrier, toutes villes confondues', async ({ page }, info) => {
   await page.clock.setFixedTime(new Date('2026-10-10T12:00:00+02:00'));
   await page.goto('/');
   await expect(
     page.getByText(
-      'Les votes ouvriront le soir de l’Olympiade, le vendredi 20 août 2027 à 21h, aux arènes de Nîmes (date prévisionnelle). Vous noterez chaque manade de 1 à 10, dès la fin de son passage.',
+      'Les votes ouvriront le soir de l’Olympiade, le samedi 1er mai 2027 à 15h30, aux arènes d’Arles. Vous noterez chaque manade de 1 à 10, dès la fin de son passage.',
     ),
   ).toBeVisible();
-  await expect(page.getByText('314 jours', { exact: true })).toBeVisible();
+  await expect(page.getByText('203 jours', { exact: true })).toBeVisible();
   if (info.project.name === 'ordinateur') {
-    await expect(page.getByRole('banner').getByText('Prochaine soirée · 20 août')).toBeVisible();
+    await expect(page.getByRole('banner').getByText('Prochaine soirée · 1er mai')).toBeVisible();
   }
 });
 
-test('quand Nîmes n’a plus de date à venir, la carte revient à la prochaine soirée du calendrier', async ({ page }) => {
-  await page.clock.setFixedTime(new Date('2027-08-23T12:00:00+02:00'));
+test('une soirée passée, la carte annonce la suivante, avec la mention « date prévisionnelle »', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2027-05-02T12:00:00+02:00'));
   await page.goto('/');
-  const raison = page.getByText(/Les votes ouvriront le soir de l’Olympiade/);
-  await expect(raison).toContainText(/, le \S+ \d+(er)? \S+ 20\d\d/);
-  await expect(raison).not.toContainText('Nîmes');
+  await expect(
+    page.getByText(
+      'Les votes ouvriront le soir de l’Olympiade, le vendredi 7 mai 2027 à 21h30, aux arènes du Tempéras, à Alès (date prévisionnelle).',
+      { exact: false },
+    ),
+  ).toBeVisible();
 });
 
 test('sans soirée à venir, l’accueil annonce de prochaines dates', async ({ page }) => {
@@ -76,8 +82,8 @@ test('le dernier vainqueur connu vient du palmarès : un nom de manade, ses vict
 test('le compte à rebours annonce les jours restants avant la prochaine soirée', async ({ page }) => {
   await page.clock.setFixedTime(new Date('2027-08-18T12:00:00+02:00'));
   await page.goto('/');
-  // Nîmes, vendredi 20/08/2027 à 21h : 2 jours et 9h plus tard.
-  await expect(page.getByText('2 jours', { exact: true })).toBeVisible();
+  // Mouriès, jeudi 19/08/2027 à 21h30 : 1 jour et 9h30 plus tard.
+  await expect(page.getByText('1 jour', { exact: true })).toBeVisible();
   // Le jour même, à moins d'un jour : heures et minutes.
   await page.clock.setFixedTime(new Date('2027-08-20T11:30:00+02:00'));
   await page.reload();
@@ -124,12 +130,12 @@ test('le formulaire de contact de l’accueil envoie une seule fois et confirme'
   let appels = 0;
   let corps: unknown = null;
   let url = '';
-  await page.route('**/rest/v1/messages_contact*', async (route) => {
+  await page.route('**/api/contact', async (route) => {
     appels += 1;
     corps = route.request().postDataJSON();
     url = route.request().url();
     await new Promise((r) => setTimeout(r, 300));
-    await route.fulfill({ status: 201, body: '' });
+    await route.fulfill({ status: 200, json: { ok: true } });
   });
   await page.goto('/');
   await page.getByLabel('Prénom').fill('Léa');
@@ -138,19 +144,19 @@ test('le formulaire de contact de l’accueil envoie une seule fois et confirme'
   const bouton = page.getByRole('button', { name: 'Envoyer' });
   await bouton.click();
   await bouton.click({ force: true }).catch(() => {});
-  await expect(page.getByText('Merci, votre message est bien parti.')).toBeVisible();
+  await expect(page.getByText('Merci, votre message est enregistré. Il n’est pas envoyé par email automatiquement.')).toBeVisible();
   expect(appels).toBe(1);
-  expect(corps).toEqual({ prenom: 'Léa', email: 'lea@exemple.fr', message: 'Bonjour, quelle sera la date à Nîmes en 2027 ?' });
-  // Insertion sans .select() : aucune colonne relue.
-  expect(url).not.toContain('select=');
+  expect(corps).toEqual({ prenom: 'Léa', email: 'lea@exemple.fr', message: 'Bonjour, quelle sera la date à Nîmes en 2027 ?', site_web: '', turnstileToken: 'jeton-turnstile' });
+  // Seule l’API du site reçoit les champs et le jeton.
+  expect(new URL(url).pathname).toBe('/api/contact');
   await expect(page.getByLabel('Message')).toHaveValue('');
 });
 
 test('le formulaire de contact refuse un message trop court sans appeler le serveur', async ({ page }) => {
   let appels = 0;
-  await page.route('**/rest/v1/messages_contact*', (route) => {
+  await page.route('**/api/contact', (route) => {
     appels += 1;
-    return route.fulfill({ status: 201, body: '' });
+    return route.fulfill({ status: 200, json: { ok: true } });
   });
   await page.goto('/');
   await page.getByLabel('Prénom').fill('Léa');
@@ -163,7 +169,7 @@ test('le formulaire de contact refuse un message trop court sans appeler le serv
 });
 
 test('le formulaire de contact signale un échec d’envoi', async ({ page }) => {
-  await page.route('**/rest/v1/messages_contact*', (route) =>
+  await page.route('**/api/contact', (route) =>
     route.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"erreur"}' }),
   );
   await page.goto('/');
@@ -171,23 +177,20 @@ test('le formulaire de contact signale un échec d’envoi', async ({ page }) =>
   await page.getByLabel('Email').fill('lea@exemple.fr');
   await page.getByLabel('Message').fill('Bonjour, quelle sera la date à Nîmes en 2027 ?');
   await page.getByRole('button', { name: 'Envoyer' }).click();
-  await expect(page.getByText('L’envoi a échoué, réessayez dans un instant.')).toBeVisible();
+  await expect(page.getByText('Message non enregistré.')).toBeVisible();
   await expect(page.getByLabel('Message')).toHaveValue('Bonjour, quelle sera la date à Nîmes en 2027 ?');
 });
 
-// Plafond en base (migration 20261011120000_plafonds.sql) : PostgREST répond 429 avec le code PT429.
+// Le serveur traduit le plafond en une réponse 429 française.
 test('le formulaire de contact signale le plafond de messages atteint, une seule fois envoyé', async ({ page }) => {
   let appels = 0;
-  await page.route('**/rest/v1/messages_contact*', (route) => {
+  await page.route('**/api/contact', (route) => {
     appels += 1;
     return route.fulfill({
       status: 429,
       contentType: 'application/json',
       body: JSON.stringify({
-        code: 'PT429',
-        details: null,
-        hint: null,
-        message: 'Trop de messages de contact reçus ces 10 dernières minutes. Réessayez plus tard.',
+        error: 'Trop de demandes. Réessayez plus tard.',
       }),
     });
   });
@@ -196,17 +199,17 @@ test('le formulaire de contact signale le plafond de messages atteint, une seule
   await page.getByLabel('Email').fill('lea@exemple.fr');
   await page.getByLabel('Message').fill('Bonjour, quelle sera la date à Nîmes en 2027 ?');
   await page.getByRole('button', { name: 'Envoyer' }).click();
-  await expect(page.getByText('L’envoi a échoué, réessayez dans un instant.')).toBeVisible();
-  await expect(page.getByText('Merci, votre message est bien parti.')).toHaveCount(0);
+  await expect(page.getByText('Trop de demandes. Réessayez plus tard.')).toBeVisible();
+  await expect(page.getByText('Merci, votre message est enregistré. Il n’est pas envoyé par email automatiquement.')).toHaveCount(0);
   await expect(page.getByLabel('Message')).toHaveValue('Bonjour, quelle sera la date à Nîmes en 2027 ?');
   expect(appels).toBe(1);
 });
 
-test('le champ piège rempli n’envoie rien mais affiche le succès', async ({ page }) => {
+test('le champ piège est transmis au serveur qui répond sans déposer le message', async ({ page }) => {
   let appels = 0;
-  await page.route('**/rest/v1/messages_contact*', (route) => {
+  await page.route('**/api/contact', (route) => {
     appels += 1;
-    return route.fulfill({ status: 201, body: '' });
+    return route.fulfill({ status: 200, json: { ok: true } });
   });
   await page.goto('/');
   await page.getByLabel('Prénom').fill('Robot');
@@ -214,6 +217,6 @@ test('le champ piège rempli n’envoie rien mais affiche le succès', async ({ 
   await page.getByLabel('Message').fill('Message automatique de plus de dix caractères.');
   await page.locator('input[name="site_web"]').fill('https://spam.example', { force: true });
   await page.getByRole('button', { name: 'Envoyer' }).click();
-  await expect(page.getByText('Merci, votre message est bien parti.')).toBeVisible();
-  expect(appels).toBe(0);
+  await expect(page.getByText('Merci, votre message est enregistré. Il n’est pas envoyé par email automatiquement.')).toBeVisible();
+  expect(appels).toBe(1);
 });

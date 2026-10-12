@@ -91,7 +91,7 @@ describe('vote du public', () => {
       await voter(db, IDS.spectateur2, IDS.passageA, 5);
       await commeUtilisateur(db, IDS.spectateur);
       expect((await db.query('select note from public.notes_public')).rows).toEqual([{ note: 8 }]);
-      await commeUtilisateur(db, IDS.admin);
+      await commeUtilisateur(db, IDS.admin, 'aal2');
       expect((await db.query('select count(*)::int as n from public.notes_public')).rows[0].n).toBe(2);
     }));
 
@@ -127,7 +127,7 @@ describe('avis sur la soirée', () => {
       ]);
       await commeUtilisateur(db, IDS.spectateur2);
       expect((await db.query('select count(*)::int as n from public.avis_soiree')).rows[0].n).toBe(0);
-      await commeUtilisateur(db, IDS.admin);
+      await commeUtilisateur(db, IDS.admin, 'aal2');
       expect((await db.query('select count(*)::int as n from public.avis_soiree')).rows[0].n).toBe(1);
     }));
 });

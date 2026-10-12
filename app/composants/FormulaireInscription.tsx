@@ -10,6 +10,7 @@ import {
   type ErreursInscription,
 } from '../lib/auth';
 import { Icone } from './Icone';
+import { VerificationHumaine } from './VerificationHumaine';
 
 type Envoi = 'repos' | 'en-cours' | 'echec';
 
@@ -48,6 +49,8 @@ export function FormulaireInscription({ initial }: Props) {
   const [verifier, setVerifier] = useState(false);
   const [envoi, setEnvoi] = useState<Envoi>('repos');
   const [echec, setEchec] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [reinitialisationCaptcha, setReinitialisationCaptcha] = useState(0);
   const verrou = useRef(false);
 
   function modifier<K extends keyof ChampsInscription>(nom: K, valeur: ChampsInscription[K]) {
@@ -68,6 +71,10 @@ export function FormulaireInscription({ initial }: Props) {
       document.getElementById(`${id}-${premier}`)?.focus();
       return;
     }
+    if (!captchaToken) {
+      setEchec('Validez la vérification anti-robot avant de continuer.');
+      return;
+    }
 
     verrou.current = true;
     setEnvoi('en-cours');
@@ -75,7 +82,7 @@ export function FormulaireInscription({ initial }: Props) {
     const prenom = champs.prenom.trim();
     const email = normaliserEmail(champs.email);
     try {
-      await demanderCode(prenom, email);
+      await demanderCode(prenom, email, captchaToken);
       const demande = { prenom, email, envoyeeLe: Date.now() };
       memoriserDemande(demande);
       navigate('/inscription/code', { state: demande });
@@ -83,6 +90,9 @@ export function FormulaireInscription({ initial }: Props) {
       setEchec(traduireErreurAuth(erreur, 'demande'));
       setEnvoi('echec');
       verrou.current = false;
+    } finally {
+      setCaptchaToken(null);
+      setReinitialisationCaptcha((valeur) => valeur + 1);
     }
   }
 
@@ -177,6 +187,11 @@ export function FormulaireInscription({ initial }: Props) {
       </div>
 
       <div className="grid gap-2.5">
+        <VerificationHumaine
+          action="inscription"
+          reinitialisation={reinitialisationCaptcha}
+          onJetonChange={setCaptchaToken}
+        />
         <button type="submit" disabled={enCours} className={BOUTON_PRINCIPAL}>
           Recevoir mon code
           <Icone nom="fleche" />

@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../outils/test-e2e';
 
 // Contrôle axe des 9 pages du lot Vitrine (Task 8) : aucune violation « serious » ni « critical »,
 // sur mobile et sur ordinateur (les deux projets de playwright.config.ts).

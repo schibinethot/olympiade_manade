@@ -1,10 +1,15 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../outils/test-e2e';
+import { simulerTurnstile } from '../outils/turnstile';
+
+test.beforeEach(async ({ page }) => {
+  await simulerTurnstile(page);
+});
 
 test('le formulaire de contact envoie une seule fois et confirme', async ({ page }) => {
   let appels = 0;
   let corps: unknown = null;
   let prefer: string | undefined;
-  await page.route('**/rest/v1/messages_contact*', async (route) => {
+  await page.route('**/api/contact', async (route) => {
     appels += 1;
     corps = route.request().postDataJSON();
     prefer = route.request().headers()['prefer'];
@@ -22,20 +27,21 @@ test('le formulaire de contact envoie une seule fois et confirme', async ({ page
     form.requestSubmit();
     form.requestSubmit();
   });
-  await expect(page.getByText('Merci, votre message est bien parti.')).toBeVisible();
+  await expect(page.getByText(/votre message est enregistré/i)).toBeVisible();
   expect(appels).toBe(1);
-  expect(Object.keys(corps as object).sort()).toEqual(['email', 'message', 'prenom']);
-  expect(prefer ?? '').not.toContain('return=representation');
+  expect(Object.keys(corps as object).sort()).toEqual(['email', 'message', 'prenom', 'site_web', 'turnstileToken']);
+  expect(corps).toMatchObject({ site_web: '', turnstileToken: 'jeton-turnstile' });
+  expect(prefer).toBeUndefined();
 });
 
 test('le formulaire signale un échec d’envoi', async ({ page }) => {
-  await page.route('**/rest/v1/messages_contact*', (route) => route.fulfill({ status: 500, body: '' }));
+  await page.route('**/api/contact', (route) => route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"Le formulaire est momentanément indisponible."}' }));
   await page.goto('/contact');
   await page.getByLabel('Prénom').fill('Léa');
   await page.getByLabel('Email').fill('lea@exemple.fr');
   await page.getByLabel('Message').fill('Bonjour, quelle sera la date à Nîmes en 2027 ?');
   await page.getByRole('button', { name: 'Envoyer' }).click();
-  await expect(page.getByText('L’envoi a échoué, réessayez dans un instant.')).toBeVisible();
+  await expect(page.getByText('Le formulaire est momentanément indisponible.')).toBeVisible();
 });
 
 test('sans JavaScript, le bouton est inactif et rien ne part dans l’URL', async ({ browser }) => {
@@ -58,7 +64,7 @@ test('le lien de confidentialité figure sous le formulaire', async ({ page }) =
 
 test('le formulaire refuse un message trop court sans appeler le serveur', async ({ page }) => {
   let appels = 0;
-  await page.route('**/rest/v1/messages_contact*', (route) => {
+  await page.route('**/api/contact', (route) => {
     appels += 1;
     return route.fulfill({ status: 201, body: '' });
   });

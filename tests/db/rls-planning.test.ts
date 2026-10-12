@@ -37,7 +37,7 @@ describe('visibilité du planning', () => {
       expect(await planningVisible(db)).toEqual(vide);
       await commeUtilisateur(db, IDS.spectateur);
       expect(await planningVisible(db)).toEqual(vide);
-      await commeUtilisateur(db, IDS.admin);
+      await commeUtilisateur(db, IDS.admin, 'aal2');
       expect(await planningVisible(db)).toEqual({ soirees: 1, epreuves: 2, passages: 3, engagees: 2 });
     }));
 });
@@ -53,7 +53,7 @@ describe('écriture du planning', () => {
       await commeSuperutilisateur(db);
       const avant = await db.query('select statut_public::text from public.passages where id = $1', [IDS.passageA]);
       expect(avant.rows[0].statut_public).toBe('a_venir');
-      await commeUtilisateur(db, IDS.admin);
+      await commeUtilisateur(db, IDS.admin, 'aal2');
       expect((await db.query(debloquer)).rowCount).toBe(1);
     }));
 
@@ -75,7 +75,7 @@ describe('écriture du planning', () => {
   it('l’admin crée une soirée', () =>
     dansUneTransaction(async (db) => {
       await semerSoiree(db);
-      await commeUtilisateur(db, IDS.admin);
+      await commeUtilisateur(db, IDS.admin, 'aal2');
       const { rowCount } = await db.query(
         `insert into public.soirees (slug, nom, date_soiree, vote_debut, vote_fin)
          values ('nimes-2027', 'Nîmes 2027', current_date, now(), now() + interval '3 hours')`,
@@ -90,7 +90,7 @@ describe('profils et juges', () => {
       await semerSoiree(db);
       await commeUtilisateur(db, IDS.spectateur);
       expect(await compter(db, 'profils')).toBe(1);
-      await commeUtilisateur(db, IDS.admin);
+      await commeUtilisateur(db, IDS.admin, 'aal2');
       expect(await compter(db, 'profils')).toBe(6);
     }));
 
@@ -115,7 +115,7 @@ describe('profils et juges', () => {
       expect(await compter(db, 'soiree_juges')).toBe(1);
       await commeUtilisateur(db, IDS.jugeNonRattache);
       expect(await compter(db, 'soiree_juges')).toBe(0);
-      await commeUtilisateur(db, IDS.admin);
+      await commeUtilisateur(db, IDS.admin, 'aal2');
       expect(await compter(db, 'soiree_juges')).toBe(1);
     }));
 
@@ -136,7 +136,7 @@ describe('profils et juges', () => {
   it('même un admin ne change pas un rôle via l’API', () =>
     dansUneTransaction(async (db) => {
       await semerSoiree(db);
-      await commeUtilisateur(db, IDS.admin);
+      await commeUtilisateur(db, IDS.admin, 'aal2');
       expect(
         await doitEtreRefuse(db, `update public.profils set role = 'admin' where id = $1`, [IDS.spectateur]),
       ).toBe('42501');

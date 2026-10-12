@@ -79,7 +79,7 @@ describe('notes du jury', () => {
       await commeUtilisateur(db, IDS.jugeNonRattache);
       await db.query(NOTER, [IDS.passageA, IDS.jugeNonRattache, 18, null]);
       expect((await db.query('select note::text from public.notes_jury')).rows).toEqual([{ note: '18' }]);
-      await commeUtilisateur(db, IDS.admin);
+      await commeUtilisateur(db, IDS.admin, 'aal2');
       expect((await db.query('select count(*)::int as n from public.notes_jury')).rows[0].n).toBe(2);
     }));
 

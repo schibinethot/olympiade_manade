@@ -8,10 +8,10 @@ import { IDS, modifier, semerSoiree } from './graine';
 // schéma prive, refusé à anon et authenticated : on pose donc l'identité sans quitter le rôle
 // superutilisateur. Le droit EXECUTE des rôles de l'API est vérifié dans catalogue.test.ts,
 // l'appel réel par les politiques dans les tests RLS.
-async function identiteDe(db: pg.Client, id: string): Promise<void> {
+async function identiteDe(db: pg.Client, id: string, aal: 'aal1' | 'aal2' = 'aal1'): Promise<void> {
   await db.query('reset role');
   await db.query(`select set_config('request.jwt.claims', $1, true)`, [
-    JSON.stringify({ sub: id, role: 'authenticated' }),
+    JSON.stringify({ sub: id, role: 'authenticated', aal }),
   ]);
 }
 
@@ -21,8 +21,13 @@ async function votablePublic(db: pg.Client, passage: string): Promise<boolean> {
   return rows[0].ok;
 }
 
-async function votableJury(db: pg.Client, juge: string, passage: string): Promise<boolean> {
-  await identiteDe(db, juge);
+async function votableJury(
+  db: pg.Client,
+  juge: string,
+  passage: string,
+  aal: 'aal1' | 'aal2' = 'aal1',
+): Promise<boolean> {
+  await identiteDe(db, juge, aal);
   const { rows } = await db.query('select prive.passage_votable_jury($1) as ok', [passage]);
   return rows[0].ok;
 }
@@ -132,7 +137,7 @@ describe('vote du jury', () => {
       expect(await votableJury(db, IDS.juge, IDS.passageA)).toBe(false);
     }));
 
-  it('un juge rétrogradé ne note plus, un admin rattaché le peut', () =>
+  it('un juge rétrogradé ne note plus, un admin rattaché le peut seulement en AAL2', () =>
     dansUneTransaction(async (db) => {
       await semerSoiree(db);
       await modifier(db, ouvrir(IDS.passageA));
@@ -141,7 +146,8 @@ describe('vote du jury', () => {
         IDS.admin,
       ]);
       expect(await votableJury(db, IDS.juge, IDS.passageA)).toBe(true);
-      expect(await votableJury(db, IDS.admin, IDS.passageA)).toBe(true);
+      expect(await votableJury(db, IDS.admin, IDS.passageA, 'aal1')).toBe(false);
+      expect(await votableJury(db, IDS.admin, IDS.passageA, 'aal2')).toBe(true);
       await modifier(db, `update public.profils set role = 'spectateur' where id = $1`, [IDS.juge]);
       expect(await votableJury(db, IDS.juge, IDS.passageA)).toBe(false);
     }));
@@ -198,13 +204,13 @@ describe('vote du jury', () => {
 });
 
 describe('avis sur la soirée', () => {
-  it('fermés pendant les votes, ouverts après l’heure de fin ou quand la soirée est terminée', () =>
+  it('en mode libre, fermés pendant les votes, ouverts après l’heure de fin ou quand la soirée est terminée', () =>
     dansUneTransaction(async (db) => {
       await semerSoiree(db);
       expect(await avisOuvert(db)).toBe(false);
       await modifier(
         db,
-        `update public.soirees set vote_debut = now() - interval '3 hours', vote_fin = now() - interval '1 minute'
+        `update public.soirees set mode_vote = 'libre', vote_debut = now() - interval '3 hours', vote_fin = now() - interval '1 minute'
          where id = $1`,
         [IDS.soiree],
       );
@@ -220,12 +226,12 @@ describe('identité du compte connecté', () => {
   it('est_admin et email_verifie reflètent le compte connecté', () =>
     dansUneTransaction(async (db) => {
       await semerSoiree(db);
-      const lire = async (id: string) => {
-        await identiteDe(db, id);
+      const lire = async (id: string, aal: 'aal1' | 'aal2' = 'aal1') => {
+        await identiteDe(db, id, aal);
         const { rows } = await db.query('select prive.est_admin() as admin, prive.email_verifie() as verifie');
         return rows[0];
       };
-      expect(await lire(IDS.admin)).toEqual({ admin: true, verifie: true });
+      expect(await lire(IDS.admin, 'aal2')).toEqual({ admin: true, verifie: true });
       expect(await lire(IDS.spectateur)).toEqual({ admin: false, verifie: true });
       expect(await lire(IDS.nonVerifie)).toEqual({ admin: false, verifie: false });
     }));

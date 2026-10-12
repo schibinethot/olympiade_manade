@@ -7,6 +7,7 @@ import { creerServeur, hoteSupabase, journaliserErreur, portDepuis } from './app
 import { supervisionDepuisEnvironnement } from './supervision.mjs';
 import { planningNotationDepuisEnvironnement } from './planning-notation.mjs';
 import { fileNotesDepuisEnvironnement } from './file-notes.mjs';
+import { contactDepuisEnvironnement } from './contact.mjs';
 
 const RACINE = fileURLToPath(new URL('../build/client/', import.meta.url));
 
@@ -24,6 +25,7 @@ try {
     supabase: hoteSupabase(process.env.VITE_SUPABASE_URL),
     supervision: supervisionDepuisEnvironnement(process.env),
     planningNotation: planningNotationDepuisEnvironnement(process.env),
+    contact: contactDepuisEnvironnement(process.env),
   });
 } catch (erreur) {
   journaliserErreur(`démarrage impossible (lancer pnpm build avant pnpm start) : ${RACINE}`, erreur);

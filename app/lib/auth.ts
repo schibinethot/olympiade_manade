@@ -20,6 +20,7 @@ export const MESSAGES_AUTH = {
   reseau: 'Connexion impossible. Vérifiez votre réseau et réessayez.',
   emailInvalide: 'Cette adresse email n’est pas valide.',
   inscriptionsFermees: 'Les inscriptions sont momentanément fermées. Réessayez plus tard.',
+  verificationHumaine: 'Validez la vérification anti-robot avant de continuer.',
   envoiRefuse: 'Le code n’a pas pu être envoyé à cette adresse. Réessayez plus tard.',
   inconnue: 'Une erreur est survenue. Réessayez dans un instant.',
 } as const;
@@ -111,20 +112,70 @@ function enErreurAuth(erreur: unknown, etape: EtapeAuth): ErreurAuth {
  * Le lien de secours de l'email ramène sur /inscription/code (adresse autorisée dans la
  * configuration Auth, additional_redirect_urls).
  */
-export async function demanderCode(prenom: string, email: string): Promise<void> {
+export async function demanderCode(prenom: string, email: string, captchaToken: string): Promise<void> {
   try {
+    if (!captchaToken.trim()) throw new ErreurAuth(MESSAGES_AUTH.verificationHumaine);
     const { error } = await (await supabase()).auth.signInWithOtp({
       email,
       options: {
         shouldCreateUser: true,
         data: { prenom, consentement: true },
         emailRedirectTo: typeof window === 'undefined' ? undefined : `${window.location.origin}/inscription/code`,
+        captchaToken,
       },
     });
     if (error) throw error;
   } catch (erreur) {
     throw enErreurAuth(erreur, 'demande');
   }
+}
+
+/** Premier facteur de l'administration. Turnstile est global dans Supabase Auth, donc obligatoire ici aussi. */
+export async function connecterAdmin(email: string, motDePasse: string, captchaToken: string): Promise<void> {
+  if (!captchaToken.trim()) throw new ErreurAuth(MESSAGES_AUTH.verificationHumaine);
+  const { error } = await (await supabase()).auth.signInWithPassword({
+    email: normaliserEmail(email),
+    password: motDePasse,
+    options: { captchaToken },
+  });
+  if (error) throw error;
+}
+
+export type EnrolementTotp = { facteurId: string; qrCode: string; secret: string };
+
+/** Facteur TOTP vérifié à présenter après le mot de passe, ou null pour un premier enrôlement. */
+export async function facteurTotpVerifie(): Promise<string | null> {
+  const { data, error } = await (await supabase()).auth.mfa.listFactors();
+  if (error) throw error;
+  return data.totp[0]?.id ?? null;
+}
+
+/** Crée un facteur TOTP. Les enrôlements abandonnés du même parcours sont retirés au préalable. */
+export async function commencerEnrolementTotp(): Promise<EnrolementTotp> {
+  const client = await supabase();
+  const facteurs = await client.auth.mfa.listFactors();
+  if (facteurs.error) throw facteurs.error;
+  for (const facteur of facteurs.data.all) {
+    if (facteur.factor_type === 'totp' && facteur.status === 'unverified') {
+      const retrait = await client.auth.mfa.unenroll({ factorId: facteur.id });
+      if (retrait.error) throw retrait.error;
+    }
+  }
+  const { data, error } = await client.auth.mfa.enroll({
+    factorType: 'totp',
+    friendlyName: 'Administration Olympiade',
+    issuer: 'Olympiade des Manades',
+  });
+  if (error) throw error;
+  return { facteurId: data.id, qrCode: data.totp.qr_code, secret: data.totp.secret };
+}
+
+/** Vérifie le code TOTP et remplace la session AAL1 par une session AAL2. */
+export async function verifierTotp(facteurId: string, code: string): Promise<void> {
+  const saisi = normaliserCode(code);
+  if (!saisi) throw new ErreurAuth('Saisissez les 6 chiffres de votre application d’authentification.');
+  const { error } = await (await supabase()).auth.mfa.challengeAndVerify({ factorId: facteurId, code: saisi });
+  if (error) throw error;
 }
 
 /** Valide le code : la session est alors enregistrée dans le navigateur (clé « olympiade-auth »). */

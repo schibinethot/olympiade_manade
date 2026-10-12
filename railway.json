@@ -6,7 +6,7 @@
   },
   "deploy": {
     "startCommand": "pnpm start",
-    "healthcheckPath": "/",
+    "healthcheckPath": "/admin",
     "healthcheckTimeout": 60,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 5,

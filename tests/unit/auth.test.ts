@@ -4,13 +4,22 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // Client Supabase simulé : aucun appel réseau, aucune variable d'environnement nécessaire.
 const auth = vi.hoisted(() => ({
   signInWithOtp: vi.fn(),
+  signInWithPassword: vi.fn(),
   verifyOtp: vi.fn(),
   signOut: vi.fn(),
+  mfa: {
+    listFactors: vi.fn(),
+    enroll: vi.fn(),
+    unenroll: vi.fn(),
+    challengeAndVerify: vi.fn(),
+  },
 }));
 vi.mock('../../app/lib/supabase', () => ({ supabase: () => ({ auth }) }));
 
 import {
   demanderCode,
+  commencerEnrolementTotp,
+  connecterAdmin,
   ErreurAuth,
   formaterDecompte,
   lireDemande,
@@ -21,6 +30,7 @@ import {
   traduireErreurAuth,
   validerInscription,
   verifierCode,
+  verifierTotp,
 } from '../../app/lib/auth';
 
 describe('normaliserCode', () => {
@@ -152,13 +162,14 @@ describe('appels Supabase Auth', () => {
 
   it('demanderCode crée le compte au besoin, avec le prénom et le consentement, et un lien de secours vers /inscription/code', async () => {
     auth.signInWithOtp.mockResolvedValue({ data: { user: null, session: null }, error: null });
-    await demanderCode('Léa', 'lea@exemple.fr');
+    await demanderCode('Léa', 'lea@exemple.fr', 'captcha-valide');
     expect(auth.signInWithOtp).toHaveBeenCalledWith({
       email: 'lea@exemple.fr',
       options: {
         shouldCreateUser: true,
         data: { prenom: 'Léa', consentement: true },
         emailRedirectTo: 'https://exemple.fr/inscription/code',
+        captchaToken: 'captcha-valide',
       },
     });
   });
@@ -168,9 +179,49 @@ describe('appels Supabase Auth', () => {
       data: { user: null, session: null },
       error: new AuthApiError('Email rate limit exceeded', 429, 'over_email_send_rate_limit'),
     });
-    const promesse = demanderCode('Léa', 'lea@exemple.fr');
+    const promesse = demanderCode('Léa', 'lea@exemple.fr', 'captcha-valide');
     await expect(promesse).rejects.toBeInstanceOf(ErreurAuth);
     await expect(promesse).rejects.toThrow(MESSAGES_AUTH.tropDeDemandes);
+  });
+
+  it('refuse un envoi OTP sans preuve Turnstile avant tout appel Supabase', async () => {
+    await expect(demanderCode('Léa', 'lea@exemple.fr', '')).rejects.toThrow(MESSAGES_AUTH.verificationHumaine);
+    expect(auth.signInWithOtp).not.toHaveBeenCalled();
+  });
+
+  it('transmet Turnstile à la connexion par mot de passe admin', async () => {
+    auth.signInWithPassword.mockResolvedValue({ data: { session: {} }, error: null });
+    await connecterAdmin(' Admin@Exemple.FR ', 'Mot-de-passe!42', 'captcha-admin');
+    expect(auth.signInWithPassword).toHaveBeenCalledWith({
+      email: 'admin@exemple.fr',
+      password: 'Mot-de-passe!42',
+      options: { captchaToken: 'captcha-admin' },
+    });
+  });
+
+  it('nettoie un enrôlement TOTP abandonné avant de produire un nouveau QR code', async () => {
+    auth.mfa.listFactors.mockResolvedValue({
+      data: {
+        all: [{ id: 'ancien', factor_type: 'totp', status: 'unverified' }],
+        totp: [], phone: [], webauthn: [], recovery_code: [],
+      },
+      error: null,
+    });
+    auth.mfa.unenroll.mockResolvedValue({ data: { id: 'ancien' }, error: null });
+    auth.mfa.enroll.mockResolvedValue({
+      data: { id: 'nouveau', type: 'totp', totp: { qr_code: 'data:image/svg+xml,qr', secret: 'SECRET', uri: 'otpauth://totp/test' } },
+      error: null,
+    });
+    await expect(commencerEnrolementTotp()).resolves.toEqual({
+      facteurId: 'nouveau', qrCode: 'data:image/svg+xml,qr', secret: 'SECRET',
+    });
+    expect(auth.mfa.unenroll).toHaveBeenCalledWith({ factorId: 'ancien' });
+  });
+
+  it('vérifie le TOTP par challenge et promeut la session', async () => {
+    auth.mfa.challengeAndVerify.mockResolvedValue({ data: { access_token: 'aal2' }, error: null });
+    await verifierTotp('facteur-1', '123 456');
+    expect(auth.mfa.challengeAndVerify).toHaveBeenCalledWith({ factorId: 'facteur-1', code: '123456' });
   });
 
   it('verifierCode vérifie le code avec le type « email » (inscription comme connexion)', async () => {

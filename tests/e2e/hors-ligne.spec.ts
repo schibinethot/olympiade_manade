@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '../outils/test-e2e';
 import { estDonneesPreRendu, relectureTerminee } from '../outils/relecture';
 
 // Hors ligne, la relecture déclenchée par la première interaction échoue (Supabase et fichier .data

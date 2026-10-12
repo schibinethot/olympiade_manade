@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from '../outils/test-e2e';
+import { simulerTurnstile } from '../outils/turnstile';
 
 // Tous les appels Auth et profils sont simulés : aucun email réel n'est envoyé, aucun compte n'est
 // créé (quota du SMTP intégré de Supabase : 2 emails par heure).
@@ -32,8 +33,13 @@ const CODE_REFUSE = 'Code incorrect ou expiré. Vérifiez vos emails ou demandez
 // routes posées ensuite par chaque test passent avant celle-ci (Playwright essaie la dernière
 // route enregistrée en premier).
 test.beforeEach(async ({ page }) => {
+  await simulerTurnstile(page);
   await page.route('**/auth/v1/**', (route) => route.abort());
 });
+
+async function attendreTurnstile(page: Page) {
+  await expect(page.locator('input[name="cf-turnstile-response"]').last()).toHaveValue('jeton-turnstile');
+}
 
 test('inscription complète : prénom, email, consentement, code collé, arrivée sur /noter', async ({ page }) => {
   let demandeOtp: Record<string, unknown> | null = null;
@@ -53,6 +59,7 @@ test('inscription complète : prénom, email, consentement, code collé, arrivé
   await page.goto('/inscription');
   await page.getByLabel('Prénom').fill('Léa');
   await page.getByLabel('Email').fill('  Lea@Exemple.FR ');
+  await attendreTurnstile(page);
   await page.getByRole('button', { name: 'Recevoir mon code' }).click();
   await expect(page.getByText(/accepter la politique de confidentialité/)).toBeVisible();
   expect(demandeOtp).toBeNull();
@@ -64,6 +71,7 @@ test('inscription complète : prénom, email, consentement, code collé, arrivé
   // PKCE : supabase-js ajoute code_challenge et code_challenge_method, tolérés par toMatchObject.
   expect(demandeOtp).toMatchObject({ email: 'lea@exemple.fr', data: { prenom: 'Léa', consentement: true } });
   expect(demandeOtp).toMatchObject({ create_user: true });
+  expect(demandeOtp).toMatchObject({ gotrue_meta_security: { captcha_token: 'jeton-turnstile' } });
 
   await page.getByLabel(/Code/).first().focus();
   await page.keyboard.insertText('123 456');
@@ -88,12 +96,30 @@ test('un code refusé affiche un message clair et laisse réessayer', async ({ p
   await page.getByLabel('Prénom').fill('Léa');
   await page.getByLabel('Email').fill('lea@exemple.fr');
   await page.getByLabel(/J’accepte la politique de confidentialité/).check();
+  await attendreTurnstile(page);
   await page.getByRole('button', { name: 'Recevoir mon code' }).click();
   await page.getByLabel(/Code/).first().focus();
   await page.keyboard.insertText('000000');
   await page.getByRole('button', { name: 'Valider' }).click();
   await expect(page.getByText('Code incorrect ou expiré. Vérifiez vos emails ou demandez un nouveau code.')).toBeVisible();
   await expect(page).toHaveURL(/\/inscription\/code$/);
+});
+
+test('Turnstile indisponible ferme l’envoi OTP avant tout appel Auth', async ({ page }) => {
+  let appelsOtp = 0;
+  await page.route('https://challenges.cloudflare.com/turnstile/v0/api.js*', (route) => route.abort());
+  await page.route('**/auth/v1/otp*', (route) => {
+    appelsOtp += 1;
+    return route.fulfill({ status: 200, body: '{}' });
+  });
+  await page.goto('/inscription');
+  await page.getByLabel('Prénom').fill('Léa');
+  await page.getByLabel('Email').fill('lea@exemple.fr');
+  await page.getByLabel(/J’accepte la politique de confidentialité/).check();
+  await page.getByRole('button', { name: 'Recevoir mon code' }).click();
+  await expect(page.getByText(/vérification anti-robot/i).first()).toBeVisible();
+  expect(appelsOtp).toBe(0);
+  await expect(page).toHaveURL(/\/inscription$/);
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -105,6 +131,7 @@ async function demanderUnCode(page: Page, email = 'lea@exemple.fr') {
   await page.getByLabel('Prénom').fill('Léa');
   await page.getByLabel('Email').fill(email);
   await page.getByLabel(/J’accepte la politique de confidentialité/).check();
+  await attendreTurnstile(page);
   await page.getByRole('button', { name: 'Recevoir mon code' }).click();
 }
 
@@ -205,6 +232,7 @@ test('les erreurs de Supabase sont traduites : trop de demandes, réseau coupé'
   await expect(page.getByText(/rate limit/i)).toHaveCount(0);
 
   reponse = 'reseau';
+  await attendreTurnstile(page);
   await page.getByRole('button', { name: 'Recevoir mon code' }).click();
   await expect(page.getByText('Connexion impossible. Vérifiez votre réseau et réessayez.')).toBeVisible();
   await expect(page).toHaveURL(/\/inscription$/);
@@ -227,6 +255,7 @@ test('un double envoi ne demande qu’un code et ne vérifie qu’une fois (verr
   await page.getByLabel('Prénom').fill('Léa');
   await page.getByLabel('Email').fill('lea@exemple.fr');
   await page.getByLabel(/J’accepte la politique de confidentialité/).check();
+  await attendreTurnstile(page);
   await page.evaluate(() => {
     const form = document.querySelector('main form') as HTMLFormElement;
     form.requestSubmit();
@@ -265,6 +294,7 @@ test('« Renvoyer le code » attend 60 s avec un compte à rebours, puis renvoie
   await page.clock.runFor(43_000);
   const renvoyer = page.getByRole('button', { name: 'Renvoyer le code', exact: true });
   await expect(renvoyer).toBeEnabled();
+  await attendreTurnstile(page);
   await renvoyer.click();
   await expect(page.getByText('Un nouveau code a été envoyé à lea@exemple.fr.')).toBeVisible();
   await expect(page.getByRole('button', { name: /Renvoyer le code dans/ })).toBeDisabled();
@@ -353,7 +383,7 @@ test('accueil, spectateur inscrit : « Vous êtes inscrit, à bientôt dans les 
 
 // Calendrier simulé pour /noter : la page n'a pas de pré-rendu de repli, et une lecture de la vraie
 // base qui dépasse 3 s (tests en parallèle) la laissait sans date. Mouriès vient avant Nîmes : la page
-// doit tout de même annoncer Nîmes (soireeDeReference).
+// annonce Mouriès, la prochaine soirée (soireeDeReference).
 const CALENDRIER = [
   {
     id: 'mouries-2027',
@@ -385,25 +415,27 @@ async function simulerCalendrier(page: Page) {
   );
 }
 
-test('/noter, visiteur, inscriptions fermées : date de Nîmes et « Inscriptions bientôt ouvertes », sans lien', async ({ page }) => {
+test('/noter, visiteur, inscriptions fermées : prochaine date et « Inscriptions bientôt ouvertes », sans lien', async ({ page }) => {
   await simulerCalendrier(page);
   await page.clock.setFixedTime(new Date('2026-10-10T12:00:00+02:00'));
   await page.goto('/noter');
-  await expect(page.getByText(/Les votes ouvriront le vendredi 20 août 2027 à 21h, aux arènes de Nîmes/)).toBeVisible();
+  await expect(page.getByText(/Les votes ouvriront le samedi 1er mai 2027 à 21h, aux arènes André Blanc, à Mouriès/)).toBeVisible();
   await expect(page.getByText(/Bonjour/)).toHaveCount(0);
   await expect(page.getByRole('main').getByText(INSCRIPTIONS_FERMEES, { exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: LIEN_INSCRIPTION })).toHaveCount(0);
   await expect(page.locator('a[href^="/inscription"]')).toHaveCount(0);
 });
 
-test('/noter, spectateur inscrit : « Bonjour Léa » et la date, sans lien d’inscription', async ({ page }) => {
+// La session donne accès au suivi sans faire disparaître la prochaine date d'ouverture.
+test('/noter, spectateur inscrit : « Bonjour Léa », prochaine date et suivi des notes, sans lien d’inscription', async ({ page }) => {
   await ouvrirSession(page);
   await simulerCalendrier(page);
   await page.clock.setFixedTime(new Date('2026-10-10T12:00:00+02:00'));
   await page.goto('/noter');
   const texte = page.getByRole('main').getByText(/Bonjour Léa\./);
   await expect(texte).toBeVisible();
-  await expect(texte).toContainText('Les votes ouvriront le vendredi 20 août 2027 à 21h, aux arènes de Nîmes');
+  await expect(texte).toContainText('Retrouvez les passages proposés et le suivi de vos notes ci-dessous.');
+  await expect(texte).toContainText('Les votes ouvriront le samedi 1er mai 2027 à 21h, aux arènes André Blanc, à Mouriès.');
   await expect(page.getByRole('main').getByRole('link', { name: LIEN_INSCRIPTION })).toHaveCount(0);
   await expect(page.getByText(INSCRIPTIONS_FERMEES)).toHaveCount(0);
 });

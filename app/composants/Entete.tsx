@@ -59,7 +59,7 @@ export function Entete({ generique = false, etat = ETAT_SOIREE }: Props) {
   // la soirée n'y tient plus (débordement mesuré à 1000 px). La date reste sur la carte de l'accueil.
   const pastilleConnecte = connecte ? 'paysage:hidden bureau:inline-flex' : '';
 
-  // Soirée de référence (Nîmes, sinon la prochaine soirée), quand la page affichée porte le
+  // Soirée de référence (la prochaine soirée du calendrier), quand la page affichée porte le
   // calendrier (accueil, puis Dates) : la pastille suit ainsi les mêmes données que la page.
   const donnees = useMatches()
     .map((m) => m.loaderData)

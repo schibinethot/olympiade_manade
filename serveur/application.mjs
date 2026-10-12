@@ -126,11 +126,12 @@ export function hoteSupabase(valeur) {
 function cspPage(empreintes, supabase) {
   return [
     "default-src 'self'",
-    `script-src 'self' ${empreintes.join(' ')}`.trim(),
+    `script-src 'self' https://challenges.cloudflare.com ${empreintes.join(' ')}`.trim(),
     `style-src 'self' ${EMPREINTE_STYLE_VIDE}`,
     "font-src 'self'",
-    `img-src 'self' https://${supabase}`,
-    `connect-src 'self' https://${supabase} wss://${supabase}`,
+    `img-src 'self' data: https://${supabase}`,
+    `connect-src 'self' https://${supabase} wss://${supabase} https://challenges.cloudflare.com`,
+    'frame-src https://challenges.cloudflare.com',
     "object-src 'none'",
     "base-uri 'none'",
     "form-action 'self'",
@@ -342,12 +343,21 @@ function repondre(fichiers, req, res) {
  *   supabase: string,
  *   supervision?: ReturnType<typeof import('./supervision.mjs').creerSupervision>
  *   planningNotation?: ReturnType<typeof import('./planning-notation.mjs').creerPlanningNotation>
+ *   contact?: ReturnType<typeof import('./contact.mjs').creerContact>
  * }} options
  */
-export function creerServeur({ racine, supabase, supervision, planningNotation }) {
+export function creerServeur({ racine, supabase, supervision, planningNotation, contact }) {
   const fichiers = indexer(racine, supabase);
   const serveur = createServer((req, res) => {
     supervision?.observerRequete(req, res);
+    if (contact?.estRoute(req.url)) {
+      contact.repondre(req, res).catch((erreur) => {
+        journaliserErreur('échec du dépôt de contact', erreur);
+        if (!res.headersSent) texteBrut(req, res, 503, 'Formulaire indisponible\n');
+        else res.destroy();
+      });
+      return;
+    }
     if (planningNotation?.estRoute(req.url)) {
       planningNotation.repondre(req, res).catch(() => {
         if (!res.headersSent) texteBrut(req, res, 503, 'Planning indisponible\n', { 'Retry-After': '5' });

@@ -38,6 +38,8 @@ export default function Confidentialite() {
             <li>
               <strong>Formulaire de contact</strong>&nbsp;: prénom, email, message et date d’envoi. Les trois champs du
               formulaire sont obligatoires pour que nous puissions vous répondre.
+              Une vérification anti-robot protège le dépôt. Le serveur utilise temporairement l’adresse de connexion
+              pour limiter les tentatives, sans l’enregistrer avec votre message.
             </li>
             <li>
               <strong>Inscription au vote</strong>&nbsp;: prénom et email, puis un code reçu par email pour vous connecter.
@@ -85,7 +87,7 @@ export default function Confidentialite() {
         </SectionLegale>
 
         <SectionLegale id="traceurs" titre="Traceurs et stockage local">
-          <p>Aucun traceur tiers, aucun cookie publicitaire, aucun outil de mesure d’audience.</p>
+          <p>Aucun cookie publicitaire, aucun outil de mesure d’audience. Les formulaires utilisent Cloudflare Turnstile pour la vérification anti-robot.</p>
           <p>
             Lorsque vous vous inscrivez, une donnée de session est enregistrée dans votre navigateur pour vous reconnaître.
             Elle est strictement nécessaire au service, ne sert à aucun suivi et est supprimée à votre déconnexion.
@@ -107,6 +109,11 @@ export default function Confidentialite() {
             </li>
             <li>
               <strong>Railway</strong>&nbsp;: hébergement du site.
+            </li>
+            <li>
+              <strong>Cloudflare Turnstile</strong>&nbsp;: vérification anti-robot des formulaires de connexion et de contact.
+              Pour le contact, le serveur lui transmet le résultat de la vérification et l’adresse de connexion,
+              sans le prénom, l’email ni le contenu du message.
             </li>
             <li>
               <strong>Brevo</strong>&nbsp;: envoi des emails, prévu pour remplacer le service d’email de Supabase.

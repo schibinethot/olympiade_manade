@@ -113,14 +113,21 @@ describe('soireeDeReference', () => {
     soiree('2027-08-27', 'Raphèle-lès-Arles'),
   ];
 
-  it('vise la prochaine soirée de Nîmes, même si d’autres soirées viennent avant', () => {
-    expect(soireeDeReference(calendrier, new Date('2026-10-10T12:00:00+02:00'))?.ville).toBe('Nîmes');
-    expect(soireeDeReference(calendrier, new Date('2027-08-18T12:00:00+02:00'))?.date_soiree).toBe('2027-08-20');
+  it('vise la prochaine soirée du calendrier, toutes villes confondues', () => {
+    expect(soireeDeReference(calendrier, new Date('2026-10-10T12:00:00+02:00'))?.ville).toBe('Arles');
+    expect(soireeDeReference(calendrier, new Date('2027-08-18T12:00:00+02:00'))?.ville).toBe('Mouriès');
   });
 
-  it('revient à la prochaine soirée tous événements confondus quand Nîmes n’a plus de date', () => {
+  it('passe à la soirée suivante, confirmée ou prévisionnelle, une fois la précédente passée', () => {
+    expect(soireeDeReference(calendrier, new Date('2027-05-02T12:00:00+02:00'))?.ville).toBe('Mouriès');
+    expect(soireeDeReference(calendrier, new Date('2027-08-20T12:00:00+02:00'))?.ville).toBe('Nîmes');
     expect(soireeDeReference(calendrier, new Date('2027-08-23T12:00:00+02:00'))?.ville).toBe('Raphèle-lès-Arles');
     expect(soireeDeReference(calendrier, new Date('2027-09-01T12:00:00+02:00'))).toBeNull();
+  });
+
+  it('ignore une soirée annulée', () => {
+    const avecAnnulee = [soiree('2027-05-01', 'Arles', { statut: 'annulee' }), ...calendrier.slice(1)];
+    expect(soireeDeReference(avecAnnulee, new Date('2026-10-10T12:00:00+02:00'))?.ville).toBe('Mouriès');
   });
 });
 

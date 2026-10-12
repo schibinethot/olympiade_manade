@@ -1,4 +1,4 @@
-import { expect, test, type Page, type Response } from '@playwright/test';
+import { expect, test, type Page, type Response } from '../outils/test-e2e';
 
 // Premier chargement des pages vitrine (Task 8) : leurs données sont dans le pré-rendu, Supabase
 // (environ 55 Ko gzip) n'est donc ni chargé ni appelé au premier affichage. La relecture des
@@ -64,7 +64,7 @@ test('après la première interaction, l’accueil relit Supabase et affiche les
 
   await page.goto('/', { waitUntil: 'networkidle' });
   const carte = page.getByRole('region', { name: 'Notez les Olympiades' });
-  await expect(carte).toContainText('vendredi 20 août 2027');
+  await expect(carte).toContainText('samedi 1er mai 2027');
   expect(lectures).toEqual([]);
 
   await page.keyboard.press('Tab');

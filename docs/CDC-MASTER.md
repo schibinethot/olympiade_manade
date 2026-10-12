@@ -1,6 +1,6 @@
 # Cahier des charges : app de notation de l'Olympiade des manades
 
-> Version 0.10 (brouillon) · 2026-10-11 · Statut : **à valider** · Design validé : [charte graphique](charte-graphique.md) et [maquette v1](maquette/README.md)
+> Version 0.11 (brouillon consolidé) · 2026-10-12 · Statut : **à valider** · Design validé : [charte graphique](charte-graphique.md) et [maquette v1](maquette/README.md)
 > Document de référence du projet. Toute fonctionnalité livrée doit s'y rattacher.
 
 ---
@@ -15,6 +15,15 @@ Créer **le site web et l'app Android de l'Olympiade des manades**, avec deux us
 **Canaux** : le public passe par le **site web**. L'**app Android** sert d'abord à l'interne (admins et juges), et peut être ouverte au public par un simple réglage (section 3.1).
 
 **Critère de succès global** : une soirée réelle se déroule de bout en bout dans l'app (import du planning, votes, classement final) sans intervention technique pendant l'événement.
+
+### 1.1 Livrable actuel et cible
+
+**Livrable actuel : vitrine hors soirée.** Les pages publiques et les règles SQL sont présentes ; le parcours de soirée complet est une cible de développement, pas une capacité livrée. L’inscription publique et la file de notes restent fermées par défaut. L’état d’avancement vérifiable figure au §9.1.
+
+**Référentiel de notation unique pour le code actuel :** public de 1 à 10 (entier), jury sur 10 ou 20 (demi-points), trois modes de classement et deux méthodes d’agrégation décrits au §4.6. Les options par critères, coefficients par épreuve, favoris ou étoiles pour noter un passage restent des pistes historiques hors de cette implémentation. Les étoiles de l’avis global de soirée (§4.9) sont un usage distinct. Le poids jury de 70 % est un défaut logiciel, pas un règlement sportif officiel ; le mode séparé reste le défaut.
+
+**Conditions avant une soirée pilote :** identifier la soirée et l’organisateur (§10), réaliser préparation/cockpit, calculs de classement et jury, vérifier la sécurité Auth/contact, configurer l’email et assurer l’exercice des droits sur les données. Le calendrier éditorial multi-villes ne signifie pas que toutes ces dates utilisent l’app de notation.
+
 
 ---
 
@@ -356,6 +365,8 @@ Après la fermeture des votes, le spectateur peut laisser une **note globale de 
 - sont visibles uniquement par les admins (note moyenne, nombre d'avis, liste des commentaires), donc sans modération publique
 - sont limités à un avis par spectateur et par soirée
 
+La base ouvre les avis d’une soirée `publiee` ou `en_cours` après `vote_fin` en mode libre. En mode déblocage, elle attend la clôture de tous les passages notés (au moins un), car l’heure de fin seule ne ferme pas les votes. Le statut `terminee` ouvre aussi les avis ; `brouillon`, `reportee` et `annulee` les ferment.
+
 ### 4.10 Notifications sur le téléphone
 
 - **Quand** : à chaque déblocage d'un passage ou d'une épreuve (mode déblocage), à l'ouverture de la fenêtre de vote (mode libre) et à la révélation du classement
@@ -559,14 +570,31 @@ Une file absorbe les pics et permet les reprises ; elle ajoute des écritures et
 | 9 | App Android : coque Capacitor, notifications FCM, réglage d'ouverture au public, publication Google Play (test interne) | 2,5 j |
 | | **Total** | **≈ 19 jours** |
 
-### 9.1 État au 11/10/2026
+### 9.1 État du dépôt au 12/10/2026
 
 | Lot | État |
 |---|---|
-| 0 | **En grande partie fait.** Schéma, règles de vote, RLS et tests en place sur Supabase (8 migrations sur 9 appliquées ; reste le plafond du contact). Code email à 6 chiffres configuré. Reste : SMTP Brevo, Turnstile, liens de connexion des juges, second facteur admin, droits explicites `service_role` sur les 10 tables du socle (avant le 30/10/2026). PR #1 ouverte, non fusionnée |
-| 7 | **En ligne** sur `olympiademanade-production.up.railway.app`, depuis la branche `feat/lot-vitrine` (empilée sur la PR #1). Lighthouse mobile 93 à 94 en performance, 100 en accessibilité, mesuré sur le build local (critère 12). Inscription construite mais fermée par le drapeau. Reste : envoi du contact par email (critère 13), données structurées `Event` de la page Dates, Turnstile du contact |
-| 1 à 6, 8, 9 | Non commencés |
-| Supervision | Code ajouté sur `feat/supervision-charge` : connexion admin, écran statistiques, présence et historique serveur. Migration et variables à déployer ; capacité 5 000 non certifiée (voir audit) |
+| 0 | **Socle présent.** Schéma, règles et RLS testés, Auth email et connexion admin. Correctifs captcha et AAL2 à appliquer avec la configuration hébergée. Consentement horodaté à la confirmation email dans la nouvelle migration. SMTP, purge des comptes non confirmés et liens juges restent à terminer avant ouverture. |
+| 1 | **Non commencé côté interface.** Pas de préparation des soirées, d’annuaire administrable, de gestion du planning ou des contenus. |
+| 2 | **Partiel.** `/noter`, file IndexedDB/PostgreSQL, reçus et reprise présents ; traitement serveur désactivé par défaut. Reste : état réel sur l’accueil, instantané des résultats, calculs de classement, avis et suppression de compte. |
+| 3, 4, 5 | **Non commencés côté interface.** Import IA, saisie jury, cockpit et écran géant absents. Les règles SQL du jury existent. |
+| 6 | **Partiel.** Tests unitaires, SQL et E2E de la vitrine/file/supervision présents. PWA, parcours complet de soirée, recette terrain et charge hébergée 5 000/7 500 restent à faire. |
+| 7 | **Vitrine présente.** Accueil, palmarès éditorial, dates et pages légales. Contact enregistré en base via une API protégée, sans email organisateur. Configuration Turnstile requise ; les coordonnées légales et les données structurées `Event` restent à compléter. |
+| 8, 9 | **Non commencés.** Notifications et application Android absentes. |
+| Supervision | **Code présent.** `/admin` et `/admin/statistiques`, présence et historique. AAL2 exigé pour les accès administratifs. L’état du déploiement est à vérifier séparément du dépôt. |
+
+Les audits du 12/10/2026 dans `documentation/` sont des constats antérieurs aux corrections ; leurs résultats de tests ne remplacent pas une recette du nouveau build. La production Railway observée dans l’audit servait encore un ancien build sans `/admin` ; les onze migrations antérieures aux correctifs du 12/10 sont présentes dans le projet Supabase lié, vérifié par `supabase migration list --linked`.
+
+### 9.2 Travaux restant nécessaires pour la cible soirée
+
+1. Préparation admin, cockpit et état public reliés à une soirée réelle.
+2. Calculs de classement, visibilité et figage à la clôture ; jeu de recette Alès et traitement des égalités.
+3. Parcours jury, avis et écran géant.
+4. Suppression de compte et purge, avec conservation de résultats agrégés figés.
+5. Email contact organisateur, SMTP Auth et coordonnées légales effectives.
+6. Notifications, PWA et validation de charge avant une soirée publique.
+
+Ces travaux ne sont pas réputés livrés par le durcissement de la vitrine.
 
 ---
 

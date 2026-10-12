@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from '../outils/test-e2e';
 
 /** Lien « Dates » de la navigation, derrière le bouton « Menu » sur téléphone. */
 async function ouvrirDates(page: Page) {

@@ -14,6 +14,7 @@ import { delaiRestant, useOtpCooldown } from '../lib/useOtpCooldown';
 import { BOUTON_PRINCIPAL } from './FormulaireInscription';
 import { Icone } from './Icone';
 import { SaisieCode } from './SaisieCode';
+import { VerificationHumaine } from './VerificationHumaine';
 
 type Etat = 'repos' | 'verification' | 'renvoi';
 
@@ -35,6 +36,8 @@ export function FormulaireCode({ demande }: { demande: DemandeCode }) {
   const [etat, setEtat] = useState<Etat>('repos');
   const [erreur, setErreur] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [reinitialisationCaptcha, setReinitialisationCaptcha] = useState(0);
   const verrou = useRef(false);
   const { cooldownSeconds, isOnCooldown, startCooldown } = useOtpCooldown();
 
@@ -75,12 +78,16 @@ export function FormulaireCode({ demande }: { demande: DemandeCode }) {
 
   async function renvoyer() {
     if (verrou.current || isOnCooldown) return;
+    if (!captchaToken) {
+      setErreur('Validez la vérification anti-robot avant de renvoyer un code.');
+      return;
+    }
     verrou.current = true;
     setEtat('renvoi');
     setErreur(null);
     setInfo(null);
     try {
-      await demanderCode(demande.prenom, demande.email);
+      await demanderCode(demande.prenom, demande.email, captchaToken);
       memoriserDemande({ ...demande, envoyeeLe: Date.now() });
       startCooldown();
       setInfo(`Un nouveau code a été envoyé à ${demande.email}.`);
@@ -89,6 +96,8 @@ export function FormulaireCode({ demande }: { demande: DemandeCode }) {
     } finally {
       setEtat('repos');
       verrou.current = false;
+      setCaptchaToken(null);
+      setReinitialisationCaptcha((valeur) => valeur + 1);
     }
   }
 
@@ -138,6 +147,12 @@ export function FormulaireCode({ demande }: { demande: DemandeCode }) {
 
       {/* Maquette : .ins-meta */}
       <div className="grid gap-0.5 text-[12.5px] leading-snug">
+        <VerificationHumaine
+          action="renvoi-code"
+          reinitialisation={reinitialisationCaptcha}
+          onJetonChange={setCaptchaToken}
+          classe="mb-2"
+        />
         <div className="flex flex-wrap items-center justify-between gap-x-2.5">
           <button
             type="button"

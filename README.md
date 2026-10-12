@@ -1,18 +1,40 @@
 # Olympiade Manade
 
-Projet d’application pour suivre plusieurs Olympiades de manades, saisir les notes du jury, calculer les classements et recueillir les notes et avis du public.
+Le livrable actuel est une **vitrine hors soirée** : accueil, programme, palmarès éditorial et contact. Le dépôt contient aussi le socle SQL/RLS, une saisie de notes avec file durable désactivée par défaut et une administration de supervision. Il ne permet pas encore de piloter une soirée complète.
 
-Le cadrage retient une notation configurable par événement et par épreuve : note globale, critères personnalisés, points, places et votes du public. Les critères et barèmes seront définis par les organisateurs ; les résultats du jury et du public resteront identifiables séparément.
+Le [CDC de référence](docs/CDC-MASTER.md) distingue ce livrable de la cible « app de soirée ». Le modèle implémenté en base est celui du CDC : **note publique entière de 1 à 10**, jury sur **10 ou 20** par demi-point, résultats séparés ou combinés et agrégation par moyenne ou points de place. Le moteur de classement et ses écrans restent à construire. Les critères personnalisés, étoiles/favoris pour les passages et coefficients par épreuve décrits dans la recherche ne font pas partie de cette implémentation.
 
-La [recherche et le cadrage fonctionnel](docs/recherche-olympiades.md) recensent les épreuves documentées, les sources, les informations à collecter et les règles de notation restant à confirmer.
+La [recherche historique](docs/recherche-olympiades.md) conserve les sources et les pistes explorées ; elle ne constitue pas une seconde spécification. Le nom officiel, la soirée pilote et les coordonnées de l’organisateur restent à confirmer dans le CDC §10.
+
+Les inscriptions publiques et le traitement des notes restent fermés. Le captcha, la configuration Auth hébergée, le SMTP et la recette de la soirée doivent être validés avant leur ouverture. Les fichiers du dépôt ne prouvent pas que la configuration Supabase ou le déploiement Railway sont à jour.
+
+## Configuration des corrections de sécurité
+
+Copier `.env.example` vers `.env.local` pour les essais ; les secrets restent hors de Git et hors des variables `VITE_`.
+
+- `VITE_TURNSTILE_SITE_KEY` : clé publique au build pour les formulaires OTP, connexion admin et contact.
+- `TURNSTILE_SECRET_KEY` : secret côté serveur pour le contact et côté Supabase Auth via `[auth.captcha]`. La configuration Auth exige ce secret ; son absence ne doit jamais conduire à désactiver le captcha.
+- `SUPABASE_SERVICE_ROLE_KEY` : clé serveur pour le contact et les traitements internes. Sans configuration complète, le contact refuse les dépôts.
+- `CONTACT_ORIGIN` : origine exacte du site (schéma et domaine), contrôlée avec l’origine de la requête et le domaine renvoyé par Turnstile. `CONTACT_TRUST_PROXY` reste faux sauf si l’ingress garantit un en-tête d’adresse fiable.
+- `VITE_INSCRIPTION_OUVERTE=false` et `FILE_NOTES_ACTIVE=false` : conserver ces valeurs pour la vitrine. `enable_signup=false` ferme aussi les créations de compte dans Auth ; le drapeau Vite seul ne protège pas son API.
+
+Appliquer les nouvelles migrations après recette SQL : AAL2 admin et consentement à la confirmation email, fermeture des insertions directes du contact, annuaire et règle d’ouverture des avis. Les admins doivent configurer leur application TOTP sur `/admin`, puis vérifier le code avant d’accéder à la supervision. Un rôle admin avec une session AAL1 ne suffit plus, y compris en appel direct à la base.
+
+Avant déploiement, vérifier le diff Auth avec `scripts/supabase-config-diff.exp` dans un environnement disposant du secret Turnstile, puis appliquer la configuration cible. Le contact requiert aussi la configuration du domaine autorisé dans Turnstile. Le serveur Vite de développement ne fournit pas `/api/contact` : utiliser le build avec `pnpm start` pour ce parcours.
+
+Le contrôle de santé Railway utilise `/admin` pour refuser un build qui ne sert pas cette route. La mise à jour du dépôt n’entraîne pas à elle seule un déploiement ; vérifier après publication les réponses HTTP de `/admin` et `/admin/statistiques` ainsi que le refus des API administratives sans session AAL2.
+
+Le contact conserve les messages en base. L’envoi d’un email à l’organisateur, l’effacement des comptes et la purge de rétention restent à mettre en place avant de les annoncer comme disponibles. L’adresse destinataire et la configuration SMTP ne sont pas renseignées dans le dépôt.
+
+Recette locale du 12 octobre 2026 : `pnpm test` **306/306**, TypeScript sans erreur, Playwright **214 réussis et 2 ignorés**, build réussi. Les tests navigateur simulent Supabase Auth et Turnstile ; ils ne valident pas le SMTP ni les clés du projet hébergé. Les modifications et les quatre nouvelles migrations ne sont pas déployées : les routes `/admin` et `/admin/statistiques` de la production répondent encore 404. La publication attend la configuration des services ; aucune inscription ni file de notes n’a été ouverte.
 
 ## Supervision et capacité
 
-L'administration est accessible depuis le pied de page ou `/admin`, avec le mot de passe d'un compte existant dont le profil est `admin`. L'écran `/admin/statistiques` montre les comptes actifs, les notes enregistrées, la base, les erreurs, les transferts et les ressources du serveur, avec historique et export CSV. Les accès sont contrôlés dans l'API et dans PostgreSQL.
+L'administration est accessible depuis le pied de page ou `/admin`, avec le mot de passe et un second facteur TOTP d'un compte existant dont le profil est `admin`. L'écran `/admin/statistiques` montre les comptes actifs, les notes enregistrées, la base, les erreurs, les transferts et les ressources du serveur, avec historique et export CSV. Les accès sont contrôlés dans l'API et dans PostgreSQL.
 
 La cible de **5 000 personnes simultanées n'est pas certifiée**. Voir l'[audit de capacité](docs/audit-charge-5000.md), les mesures locales et les scénarios de préproduction à 5 000 puis 7 500 votants.
 
-La [file durable des notes](docs/file-notes.md) relie maintenant `/noter` au stockage local IndexedDB puis à une file PostgreSQL traitée par petits lots. La supervision montre son attente et les traitements actifs. Il faut appliquer sa migration et l'activer explicitement ; une note « reçue » reste distincte d'une note « enregistrée ».
+La [file durable des notes](docs/file-notes.md) relie maintenant `/noter` au stockage local IndexedDB puis à une file PostgreSQL traitée par petits lots. La supervision montre son attente et les traitements actifs. Il faut appliquer ses migrations et l'activer explicitement avec `FILE_NOTES_ACTIVE=true` ; une note « reçue » reste distincte d'une note « enregistrée ».
 
 Pour lancer la version avec supervision :
 
@@ -39,4 +61,4 @@ pnpm exec playwright test tests/e2e/supervision.spec.ts
 node scripts/charge/benchmark-local.mjs
 ```
 
-Le [dossier fonctionnel illustré en PDF](output/pdf/olympiade-des-manades-dossier-fonctionnel-illustre.pdf) présente les fonctions et les parcours en 27 pages, avec les maquettes, les options de notation, les exemples de calcul et les critères de recette. Version du 11 octobre 2026 ; les écrans montrent des données de démonstration.
+Le [dossier illustré du 11 octobre 2026](docs/pdf/olympiade-des-manades-dossier-fonctionnel-illustre.pdf) est une archive de conception : ses maquettes et options de notation ne décrivent pas l’état livré. Pour le périmètre et l’avancement actuels, consulter le CDC §1.1 et §9.1.

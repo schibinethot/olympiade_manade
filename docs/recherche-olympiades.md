@@ -2,7 +2,9 @@
 
 Recherche effectuée le 10 octobre 2026. Ce document prépare l’application ; il ne constitue pas un règlement sportif officiel.
 
-## Périmètre confirmé
+> **Archive de recherche — mise au point du 12/10/2026.** Les options ci-dessous retracent le cadrage exploratoire. Le [CDC](CDC-MASTER.md), notamment §1.1 et §9.1, décrit le modèle implémenté et les fonctions restant à livrer. Les critères personnalisés et barèmes par épreuve ne sont pas des capacités du produit actuel.
+
+## Périmètre exploré initialement
 
 L’application doit couvrir plusieurs manades et événements, permettre la saisie des scores et le calcul des classements, et recueillir les notes et avis des participants ou spectateurs. Ces orientations ont été confirmées par l’utilisateur.
 

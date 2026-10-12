@@ -80,7 +80,7 @@ describe('statistiques administrateur', () => {
       await commeVisiteur(db);
       expect(await doitEtreRefuse(db, `select public.lire_supervision(1)`)).toBe('42501');
 
-      await commeUtilisateur(db, IDS.admin);
+      await commeUtilisateur(db, IDS.admin, 'aal2');
       const snapshot = (await db.query(`select public.lire_supervision(1) as valeur`)).rows[0].valeur;
       expect(snapshot.activeUsers.profilesTotal).toBe(6);
       expect(snapshot.activeUsers.authenticatedLast2m).toBe(0);
@@ -116,7 +116,7 @@ describe('statistiques administrateur', () => {
         );
       }
 
-      await commeUtilisateur(db, IDS.admin);
+      await commeUtilisateur(db, IDS.admin, 'aal2');
       const snapshot = (await db.query(`select public.lire_supervision(1) as valeur`)).rows[0].valeur;
       expect(snapshot.activeUsers.authenticatedLast2m).toBe(1);
       expect(snapshot.serverHistory).toHaveLength(1);
@@ -172,7 +172,7 @@ describe('statistiques administrateur', () => {
       expect((await db.query(`select count(*)::int as n from public.supervision_serveur_minutes`)).rows[0].n).toBe(1);
       expect((await db.query(`select count(*)::int as n from public.presences_authentifiees`)).rows[0].n).toBe(0);
 
-      await commeUtilisateur(db, IDS.admin);
+      await commeUtilisateur(db, IDS.admin, 'aal2');
       expect(await doitEtreRefuse(db, `select * from public.supervision_serveur_minutes`)).toBe('42501');
       expect(await doitEtreRefuse(db, `select public.nettoyer_metriques_serveur()`)).toBe('42501');
       expect(

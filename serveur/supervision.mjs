@@ -97,6 +97,22 @@ function bearer(req) {
 }
 
 /**
+ * Lit uniquement le niveau AAL. La valeur n'est utilisée qu'après validation du même jeton par
+ * `/auth/v1/user` ; cette fonction ne remplace donc jamais une vérification de signature.
+ * @param {string} jeton
+ */
+export function niveauAal(jeton) {
+  const partie = jeton.split('.')[1];
+  if (!partie) return null;
+  try {
+    const charge = JSON.parse(Buffer.from(partie, 'base64url').toString('utf8'));
+    return charge?.aal === 'aal2' ? 'aal2' : charge?.aal === 'aal1' ? 'aal1' : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * @param {import('node:http').IncomingMessage} req
  * @param {import('node:http').ServerResponse} res
  * @param {number} statut
@@ -391,6 +407,9 @@ export function creerSupervision(options = {}) {
       if (!utilisateur || typeof utilisateur.id !== 'string') {
         return repondreJson(req, res, 401, { error: 'invalid_token' });
       }
+      // `/auth/v1/user` vient d'authentifier la signature et l'expiration du jeton. Un rôle admin
+      // ne suffit pas : l'API hors PostgREST applique la même exigence AAL2 que les politiques RLS.
+      if (niveauAal(token) !== 'aal2') return repondreJson(req, res, 403, { error: 'mfa_required' });
 
       let admin = false;
       try {

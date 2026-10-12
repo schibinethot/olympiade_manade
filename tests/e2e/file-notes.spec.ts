@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from '../outils/test-e2e';
 
 const COMPTE = '00000000-0000-4000-8000-00000000000d';
 const PASSAGE = '40000000-0000-4000-8000-00000000000a';

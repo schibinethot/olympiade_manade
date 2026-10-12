@@ -105,12 +105,30 @@ export async function lirePalmares(signal?: AbortSignal): Promise<Palmares[]> {
 }
 
 /**
- * Dépôt d'un message de contact. Insertion seule, sans .select() : la base ne donne pas à anon le
- * droit de relire la table, et supabase-js n'envoie alors que « return=minimal ».
+ * Dépôt d'un message de contact via le serveur du site. La clé service_role et la validation
+ * Turnstile restent côté Railway ; le navigateur ne contacte jamais directement messages_contact.
  */
-export async function envoyerMessageContact(champs: ChampsContact): Promise<void> {
-  const { error } = await (await client()).from('messages_contact').insert(champs);
-  if (error) throw new ErreurDonnees(`Message non enregistré : ${error.message}`);
+export async function envoyerMessageContact(champs: ChampsContact, turnstileToken: string | null, siteWeb: string): Promise<void> {
+  const controleur = new AbortController();
+  const minuterie = setTimeout(() => controleur.abort(), 10_000);
+  try {
+    const reponse = await fetch('/api/contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      signal: controleur.signal,
+      body: JSON.stringify({ ...champs, site_web: siteWeb, turnstileToken: turnstileToken ?? '' }),
+    });
+    if (!reponse.ok) {
+      const corps = await reponse.json().catch(() => null);
+      throw new ErreurDonnees(typeof corps?.error === 'string' ? corps.error : 'Message non enregistré.');
+    }
+  } catch (erreur) {
+    if (erreur instanceof ErreurDonnees) throw erreur;
+    throw new ErreurDonnees('Message non enregistré.');
+  } finally {
+    clearTimeout(minuterie);
+  }
 }
 
 /**

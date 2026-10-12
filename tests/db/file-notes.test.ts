@@ -293,7 +293,7 @@ describe('file durable des notes publiques', () => {
       await traiter(db);
       await commeUtilisateur(db, IDS.spectateur);
       expect(await doitEtreRefuse(db, `select public.lire_statistiques_file_notes()`)).toBe('42501');
-      await commeUtilisateur(db, IDS.admin);
+      await commeUtilisateur(db, IDS.admin, 'aal2');
       expect((await db.query(`select public.lire_statistiques_file_notes() as stats`)).rows[0].stats)
         .toMatchObject({ queued: 0, confirmedLast5m: 1, workersActive: 1 });
     }));

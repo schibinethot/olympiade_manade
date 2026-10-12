@@ -1,4 +1,4 @@
-import { $ as demandeValide, A as SaisonAccueil, B as TEXTE_INSCRIPTIONS_FERMEES, C as anneesClassements, D as lireDonneesVitrineNavigateur, E as lireDonneesVitrine, F as Epreuves, G as TitrePage, H as CreditAffiche, I as EPREUVES, J as Icone, K as PiedDePage, L as DernierVainqueur, M as FormulaireContact, N as lireCalendrier, O as donneesRelues, P as lireOuRepli, Q as demandeEnCours, R as BlocNoter, S as anneeChoisie, T as DELAI_LECTURE_NAVIGATEUR_MS, U as SuiviNotes, V as Affiche, W as SuiviPresence, X as useMaintenant, Y as useSession, Z as ETAT_SOIREE, _ as ONGLET_ACTIF, a as useAccesAdmin, at as oublierDemande, b as idOnglet, c as CorpsLegal, ct as verifierCode, d as SectionLegale, dt as momentSoiree, et as demanderCode, f as noteProjections, ft as prochaineSoireeA, g as CLASSE_ONGLET, h as useHydrate, ht as VILLE_AFFICHE, i as octets, it as normaliserEmail, j as ManadesEdition, k as useRelectureApresInteraction, l as EncadreOrganisateur, lt as supabase, m as CarteDate, mt as jourParis, n as latence, nt as memoriserDemande, o as NotationPublic, ot as traduireErreurAuth, p as sectionsDates, pt as soireeDeReference, q as Entete, r as nombre, rt as normaliserCode, s as CreditsPhotos, st as validerInscription, t as exporterMesures, tt as formaterDecompte, u as LIEN_TEXTE, ut as formaterJourMois, v as ONGLET_INACTIF, w as resultatsAnnee, x as CarteResultat, y as OngletsAnnee, z as INSCRIPTION_OUVERTE } from "./assets/app-DRsXX6hm.js";
+import { $ as ETAT_SOIREE, A as SaisonAccueil, B as INSCRIPTION_OUVERTE, C as anneesClassements, D as lireDonneesVitrineNavigateur, E as lireDonneesVitrine, F as lireOuRepli, G as SuiviNotes, H as Affiche, I as Epreuves, J as PiedDePage, K as SuiviPresence, L as EPREUVES, M as FormulaireContact, N as VerificationHumaine, O as donneesRelues, P as lireCalendrier, Q as useMaintenant, R as DernierVainqueur, S as anneeChoisie, T as DELAI_LECTURE_NAVIGATEUR_MS, U as CreditAffiche, V as TEXTE_INSCRIPTIONS_FERMEES, W as VILLE_AFFICHE, X as Icone, Y as Entete, Z as useSession, _ as ONGLET_ACTIF, _t as prochaineSoireeA, a as useAccesAdmin, at as demanderCode, b as idOnglet, c as CorpsLegal, ct as normaliserCode, d as SectionLegale, dt as traduireErreurAuth, et as MESSAGES_AUTH, f as noteProjections, ft as validerInscription, g as CLASSE_ONGLET, gt as momentSoiree, h as useHydrate, ht as formaterJourMois, i as octets, it as demandeValide, j as ManadesEdition, k as useRelectureApresInteraction, l as EncadreOrganisateur, lt as normaliserEmail, m as CarteDate, mt as verifierTotp, n as latence, nt as connecterAdmin, o as NotationPublic, ot as formaterDecompte, p as sectionsDates, pt as verifierCode, q as TitrePage, r as nombre, rt as demandeEnCours, s as CreditsPhotos, st as memoriserDemande, t as exporterMesures, tt as commencerEnrolementTotp, u as LIEN_TEXTE, ut as oublierDemande, v as ONGLET_INACTIF, vt as soireeDeReference, w as resultatsAnnee, x as CarteResultat, y as OngletsAnnee, yt as jourParis, z as BlocNoter } from "./assets/app-BxgrYNC9.js";
 import { Link, Links, Meta, Navigate, Outlet, Scripts, ScrollRestoration, ServerRouter, UNSAFE_withComponentProps, UNSAFE_withErrorBoundaryProps, UNSAFE_withHydrateFallbackProps, isRouteErrorResponse, useLocation, useNavigate, useSearchParams } from "react-router";
 import { isbot } from "isbot";
 import { renderToReadableStream } from "react-dom/server";
@@ -50,7 +50,7 @@ async function handleRequest(request, responseStatusCode, responseHeaders, route
 }
 //#endregion
 //#region app/app.css?url
-var app_default = "/assets/app-COfw4lFa.css";
+var app_default = "/assets/app-Sv8rRJ25.css";
 //#endregion
 //#region app/root.tsx
 var root_exports = /* @__PURE__ */ __exportAll({
@@ -217,11 +217,11 @@ var accueil_default = UNSAFE_withComponentProps(function Accueil({ loaderData })
 					/* @__PURE__ */ jsx("h2", {
 						id: "titre-contact",
 						className: "font-display text-[21px] leading-[1.2] font-bold",
-						children: "Une question\xA0?"
+						children: "Infos & dates"
 					}),
 					/* @__PURE__ */ jsx("p", {
 						className: "mt-1.5 text-[14px] text-encre-2",
-						children: "Une manade à inscrire, une photo à proposer\xA0: l’organisation vous répond."
+						children: "Infos, dates, une manade à inscrire, une photo à proposer\xA0: écrivez à l’organisation, elle vous répond."
 					}),
 					/* @__PURE__ */ jsx(FormulaireContact, {})
 				]
@@ -615,13 +615,13 @@ var contact_exports = /* @__PURE__ */ __exportAll({
 });
 var meta$8 = () => [{ title: "Contact · Olympiade des Manades" }, {
 	name: "description",
-	content: "Une question, une manade à inscrire, une photo à proposer : écrivez à l’organisation."
+	content: "Infos, dates, une manade à inscrire, une photo à proposer : écrivez à l’organisation."
 }];
 var contact_default = UNSAFE_withComponentProps(function Contact() {
 	return /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx(TitrePage, {
-		surtitre: "Une question ?",
+		surtitre: "Infos & dates",
 		titre: "Contact",
-		children: /* @__PURE__ */ jsx("p", { children: "Une manade à inscrire, une photo à proposer\xA0: l’organisation vous répond." })
+		children: /* @__PURE__ */ jsx("p", { children: "Infos, dates, une manade à inscrire, une photo à proposer\xA0: écrivez à l’organisation, elle vous répond." })
 	}), /* @__PURE__ */ jsx("div", {
 		className: "px-4 pt-5 tablette:px-7 paysage:px-10 bureau:px-14",
 		children: /* @__PURE__ */ jsxs("section", {
@@ -783,7 +783,7 @@ var confidentialite_default = UNSAFE_withComponentProps(function Confidentialite
 			titre: "Données collectées",
 			children: /* @__PURE__ */ jsxs("ul", { children: [
 				/* @__PURE__ */ jsxs("li", { children: [/* @__PURE__ */ jsx("strong", { children: "Visiteurs du site" }), "\xA0: nos hébergeurs traitent des données techniques de connexion (adresse IP, date et heure, pages demandées, type de navigateur) pour assurer le fonctionnement et la sécurité du site. Le serveur conserve aussi des compteurs techniques agrégés (requêtes, erreurs, volume de données et temps de réponse), sans adresse IP ni historique individuel de navigation dans ces compteurs. Nous n’utilisons aucun outil de mesure d’audience publicitaire. Base légale\xA0: intérêt légitime à sécuriser le service (art. 6(1)(f) RGPD). Durée\xA0: celle fixée par chaque hébergeur pour ses journaux techniques."] }),
-				/* @__PURE__ */ jsxs("li", { children: [/* @__PURE__ */ jsx("strong", { children: "Formulaire de contact" }), "\xA0: prénom, email, message et date d’envoi. Les trois champs du formulaire sont obligatoires pour que nous puissions vous répondre."] }),
+				/* @__PURE__ */ jsxs("li", { children: [/* @__PURE__ */ jsx("strong", { children: "Formulaire de contact" }), "\xA0: prénom, email, message et date d’envoi. Les trois champs du formulaire sont obligatoires pour que nous puissions vous répondre. Une vérification anti-robot protège le dépôt. Le serveur utilise temporairement l’adresse de connexion pour limiter les tentatives, sans l’enregistrer avec votre message."] }),
 				/* @__PURE__ */ jsxs("li", { children: [/* @__PURE__ */ jsx("strong", { children: "Inscription au vote" }), "\xA0: prénom et email, puis un code reçu par email pour vous connecter."] }),
 				/* @__PURE__ */ jsxs("li", { children: [/* @__PURE__ */ jsx("strong", { children: "Disponibilité du service" }), "\xA0: lorsque vous êtes connecté et que l’application est visible, un signal périodique met à jour la dernière activité de votre compte pour estimer le nombre de comptes actifs. Il ne contient ni la page visitée, ni l’adresse IP, ni le contenu de vos notes. Seuls les administrateurs peuvent consulter les statistiques agrégées."] })
 			] })
@@ -815,7 +815,7 @@ var confidentialite_default = UNSAFE_withComponentProps(function Confidentialite
 			id: "traceurs",
 			titre: "Traceurs et stockage local",
 			children: [
-				/* @__PURE__ */ jsx("p", { children: "Aucun traceur tiers, aucun cookie publicitaire, aucun outil de mesure d’audience." }),
+				/* @__PURE__ */ jsx("p", { children: "Aucun cookie publicitaire, aucun outil de mesure d’audience. Les formulaires utilisent Cloudflare Turnstile pour la vérification anti-robot." }),
 				/* @__PURE__ */ jsx("p", { children: "Lorsque vous vous inscrivez, une donnée de session est enregistrée dans votre navigateur pour vous reconnaître. Elle est strictement nécessaire au service, ne sert à aucun suivi et est supprimée à votre déconnexion." }),
 				/* @__PURE__ */ jsx("p", { children: "Vos notes en attente d’envoi sont conservées sur cet appareil pour reprendre en cas de coupure, séparément pour chaque compte. Elles sont envoyées lorsque vous revenez sur le site avec le même compte et une connexion. Les confirmations locales sont conservées au plus 7 jours et les refus au plus 30 jours, avec nettoyage à l’utilisation. Les reçus serveur restent associés à votre compte pour éviter les doublons lors des reprises. Effacer les données du navigateur supprime les notes qui n’ont pas encore été reçues par le serveur." })
 			]
@@ -826,6 +826,7 @@ var confidentialite_default = UNSAFE_withComponentProps(function Confidentialite
 			children: [/* @__PURE__ */ jsxs("ul", { children: [
 				/* @__PURE__ */ jsxs("li", { children: [/* @__PURE__ */ jsx("strong", { children: "Supabase" }), "\xA0: base de données (région de l’Union européenne, Paris) et, pour l’instant, envoi des emails de connexion."] }),
 				/* @__PURE__ */ jsxs("li", { children: [/* @__PURE__ */ jsx("strong", { children: "Railway" }), "\xA0: hébergement du site."] }),
+				/* @__PURE__ */ jsxs("li", { children: [/* @__PURE__ */ jsx("strong", { children: "Cloudflare Turnstile" }), "\xA0: vérification anti-robot des formulaires de connexion et de contact. Pour le contact, le serveur lui transmet le résultat de la vérification et l’adresse de connexion, sans le prénom, l’email ni le contenu du message."] }),
 				/* @__PURE__ */ jsxs("li", { children: [/* @__PURE__ */ jsx("strong", { children: "Brevo" }), "\xA0: envoi des emails, prévu pour remplacer le service d’email de Supabase."] })
 			] }), /* @__PURE__ */ jsxs("p", { children: [
 				"Railway Corp. est établie aux États-Unis. Supabase est exploitée par Supabase Pte. Ltd. (Singapour) et Supabase, Inc. (États-Unis). La base de données est hébergée dans l’Union européenne (Paris) et le site est servi depuis l’Europe. Tout accès depuis un pays hors de l’Union européenne est encadré par les clauses contractuelles types de la Commission européenne, prévues dans l’accord de traitement des données de chaque prestataire (art. 28 et 46 RGPD). Une copie des garanties peut être demandée via le ",
@@ -887,7 +888,7 @@ var noter_default = UNSAFE_withComponentProps(function Noter({ loaderData }) {
 		titre: session ? "Notez les manades" : "Les votes ouvriront le soir de l’Olympiade",
 		children: [/* @__PURE__ */ jsxs("p", { children: [
 			session ? `Bonjour${prenom ? ` ${prenom}` : ""}. ` : "",
-			!session && soiree ? `Les votes ouvriront ${momentSoiree(soiree)}. ` : "",
+			soiree ? `Les votes ouvriront ${momentSoiree(soiree)}. ` : "",
 			session ? "Retrouvez les passages proposés et le suivi de vos notes ci-dessous." : "Le soir venu, vous donnerez une note de 1 à 10 à chaque manade, dès la fin de son passage."
 		] }), /* @__PURE__ */ jsxs("p", {
 			className: "mt-3 flex flex-wrap gap-x-5 gap-y-1",
@@ -1036,6 +1037,8 @@ function FormulaireInscription({ initial }) {
 	const [verifier, setVerifier] = useState(false);
 	const [envoi, setEnvoi] = useState("repos");
 	const [echec, setEchec] = useState(null);
+	const [captchaToken, setCaptchaToken] = useState(null);
+	const [reinitialisationCaptcha, setReinitialisationCaptcha] = useState(0);
 	const verrou = useRef(false);
 	function modifier(nom, valeur) {
 		const suivant = {
@@ -1060,13 +1063,17 @@ function FormulaireInscription({ initial }) {
 			document.getElementById(`${id}-${premier}`)?.focus();
 			return;
 		}
+		if (!captchaToken) {
+			setEchec("Validez la vérification anti-robot avant de continuer.");
+			return;
+		}
 		verrou.current = true;
 		setEnvoi("en-cours");
 		setEchec(null);
 		const prenom = champs.prenom.trim();
 		const email = normaliserEmail(champs.email);
 		try {
-			await demanderCode(prenom, email);
+			await demanderCode(prenom, email, captchaToken);
 			const demande = {
 				prenom,
 				email,
@@ -1078,6 +1085,9 @@ function FormulaireInscription({ initial }) {
 			setEchec(traduireErreurAuth(erreur, "demande"));
 			setEnvoi("echec");
 			verrou.current = false;
+		} finally {
+			setCaptchaToken(null);
+			setReinitialisationCaptcha((valeur) => valeur + 1);
 		}
 	}
 	const description = (nom, ...autres) => [erreurs[nom] ? `${id}-${nom}-erreur` : null, ...autres].filter(Boolean).join(" ") || void 0;
@@ -1198,6 +1208,11 @@ function FormulaireInscription({ initial }) {
 			/* @__PURE__ */ jsxs("div", {
 				className: "grid gap-2.5",
 				children: [
+					/* @__PURE__ */ jsx(VerificationHumaine, {
+						action: "inscription",
+						reinitialisation: reinitialisationCaptcha,
+						onJetonChange: setCaptchaToken
+					}),
 					/* @__PURE__ */ jsxs("button", {
 						type: "submit",
 						disabled: enCours,
@@ -1385,6 +1400,8 @@ function FormulaireCode({ demande }) {
 	const [etat, setEtat] = useState("repos");
 	const [erreur, setErreur] = useState(null);
 	const [info, setInfo] = useState(null);
+	const [captchaToken, setCaptchaToken] = useState(null);
+	const [reinitialisationCaptcha, setReinitialisationCaptcha] = useState(0);
 	const verrou = useRef(false);
 	const { cooldownSeconds, isOnCooldown, startCooldown } = useOtpCooldown();
 	useEffect(() => {
@@ -1420,12 +1437,16 @@ function FormulaireCode({ demande }) {
 	}
 	async function renvoyer() {
 		if (verrou.current || isOnCooldown) return;
+		if (!captchaToken) {
+			setErreur("Validez la vérification anti-robot avant de renvoyer un code.");
+			return;
+		}
 		verrou.current = true;
 		setEtat("renvoi");
 		setErreur(null);
 		setInfo(null);
 		try {
-			await demanderCode(demande.prenom, demande.email);
+			await demanderCode(demande.prenom, demande.email, captchaToken);
 			memoriserDemande({
 				...demande,
 				envoyeeLe: Date.now()
@@ -1437,6 +1458,8 @@ function FormulaireCode({ demande }) {
 		} finally {
 			setEtat("repos");
 			verrou.current = false;
+			setCaptchaToken(null);
+			setReinitialisationCaptcha((valeur) => valeur + 1);
 		}
 	}
 	const occupe = etat !== "repos";
@@ -1503,23 +1526,32 @@ function FormulaireCode({ demande }) {
 			}),
 			/* @__PURE__ */ jsxs("div", {
 				className: "grid gap-0.5 text-[12.5px] leading-snug",
-				children: [/* @__PURE__ */ jsxs("div", {
-					className: "flex flex-wrap items-center justify-between gap-x-2.5",
-					children: [/* @__PURE__ */ jsx("button", {
-						type: "button",
-						onClick: renvoyer,
-						disabled: isOnCooldown || occupe,
-						className: "inline-flex min-h-12 items-center font-semibold text-rouge underline underline-offset-2 disabled:cursor-not-allowed disabled:font-medium disabled:text-encre-2 disabled:no-underline",
-						children: isOnCooldown ? `Renvoyer le code dans ${formaterDecompte(cooldownSeconds)}` : "Renvoyer le code"
-					}), /* @__PURE__ */ jsx(Link, {
-						to: "/inscription",
-						className: "inline-flex min-h-12 items-center font-semibold text-rouge underline underline-offset-2",
-						children: "Changer d’email"
-					})]
-				}), /* @__PURE__ */ jsx("p", {
-					className: "text-encre-2",
-					children: "Le lien de connexion du même email marche aussi."
-				})]
+				children: [
+					/* @__PURE__ */ jsx(VerificationHumaine, {
+						action: "renvoi-code",
+						reinitialisation: reinitialisationCaptcha,
+						onJetonChange: setCaptchaToken,
+						classe: "mb-2"
+					}),
+					/* @__PURE__ */ jsxs("div", {
+						className: "flex flex-wrap items-center justify-between gap-x-2.5",
+						children: [/* @__PURE__ */ jsx("button", {
+							type: "button",
+							onClick: renvoyer,
+							disabled: isOnCooldown || occupe,
+							className: "inline-flex min-h-12 items-center font-semibold text-rouge underline underline-offset-2 disabled:cursor-not-allowed disabled:font-medium disabled:text-encre-2 disabled:no-underline",
+							children: isOnCooldown ? `Renvoyer le code dans ${formaterDecompte(cooldownSeconds)}` : "Renvoyer le code"
+						}), /* @__PURE__ */ jsx(Link, {
+							to: "/inscription",
+							className: "inline-flex min-h-12 items-center font-semibold text-rouge underline underline-offset-2",
+							children: "Changer d’email"
+						})]
+					}),
+					/* @__PURE__ */ jsx("p", {
+						className: "text-encre-2",
+						children: "Le lien de connexion du même email marche aussi."
+					})
+				]
 			}),
 			/* @__PURE__ */ jsxs("div", {
 				className: "grid gap-2.5",
@@ -1630,9 +1662,16 @@ var meta$2 = () => [{ title: "Administration · Olympiade des Manades" }, {
 	content: "noindex"
 }];
 var admin_default = UNSAFE_withComponentProps(function Admin() {
-	const { acces } = useAccesAdmin();
+	const { acces, facteurId, session } = useAccesAdmin();
 	const [erreur, setErreur] = useState(null);
 	const [enCours, setEnCours] = useState(false);
+	const [captchaToken, setCaptchaToken] = useState(null);
+	const [reinitialisationCaptcha, setReinitialisationCaptcha] = useState(0);
+	const [enrolement, setEnrolement] = useState(null);
+	useEffect(() => {
+		setEnrolement(null);
+		setErreur(null);
+	}, [session?.user.id]);
 	async function connecter(evenement) {
 		evenement.preventDefault();
 		if (enCours) return;
@@ -1640,17 +1679,76 @@ var admin_default = UNSAFE_withComponentProps(function Admin() {
 		setEnCours(true);
 		setErreur(null);
 		try {
-			const { error } = await (await supabase()).auth.signInWithPassword({
-				email: String(champs.get("email") ?? "").trim(),
-				password: String(champs.get("mot-de-passe") ?? "")
-			});
-			if (error) setErreur(error.status === 429 ? "Trop de tentatives. Réessayez dans quelques minutes." : "Connexion refusée. Vérifiez vos identifiants.");
+			if (!captchaToken) throw new Error(MESSAGES_AUTH.verificationHumaine);
+			await connecterAdmin(String(champs.get("email") ?? ""), String(champs.get("mot-de-passe") ?? ""), captchaToken);
+		} catch (echec) {
+			const statut = typeof echec === "object" && echec !== null && "status" in echec ? echec.status : void 0;
+			const message = echec instanceof Error ? echec.message : "";
+			setErreur(message === MESSAGES_AUTH.verificationHumaine ? message : statut === 429 ? "Trop de tentatives. Réessayez dans quelques minutes." : "Connexion refusée. Vérifiez vos identifiants et votre réseau.");
+		} finally {
+			setEnCours(false);
+			setCaptchaToken(null);
+			setReinitialisationCaptcha((valeur) => valeur + 1);
+		}
+	}
+	async function preparerTotp() {
+		if (enCours) return;
+		setEnCours(true);
+		setErreur(null);
+		try {
+			setEnrolement(await commencerEnrolementTotp());
 		} catch {
-			setErreur("Connexion impossible. Vérifiez votre réseau et réessayez.");
+			setErreur("Impossible de préparer l’authentification à deux facteurs. Réessayez.");
 		} finally {
 			setEnCours(false);
 		}
 	}
+	async function confirmerTotp(evenement) {
+		evenement.preventDefault();
+		if (enCours) return;
+		const champs = new FormData(evenement.currentTarget);
+		const id = enrolement?.facteurId ?? facteurId;
+		if (!id) return;
+		setEnCours(true);
+		setErreur(null);
+		try {
+			await verifierTotp(id, String(champs.get("code-totp") ?? ""));
+			setEnrolement(null);
+		} catch {
+			setErreur("Code incorrect ou expiré. Vérifiez l’heure de votre appareil puis réessayez.");
+		} finally {
+			setEnCours(false);
+		}
+	}
+	const formulaireTotp = (id) => /* @__PURE__ */ jsxs("form", {
+		onSubmit: confirmerTotp,
+		className: "grid max-w-md gap-5 rounded-[22px] border border-trait bg-creme p-6",
+		children: [
+			/* @__PURE__ */ jsxs("label", {
+				className: "grid gap-2 font-medium",
+				children: ["Code de l’application d’authentification", /* @__PURE__ */ jsx("input", {
+					name: "code-totp",
+					inputMode: "numeric",
+					autoComplete: "one-time-code",
+					required: true,
+					minLength: 6,
+					maxLength: 8,
+					pattern: "[0-9 ]{6,8}",
+					className: "min-h-12 w-full rounded-xl border border-trait bg-sable px-3"
+				})]
+			}),
+			/* @__PURE__ */ jsx("button", {
+				disabled: enCours || !id,
+				className: "min-h-12 rounded-xl bg-encre px-5 font-semibold text-sable disabled:opacity-60",
+				children: enCours ? "Vérification…" : "Vérifier le second facteur"
+			}),
+			erreur ? /* @__PURE__ */ jsx("p", {
+				role: "alert",
+				className: "text-rouge-alerte",
+				children: erreur
+			}) : null
+		]
+	});
 	return /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx(TitrePage, {
 		surtitre: "Espace organisateur",
 		titre: "Administration",
@@ -1664,6 +1762,46 @@ var admin_default = UNSAFE_withComponentProps(function Admin() {
 			to: "/admin/statistiques",
 			className: "inline-flex min-h-12 items-center rounded-xl bg-encre px-5 font-semibold text-sable",
 			children: "Statistiques et charge →"
+		}) : acces === "deux-facteurs-requis" && facteurId ? /* @__PURE__ */ jsxs("div", {
+			className: "grid gap-4",
+			children: [/* @__PURE__ */ jsx("p", { children: "Entrez le code à 6 chiffres de votre application d’authentification." }), formulaireTotp(facteurId)]
+		}) : acces === "enrolement-requis" ? /* @__PURE__ */ jsxs("div", {
+			className: "grid max-w-md gap-5 rounded-[22px] border border-trait bg-creme p-6",
+			children: [
+				/* @__PURE__ */ jsxs("div", {
+					className: "grid gap-2",
+					children: [/* @__PURE__ */ jsx("h2", {
+						className: "text-xl font-semibold",
+						children: "Activer le second facteur"
+					}), /* @__PURE__ */ jsx("p", { children: "Les fonctions d’administration restent verrouillées tant qu’un code TOTP n’a pas été configuré et vérifié." })]
+				}),
+				!enrolement ? /* @__PURE__ */ jsx("button", {
+					type: "button",
+					onClick: preparerTotp,
+					disabled: enCours,
+					className: "min-h-12 rounded-xl bg-encre px-5 font-semibold text-sable disabled:opacity-60",
+					children: enCours ? "Préparation…" : "Configurer mon application"
+				}) : /* @__PURE__ */ jsxs(Fragment, { children: [
+					/* @__PURE__ */ jsx("img", {
+						src: enrolement.qrCode,
+						alt: "QR code à scanner dans l’application d’authentification",
+						className: "size-52 max-w-full rounded-lg bg-white p-2"
+					}),
+					/* @__PURE__ */ jsxs("p", {
+						className: "text-sm",
+						children: ["Si vous ne pouvez pas scanner le QR code, saisissez cette clé\xA0: ", /* @__PURE__ */ jsx("code", {
+							className: "break-all font-mono",
+							children: enrolement.secret
+						})]
+					}),
+					formulaireTotp(enrolement.facteurId)
+				] }),
+				erreur && !enrolement ? /* @__PURE__ */ jsx("p", {
+					role: "alert",
+					className: "text-rouge-alerte",
+					children: erreur
+				}) : null
+			]
 		}) : acces === "refuse" ? /* @__PURE__ */ jsx("p", {
 			role: "alert",
 			children: "Ce compte n’a pas accès à l’administration. Déconnectez-vous pour utiliser un autre compte."
@@ -1694,6 +1832,11 @@ var admin_default = UNSAFE_withComponentProps(function Admin() {
 						required: true,
 						className: "min-h-12 w-full rounded-xl border border-trait bg-sable px-3"
 					})]
+				}),
+				/* @__PURE__ */ jsx(VerificationHumaine, {
+					action: "admin-connexion",
+					reinitialisation: reinitialisationCaptcha,
+					onJetonChange: setCaptchaToken
 				}),
 				/* @__PURE__ */ jsx("button", {
 					disabled: enCours,
@@ -1862,7 +2005,7 @@ var admin_statistiques_default = UNSAFE_withComponentProps(function Statistiques
 				className: `${CARTE} mt-8`,
 				children: [/* @__PURE__ */ jsx("p", {
 					role: acces === "anonyme" ? "status" : "alert",
-					children: acces === "anonyme" ? "Connectez-vous pour consulter les statistiques." : acces === "refuse" ? "Ces statistiques sont réservées aux administrateurs." : "Impossible de vérifier vos droits. Réessayez depuis l’administration."
+					children: acces === "anonyme" ? "Connectez-vous pour consulter les statistiques." : acces === "refuse" ? "Ces statistiques sont réservées aux administrateurs." : acces === "enrolement-requis" ? "Activez l’authentification à deux facteurs depuis la page d’administration." : acces === "deux-facteurs-requis" ? "Vérifiez votre code d’authentification à deux facteurs depuis la page d’administration." : "Impossible de vérifier vos droits. Réessayez depuis l’administration."
 				}), /* @__PURE__ */ jsx(Link, {
 					to: "/admin",
 					className: `${BOUTON} mt-4`,
@@ -2386,11 +2529,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": true,
-			"module": "/assets/root-LWRCakvR.js",
+			"module": "/assets/root-nb5If-RS.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-yYLCgfRJ.js",
-				"/assets/app-VmZ4LFUM.js"
+				"/assets/app-DxuA_2sT.js"
 			],
 			"css": [],
 			"clientActionModule": void 0,
@@ -2411,10 +2554,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/accueil-C03GBRFU.js",
+			"module": "/assets/accueil-etuYvEOv.js",
 			"imports": [
 				"/assets/react-yYLCgfRJ.js",
-				"/assets/app-VmZ4LFUM.js",
+				"/assets/app-DxuA_2sT.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": [],
@@ -2436,10 +2579,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/classements-CQigaLZK.js",
+			"module": "/assets/classements-Dj2dTPKh.js",
 			"imports": [
 				"/assets/react-yYLCgfRJ.js",
-				"/assets/app-VmZ4LFUM.js",
+				"/assets/app-DxuA_2sT.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": [],
@@ -2461,10 +2604,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/dates-C5AxwdO1.js",
+			"module": "/assets/dates-CRtjjpGG.js",
 			"imports": [
 				"/assets/react-yYLCgfRJ.js",
-				"/assets/app-VmZ4LFUM.js",
+				"/assets/app-DxuA_2sT.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": [],
@@ -2486,10 +2629,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/contact-D7R5sWSc.js",
+			"module": "/assets/contact-B2kRv9Nn.js",
 			"imports": [
 				"/assets/react-yYLCgfRJ.js",
-				"/assets/app-VmZ4LFUM.js",
+				"/assets/app-DxuA_2sT.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": [],
@@ -2511,10 +2654,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/mentions-legales-CktYPcME.js",
+			"module": "/assets/mentions-legales-B-LBNhXH.js",
 			"imports": [
 				"/assets/react-yYLCgfRJ.js",
-				"/assets/app-VmZ4LFUM.js",
+				"/assets/app-DxuA_2sT.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": [],
@@ -2536,10 +2679,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/confidentialite-C6y1Cy5g.js",
+			"module": "/assets/confidentialite-BMVU0meE.js",
 			"imports": [
 				"/assets/react-yYLCgfRJ.js",
-				"/assets/app-VmZ4LFUM.js",
+				"/assets/app-DxuA_2sT.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": [],
@@ -2561,10 +2704,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/noter-DtuCPt1H.js",
+			"module": "/assets/noter-DWqNGTjd.js",
 			"imports": [
 				"/assets/react-yYLCgfRJ.js",
-				"/assets/app-VmZ4LFUM.js",
+				"/assets/app-DxuA_2sT.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": [],
@@ -2586,12 +2729,12 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/inscription-CSdObHPp.js",
+			"module": "/assets/inscription-D-0wumRz.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-yYLCgfRJ.js",
-				"/assets/app-VmZ4LFUM.js",
-				"/assets/FormulaireInscription-BVv9bCgc.js"
+				"/assets/app-DxuA_2sT.js",
+				"/assets/FormulaireInscription-8Ja9RwyY.js"
 			],
 			"css": [],
 			"clientActionModule": void 0,
@@ -2612,12 +2755,12 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/inscription-code-CTc0XVr0.js",
+			"module": "/assets/inscription-code-JBwfsELh.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-yYLCgfRJ.js",
-				"/assets/app-VmZ4LFUM.js",
-				"/assets/FormulaireInscription-BVv9bCgc.js"
+				"/assets/app-DxuA_2sT.js",
+				"/assets/FormulaireInscription-8Ja9RwyY.js"
 			],
 			"css": [],
 			"clientActionModule": void 0,
@@ -2638,11 +2781,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-CYhnaZtd.js",
+			"module": "/assets/admin-Bk2IVEi_.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-yYLCgfRJ.js",
-				"/assets/app-VmZ4LFUM.js"
+				"/assets/app-DxuA_2sT.js"
 			],
 			"css": [],
 			"clientActionModule": void 0,
@@ -2663,11 +2806,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-statistiques-BZekVJzv.js",
+			"module": "/assets/admin-statistiques-BK_WmwWO.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-yYLCgfRJ.js",
-				"/assets/app-VmZ4LFUM.js"
+				"/assets/app-DxuA_2sT.js"
 			],
 			"css": [],
 			"clientActionModule": void 0,
@@ -2688,10 +2831,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/introuvable-DOOfnjaJ.js",
+			"module": "/assets/introuvable-DA6foDNq.js",
 			"imports": [
 				"/assets/react-yYLCgfRJ.js",
-				"/assets/app-VmZ4LFUM.js",
+				"/assets/app-DxuA_2sT.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": [],
@@ -2701,8 +2844,8 @@ var server_manifest_default = {
 			"hydrateFallbackModule": void 0
 		}
 	},
-	"url": "/assets/manifest-cc45cf13.js",
-	"version": "cc45cf13",
+	"url": "/assets/manifest-c3ed9cb4.js",
+	"version": "c3ed9cb4",
 	"sri": void 0
 };
 //#endregion

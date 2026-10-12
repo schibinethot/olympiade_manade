@@ -92,10 +92,10 @@ export async function dansUneTransaction(fn: (db: pg.Client) => Promise<void>): 
   }
 }
 
-export async function commeUtilisateur(db: pg.Client, id: string): Promise<void> {
+export async function commeUtilisateur(db: pg.Client, id: string, aal: 'aal1' | 'aal2' = 'aal1'): Promise<void> {
   await db.query('reset role');
   await db.query(`select set_config('request.jwt.claims', $1, true)`, [
-    JSON.stringify({ sub: id, role: 'authenticated' }),
+    JSON.stringify({ sub: id, role: 'authenticated', aal }),
   ]);
   await db.query('set local role authenticated');
 }

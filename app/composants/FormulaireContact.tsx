@@ -3,6 +3,7 @@ import { useLocation } from 'react-router';
 import { LIMITES_CONTACT, longueur, normaliserContact, validerContact, type ChampsContact, type ErreursContact } from '../lib/contact';
 import { envoyerMessageContact } from '../lib/donnees';
 import { Icone } from './Icone';
+import { VerificationHumaine } from './VerificationHumaine';
 
 type Envoi = 'repos' | 'en-cours' | 'succes' | 'echec';
 
@@ -16,10 +17,10 @@ const CHAMP =
 const ERREUR = 'flex items-start gap-1.5 text-[13px] leading-snug text-rouge';
 
 /**
- * Formulaire de contact (maquette : carte « Une question ? »), partagé par l'accueil et /contact.
+ * Formulaire de contact (maquette : carte « Infos & dates »), partagé par l'accueil et /contact.
  *
  * - Validation identique aux contraintes de public.messages_contact (app/lib/contact.ts).
- * - Champ piège « site_web », invisible : s'il est rempli, rien n'est envoyé, le succès s'affiche.
+ * - Champ piège « site_web », invisible, contrôlé par le serveur sans confirmer sa détection.
  * - Un seul envoi à la fois : verrou synchrone et bouton désactivé pendant l'envoi.
  * - Insertion sans .select() (envoyerMessageContact).
  */
@@ -29,6 +30,9 @@ export function FormulaireContact() {
   const [erreurs, setErreurs] = useState<ErreursContact>({});
   const [verifier, setVerifier] = useState(false);
   const [envoi, setEnvoi] = useState<Envoi>('repos');
+  const [jetonTurnstile, setJetonTurnstile] = useState<string | null>(null);
+  const [reinitialisationVerification, setReinitialisationVerification] = useState(0);
+  const [erreurEnvoi, setErreurEnvoi] = useState('');
   const verrou = useRef(false);
   // Bouton inactif tant que React n'est pas monté : un clic avant l'hydratation ne doit rien envoyer.
   const [pret, setPret] = useState(false);
@@ -41,6 +45,7 @@ export function FormulaireContact() {
     setChamps(suivant);
     if (verifier) setErreurs(validerContact(suivant));
     if (envoi === 'succes' || envoi === 'echec') setEnvoi('repos');
+    setErreurEnvoi('');
   }
 
   async function soumettre(evenement: FormEvent<HTMLFormElement>) {
@@ -59,14 +64,17 @@ export function FormulaireContact() {
     verrou.current = true;
     setEnvoi('en-cours');
     try {
-      // Champ piège rempli : un robot. Rien n'est envoyé, mais il voit le même succès.
-      if (!piege.current?.value) await envoyerMessageContact(normaliserContact(champs));
+      await envoyerMessageContact(normaliserContact(champs), jetonTurnstile, piege.current?.value ?? '');
       setChamps(VIDE);
       setVerifier(false);
       setEnvoi('succes');
-    } catch {
+    } catch (erreur) {
+      setErreurEnvoi(erreur instanceof Error ? erreur.message : 'L’envoi a échoué, réessayez dans un instant.');
       setEnvoi('echec');
     } finally {
+      // Un jeton Turnstile est à usage unique, même si le dépôt a ensuite échoué.
+      setJetonTurnstile(null);
+      setReinitialisationVerification((compteur) => compteur + 1);
       verrou.current = false;
     }
   }
@@ -156,10 +164,17 @@ export function FormulaireContact() {
         <p className="text-[13px] font-semibold text-rouge paysage:col-span-2">Ce formulaire nécessite JavaScript.</p>
       </noscript>
 
+      <VerificationHumaine
+        onJetonChange={setJetonTurnstile}
+        reinitialisation={reinitialisationVerification}
+        action="contact"
+        classe="paysage:col-span-2"
+      />
+
       <div className="paysage:col-span-2">
         <button
           type="submit"
-          disabled={enCours || !pret}
+          disabled={enCours || !pret || !jetonTurnstile}
           className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[14px] bg-encre px-5 text-[15px] leading-none font-semibold text-sable transition-[filter,transform] hover:brightness-125 active:scale-[0.97] disabled:cursor-wait disabled:opacity-70"
         >
           Envoyer le message
@@ -170,7 +185,7 @@ export function FormulaireContact() {
           {envoi === 'succes' ? (
             <p className="mt-3 flex items-center gap-2 rounded-[13px] bg-[rgba(47,122,79,.1)] px-3.5 py-3 text-[14px] font-semibold text-[#286b44]">
               <Icone nom="valide" />
-              Merci, votre message est bien parti.
+              Merci, votre message est enregistré. Il n’est pas envoyé par email automatiquement.
             </p>
           ) : null}
         </div>
@@ -178,7 +193,7 @@ export function FormulaireContact() {
           {envoi === 'echec' ? (
             <p className="mt-3 flex items-center gap-2 rounded-[13px] bg-[rgba(194,59,29,.08)] px-3.5 py-3 text-[14px] font-semibold text-rouge-alerte">
               <Icone nom="alerte" />
-              L’envoi a échoué, réessayez dans un instant.
+              {erreurEnvoi || 'L’envoi a échoué, réessayez dans un instant.'}
             </p>
           ) : null}
         </div>

@@ -11,7 +11,7 @@ port = 54321
 # Schemas to expose in your API. Tables, views and stored procedures in this schema will get API
 # endpoints. `public` and `graphql_public` schemas are included by default.
 # Le schéma prive (fonctions des politiques RLS) n'est jamais exposé.
-schemas = ["public", "graphql_public"]
+schemas = ["public"]
 # Extra schemas to add to the search_path of every request.
 extra_search_path = ["public", "extensions"]
 # The maximum number of rows returns from a view, table, or stored procedure. Limits payload size
@@ -155,13 +155,10 @@ enabled = true
 # Front hébergé sur Railway (lot Vitrine).
 site_url = "https://olympiademanade-production.up.railway.app"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-# Chemins précis, pas de joker : la page du code et la page de confirmation par lien.
-# localhost sert au développement ; à retirer avant le premier email à un vrai spectateur.
+# Chemin précis de production, sans joker ni route morte. Un environnement local doit utiliser
+# son propre fichier de configuration et ne doit pas élargir cette allowlist en production.
 additional_redirect_urls = [
   "https://olympiademanade-production.up.railway.app/inscription/code",
-  "https://olympiademanade-production.up.railway.app/auth/confirm",
-  "http://localhost:5173/inscription/code",
-  "http://localhost:5173/auth/confirm",
 ]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
@@ -175,7 +172,9 @@ enable_refresh_token_rotation = true
 # Requires enable_refresh_token_rotation = true.
 refresh_token_reuse_interval = 10
 # Allow/disallow new user signups to your project.
-enable_signup = true
+# Fermée par défaut. L'ouverture publique exige simultanément Turnstile côté Auth, la clé de site
+# dans le build et une revue des redirects/SMTP du projet hébergé.
+enable_signup = false
 # Allow/disallow anonymous sign-ins to your project.
 enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts
@@ -185,7 +184,7 @@ enable_manual_linking = false
 minimum_password_length = 12
 # Passwords that do not meet the following requirements will be rejected as weak. Supported values
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
-password_requirements = ""
+password_requirements = "lower_upper_letters_digits_symbols"
 
 # Configure passkey sign-ins.
 # [auth.passkey]
@@ -213,15 +212,16 @@ token_verifications = 30
 # Number of Web3 logins that can be made in a 5 minute interval per IP address.
 web3 = 30
 
-# Configure one of the supported captcha providers: `hcaptcha`, `turnstile`.
-# [auth.captcha]
-# enabled = true
-# provider = "hcaptcha"
-# secret = ""
+# Turnstile protège tous les premiers facteurs Auth (OTP et mot de passe admin). Le secret est
+# obligatoire : sans variable, `supabase start`/`config push` échoue au lieu de démarrer sans captcha.
+[auth.captcha]
+enabled = true
+provider = "turnstile"
+secret = "env(TURNSTILE_SECRET_KEY)"
 
 [auth.email]
 # Allow/disallow new user signups via email to your project.
-enable_signup = true
+enable_signup = false
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
@@ -229,7 +229,7 @@ double_confirm_changes = true
 # Obligatoire : sans confirmation, une inscription par mot de passe remplirait email_confirmed_at sans preuve.
 enable_confirmations = true
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
-secure_password_change = false
+secure_password_change = true
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
 # 60 s : valeur du projet hébergé, à revoir avec le SMTP Brevo.
 max_frequency = "60s"
@@ -250,11 +250,11 @@ otp_expiry = 3600
 
 # Gabarits en français : code à 6 chiffres en grand, lien en secours. Chemins relatifs à la racine du dépôt.
 [auth.email.template.confirmation]
-subject = "Votre code d'inscription : {{ .Token }}"
+subject = "Votre code d'inscription"
 content_path = "./supabase/templates/confirmation.html"
 
 [auth.email.template.magic_link]
-subject = "Votre code de connexion : {{ .Token }}"
+subject = "Votre code de connexion"
 content_path = "./supabase/templates/magic_link.html"
 
 # Uncomment to customize notification email template

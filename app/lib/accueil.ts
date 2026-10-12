@@ -1,5 +1,4 @@
 // Logique de la page d'accueil, sans React : tout ce qui se déduit du calendrier et du palmarès.
-import { VILLE_AFFICHE } from '../donnees/affiche';
 import { formaterDateLongue, formaterHeure, jourParis, premierDuMois, prochaineSoiree } from './dates';
 import type { Calendrier, Palmares } from './donnees';
 
@@ -84,12 +83,12 @@ export function prochaineSoireeA(calendrier: Calendrier[], ville: string, mainte
 }
 
 /**
- * Soirée de référence du vote, pour la carte « Notez les Olympiades » et la pastille de l'en-tête :
- * la prochaine soirée de Nîmes, celle de l'affiche et du vote. Si Nîmes n'a plus de date à venir,
- * la prochaine soirée du calendrier, tous événements confondus.
+ * Soirée de référence du vote, pour la carte « Notez les Olympiades », la page /noter et la pastille
+ * de l'en-tête : la prochaine soirée du calendrier, toutes villes confondues, confirmée ou
+ * prévisionnelle. Une soirée passée laisse la place à la suivante.
  */
 export function soireeDeReference(calendrier: Calendrier[], maintenant: Date): Calendrier | null {
-  return prochaineSoireeA(calendrier, VILLE_AFFICHE, maintenant) ?? prochaineSoiree(calendrier, maintenant);
+  return prochaineSoiree(calendrier, maintenant);
 }
 
 export type DernierVainqueur = {

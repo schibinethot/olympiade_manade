@@ -42,6 +42,9 @@ function json(valeur: unknown, statut = 200): Response {
   });
 }
 
+const jeton = (aal: 'aal1' | 'aal2') =>
+  `e30.${Buffer.from(JSON.stringify({ aal })).toString('base64url')}.signature`;
+
 describe('histogramme de latence', () => {
   it('classe les bornes sans échantillons non bornés', () => {
     expect([0, 10, 10.1, 25, 3000, 9000].map(indexLatence)).toEqual([0, 0, 1, 1, 7, 8]);
@@ -123,11 +126,31 @@ describe('endpoint administrateur de supervision', () => {
     });
     const base = await servir(supervision);
     const reponse = await fetch(`${base}/api/admin/supervision`, {
-      headers: { Authorization: 'Bearer entete.charge.signature' },
+      headers: { Authorization: `Bearer ${jeton('aal2')}` },
     });
     expect(reponse.status).toBe(403);
     expect(fetchFn).toHaveBeenCalledTimes(2);
     expect(fetchFn.mock.calls.some(([url]) => String(url).includes('lire_supervision'))).toBe(false);
+  });
+
+  it('refuse un admin AAL1 avant toute lecture de profil ou de métriques', async () => {
+    const fetchFn = vi.fn<typeof fetch>(async (url) => {
+      if (String(url).endsWith('/auth/v1/user')) return json({ id: 'admin-1' });
+      throw new Error(`appel inattendu ${url}`);
+    });
+    const supervision = creerSupervision({
+      supabaseUrl: 'https://projet.supabase.co',
+      publishableKey: 'publique',
+      fetchFn,
+      timers: false,
+    });
+    const base = await servir(supervision);
+    const reponse = await fetch(`${base}/api/admin/supervision`, {
+      headers: { Authorization: `Bearer ${jeton('aal1')}` },
+    });
+    expect(reponse.status).toBe(403);
+    await expect(reponse.json()).resolves.toEqual({ error: 'mfa_required' });
+    expect(fetchFn).toHaveBeenCalledTimes(1);
   });
 
   it('retourne uniquement les agrégats à un admin et borne la fenêtre à 1 ou 24 h', async () => {
@@ -171,7 +194,7 @@ describe('endpoint administrateur de supervision', () => {
     });
     const base = await servir(supervision);
     const reponse = await fetch(`${base}/api/admin/supervision?heures=999`, {
-      headers: { Authorization: 'Bearer entete.charge.signature' },
+      headers: { Authorization: `Bearer ${jeton('aal2')}` },
     });
     expect(reponse.status).toBe(200);
     const corps = await reponse.json();
@@ -205,7 +228,7 @@ describe('endpoint administrateur de supervision', () => {
     const base = await servir(supervision);
     await fetch(`${base}/une-page`);
     const reponse = await fetch(`${base}/api/admin/supervision?heures=24`, {
-      headers: { Authorization: 'Bearer entete.charge.signature' },
+      headers: { Authorization: `Bearer ${jeton('aal2')}` },
     });
     const corps = await reponse.json();
     expect(reponse.status).toBe(200);

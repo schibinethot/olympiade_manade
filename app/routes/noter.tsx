@@ -34,7 +34,7 @@ export default function Noter({ loaderData }: Route.ComponentProps) {
     <><TitrePage surtitre="Notation du public" titre={session ? 'Notez les manades' : 'Les votes ouvriront le soir de l’Olympiade'}>
       <p>
         {session ? `Bonjour${prenom ? ` ${prenom}` : ''}. ` : ''}
-        {!session && soiree ? `Les votes ouvriront ${momentSoiree(soiree)}. ` : ''}
+        {soiree ? `Les votes ouvriront ${momentSoiree(soiree)}. ` : ''}
         {session ? 'Retrouvez les passages proposés et le suivi de vos notes ci-dessous.' : 'Le soir venu, vous donnerez une note de 1 à 10 à chaque manade, dès la fin de son passage.'}
       </p>
       <p className="mt-3 flex flex-wrap gap-x-5 gap-y-1">

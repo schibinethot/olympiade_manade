@@ -39,7 +39,7 @@ export default function Accueil({ loaderData }: Route.ComponentProps) {
   const { calendrier, palmares, lueLe } = loaderData;
   const maintenant = useMaintenant(lueLe);
   useRelectureApresInteraction(loaderData);
-  // Carte et pastille : la soirée de Nîmes (repli sur la prochaine soirée si Nîmes n'a plus de date).
+  // Carte et pastille : la prochaine soirée du calendrier. L'affiche reste celle de Nîmes.
   const soiree = calendrier ? soireeDeReference(calendrier, maintenant) : null;
   const soireeAffiche = calendrier ? prochaineSoireeA(calendrier, VILLE_AFFICHE, maintenant) : null;
 
@@ -62,10 +62,10 @@ export default function Accueil({ loaderData }: Route.ComponentProps) {
         <SaisonAccueil calendrier={calendrier} maintenant={maintenant} />
         <section aria-labelledby="titre-contact" className="rounded-[22px] border border-trait bg-creme p-5">
           <h2 id="titre-contact" className="font-display text-[21px] leading-[1.2] font-bold">
-            Une question&nbsp;?
+            Infos &amp; dates
           </h2>
           <p className="mt-1.5 text-[14px] text-encre-2">
-            Une manade à inscrire, une photo à proposer&nbsp;: l’organisation vous répond.
+            Infos, dates, une manade à inscrire, une photo à proposer&nbsp;: écrivez à l’organisation, elle vous répond.
           </p>
           <FormulaireContact />
         </section>
