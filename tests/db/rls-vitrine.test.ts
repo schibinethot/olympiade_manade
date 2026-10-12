@@ -16,7 +16,7 @@ describe('vitrine : calendrier et palmarès', () => {
       const cal = await db.query(
         `select count(*)::int as n from public.calendrier where annee = 2027 and statut = 'previsionnelle'`,
       );
-      expect(cal.rows[0].n).toBe(17);
+      expect(cal.rows[0].n).toBe(18);
       const nimes = await db.query(
         `select date_soiree::text as d from public.calendrier where annee = 2027 and ville = 'Nîmes'`,
       );
@@ -27,9 +27,26 @@ describe('vitrine : calendrier et palmarès', () => {
       expect(pal.rows).toEqual([
         { annee: 2023, vainqueur: 'Vinuesa', statut: 'confirme' },
         { annee: 2024, vainqueur: 'Vinuesa', statut: 'confirme' },
-        { annee: 2025, vainqueur: 'Vinuesa', statut: 'confirme' },
+        { annee: 2025, vainqueur: 'Vinuesa', statut: 'a_confirmer' },
         { annee: 2026, vainqueur: 'Arlatenco', statut: 'confirme' },
       ]);
+    }));
+
+  it('les vérifications de sources et les décisions du 11/10 sont en place', () =>
+    dansUneTransaction(async (db) => {
+      const nimes2024 = await db.query(
+        `select detail from public.palmares where annee = 2024 and ville = 'Nîmes' and evenement like '%Grandes Olympiades%'`,
+      );
+      expect(nimes2024.rows[0].detail).toContain('Lescot, Aubanel et Robert Michel');
+      expect(nimes2024.rows[0].detail).not.toContain('Benabent');
+      const manades = await db.query(
+        `select nom from public.manades where nom in ('Bon', 'Du Juge', 'Labourayre') order by nom`,
+      );
+      expect(manades.rows.map((r) => r.nom)).toEqual(['Bon', 'Du Juge', 'Labourayre']);
+      const defaut = await db.query(
+        `select column_default from information_schema.columns where table_schema = 'public' and table_name = 'soirees' and column_name = 'methode_general'`,
+      );
+      expect(defaut.rows[0].column_default).toBe(`'points'::methode_general`);
     }));
 
   it('les compléments du 10/10 sont en place', () =>
@@ -38,7 +55,7 @@ describe('vitrine : calendrier et palmarès', () => {
       const arles = await db.query(
         `select statut::text as s, date_soiree::text as d, heure::text as h from public.calendrier where annee = 2027 and ville = 'Arles'`,
       );
-      expect(arles.rows).toEqual([{ s: 'confirmee', d: '2027-05-01', h: '15:30:00' }]);
+      expect(arles.rows).toEqual([{ s: 'previsionnelle', d: '2027-05-01', h: '15:30:00' }]);
       const beaucaire = await db.query(
         `select date_soiree::text as d from public.calendrier where annee = 2027 and ville = 'Beaucaire'`,
       );

@@ -1,6 +1,6 @@
 # Cahier des charges : app de notation de l'Olympiade des manades
 
-> Version 0.11 (brouillon consolidé) · 2026-10-12 · Statut : **à valider** · Design validé : [charte graphique](charte-graphique.md) et [maquette v1](maquette/README.md)
+> Version 0.11 (brouillon consolidé) · 2026-10-12 · Vérifié le 11/10/2026 (faits, sources, technique, cohérence, RGPD) · Statut : **à valider** · Design validé : [charte graphique](charte-graphique.md) et [maquette v1](maquette/README.md)
 > Document de référence du projet. Toute fonctionnalité livrée doit s'y rattacher.
 
 ---
@@ -34,8 +34,8 @@ Créer **le site web et l'app Android de l'Olympiade des manades**, avec deux us
 ### 2.0 Présence en ligne et nom
 
 - **Aucun site ni compte de réseau social propre aux Olympiades** n'existe. Les seules pages officielles sont les actualités des [arènes de Nîmes](https://www.arenesdenimes.com/actu/2026/les-grandes-olympiades-des-gardians-auront-lieu-le-vendredi-21-août.html) (organisateur Casas & Co / SCP), avec leur [billetterie](https://billetterie.arenesdenimes.com) et leurs réseaux ([Facebook](https://www.facebook.com/arenesdenimesscpfrance), [Instagram](https://www.instagram.com/arenesnimesscpfrance/))
-- **Le nom « Olympiade des manades » est libre** : aucun usage trouvé, domaines `olympiadedesmanades.fr` et `.com` non déposés au 10/10/2026
-- **À éviter** : « Olympiades Camarguaises » est le nom commercial d'une offre de team building de [Mana Événements](https://www.mana-evenements.fr/post/la-nouvelle-production-mana-evenements-le-team-building-olympiades-camarguaises)
+- **Le nom « Olympiade des manades » est libre** : aucun usage trouvé, domaines `olympiadedesmanades.fr` et `.com` non déposés (RDAP vérifié le 11/10/2026)
+- **À éviter** : « Olympiades Camarguaises » est le nom commercial d'une offre de team building de [Mana Événements](https://www.mana-evenements.fr/post/la-nouvelle-production-mana-evenements-le-team-building-olympiades-camarguaises), et un nom générique repris par de nombreuses communes
 
 ### 2.1 Format d'une soirée
 
@@ -45,13 +45,13 @@ Créer **le site web et l'app Android de l'Olympiade des manades**, avec deux us
 | Équipes | 3 à 7 manades, le plus souvent 4 ou 5, avec 3 à 6 gardians chacune | Voir 2.3 |
 | Déroulé | Les manades se relaient : chacune passe à tour de rôle dans chaque épreuve | [Objectif Sud, Alès 2026](https://www.objectifsud.fr/actualites/ales-en-feria-les-gardians-rendent-hommage-a-leur-tradition-dans-une-soiree-de-concours-164007.php) |
 | Durée | 1h30 (3 manades) à 2h (4 ou 5 manades) | Alès 2026, Nîmes 2024 |
-| Horaires constatés | Début entre 21h et 22h, fin vers 23h-23h30. **Le créneau 19h-22h n'apparaît dans aucune source** | [gard30.fr](https://www.gard30.fr/agenda/grandes-olympiades-des-gardians-aux-arenes-de-nimes/), [thegoodarles.com](https://www.thegoodarles.com/good-time-agenda-sorties-et-evenements-pays-d-arles/olympiades-camarguaises-saint-louis-mouries/) |
+| Horaires constatés | Début entre 21h et 22h30 (Mauguio), fin vers 23h-23h30. **Le créneau 19h-22h n'apparaît dans aucune source** | [gard30.fr](https://www.gard30.fr/agenda/grandes-olympiades-des-gardians-aux-arenes-de-nimes/), [thegoodarles.com](https://www.thegoodarles.com/good-time-agenda-sorties-et-evenements-pays-d-arles/olympiades-camarguaises-saint-louis-mouries/) |
 | Ambiance | Ouverture par une capelado (présentation des manades et des Arlésiennes), peña ou bandas, remise des prix en piste | Beaucaire 2026, Saint-Rémy |
-| Jury | Environ 5 membres issus de différentes manades, **notes sur 20** (ex. 17/20 pour Devaux à Alès 2026). Barème détaillé jamais publié | Alès 2026 |
-| Résultat | Un vainqueur par épreuve, puis un trophée général au **cumul**. À Alès 2026, Vinuesa gagne « pour sa régularité » en finissant 2e de toutes les épreuves | Alès 2026 |
-| Vote du public | **N'existe dans aucune édition trouvée.** Le « Prix du public » serait une nouveauté | n/a |
-| Affluence | **3 000 spectateurs** à Nîmes en 2024. Pas de chiffre pour les autres soirées | [arenesdenimes.com](https://arenesdenimes.com/actu/2024/iie-grandes-olympiades-des-gardians-un-nouveau-sacre-pour-la-manade-vinuesa.html) |
-| Tarifs | 5 à 20 € | Billetteries |
+| Jury | Environ 5 membres issus de différentes manades, **notes sur 20** (ex. 17/20 pour Devaux à l'attente au fer, Alès 2026). Barème détaillé jamais publié | Alès 2026 |
+| Résultat | Un vainqueur par épreuve, puis un trophée général au **cumul de points par place**. À Alès 2026, Vinuesa gagne « pour sa régularité » en finissant 2e de toutes les épreuves ; à Nîmes 2026, Midi Libre décrit un classement par points selon le rang à chaque épreuve | Alès 2026, Nîmes 2026 |
+| Vote du public | **N'existe dans aucune édition trouvée.** Le « Prix du public » est une nouveauté, confirmée le 11/10/2026 | n/a |
+| Affluence | **Plus de 3 500 spectateurs** à Nîmes en 2023, **3 000** en 2024. Eyguières 2026 à guichet fermé (Facebook), Bezouce 2026 à jauge maximale (Midi Libre) | [arenesdenimes.com](https://arenesdenimes.com/actu/2024/iie-grandes-olympiades-des-gardians-un-nouveau-sacre-pour-la-manade-vinuesa.html) |
+| Tarifs | 5 à 20 € (20 € à Nîmes seulement ; 10 € à Mouriès et Saint-Rémy, 10,50 € à Pérols en 2024) | Billetteries et agendas |
 | Aléas | Soirées maintenues « sous réserve de conditions météo favorables » | Mouriès 2026 |
 
 ### 2.2 Épreuves de référence
@@ -75,37 +75,37 @@ Variantes constatées :
 
 ### 2.3 Manades rencontrées (annuaire pré-rempli)
 
-Agu, Arlatenco, Aubanel, Bon, Clément, Colombet, Conti, Des Chanoines, Devaux, Du Soleil, Gillet, Grand Salan, La Comtesse, La Galère, La Lauze, Labourayre, Lafon, Lescot, Robert Michel, Roumanille, Saint Léonard (Vitou), Vellas, Vinuesa.
+Agu, Arlatenco, Aubanel, Bon, Clément, Colombet, Conti, Des Chanoines, Devaux, Du Juge, Du Soleil, Gillet, Grand Salan, La Comtesse, La Galère, La Lauze, Labourayre, Lafon, Lescot, Robert Michel, Roumanille, Saint Léonard (Vitou), Vellas, Vinuesa.
 
 ### 2.3 bis Palmarès connu (base des pages Classements 2025 et 2026)
 
 | Soirée | Vainqueur | Détail | Statut |
 |---|---|---|---|
 | Nîmes 2023 | Vinuesa | Face à Lescot, Clément, Robert Michel. Plus de 3 500 spectateurs | Confirmé ([source](https://www.arenesdenimes.com/actu/2023/temporada-grand-succès-populaire-des-spectacles-camarguais-aux-arènes.html)) |
-| Nîmes 2024 | Vinuesa | Ferrade et attente au fer : Vinuesa. Saut de cheval à cheval : Baptiste Benabent (Grand Salan) | Confirmé ([source](https://www.arenesdenimes.com/actu/2024/iie-grandes-olympiades-des-gardians-un-nouveau-sacre-pour-la-manade-vinuesa.html)) |
-| Nîmes 2025 | Vinuesa | Troisième victoire consécutive, face à Lescot, Vellas, Robert Michel, Lafon | Confirmé ([source](https://www.instagram.com/p/DcLfqqljBED/)) |
+| Nîmes 2024 | Vinuesa | Deuxième victoire consécutive, face à Lescot, Aubanel, Robert Michel. 3 000 spectateurs. Vainqueurs par épreuve non publiés | Confirmé ([source](https://www.arenesdenimes.com/actu/2024/iie-grandes-olympiades-des-gardians-un-nouveau-sacre-pour-la-manade-vinuesa.html)) |
+| Nîmes 2025 | Vinuesa | Victoire revendiquée par la manade en 2026 (« trois victoires consécutives ») ; aucun compte rendu de 2025 trouvé | **À confirmer** ([source](https://www.instagram.com/p/DcLfqqljBED/)) |
 | **Nîmes 2026** | **Arlatenco** | 1. Arlatenco, 2. Vinuesa (à quelques points), 3. Robert Michel, 4. Gillet, 5. Lafon. Saut de cheval à taureau : Yannis Helly (Arlatenco) | Confirmé ([Midi Libre](https://www.midilibre.fr/2026/08/22/bravoure-technique-et-tradition-la-manade-arlatenco-remporte-les-olympiades-des-gardians-dans-les-arenes-de-nimes-13518449.php)) |
 | Alès 2026 | Vinuesa | Trophée « pour sa régularité » (2e de toutes les épreuves) | Confirmé |
 | Beauvoisin 2026 | Devaux | Face à Clément et La Lauze. Meilleurs : Simon Lestevin (saut cheval à cheval), Anthony Da Silva (rodéo), Bastien Fernandez (saut cheval à taureau), Dylan Guyon et Yoan Visin (attente au fer), manade Clément (capture de la vache) | Confirmé ([source](https://voir-plus.com/2026/08/19/la-fete-votive-de-beauvoisin-incontournable-et-festive/)) |
-| Eyguières 2026 | Clément | Souvenir Sébastien Roux | Confirmé |
-| Aimargues 2026 | Clément | Ferrade : Aubanel. Saut de cheval à cheval : ex aequo Sarah Clément et Anna Vinuesa. Attente au fer : Vinuesa | Confirmé |
-| Beaucaire 2026 | Vinuesa | 5e édition | Confirmé |
-| Bezouce 2026 | Labourayre | Labourayre et Clément très récompensées | **À confirmer** |
+| Eyguières 2026 | Clément | Souvenir Sébastien Roux | Confirmé (publication Facebook, lue en partie sans connexion) |
+| Aimargues 2026 | Clément | Ferrade : Aubanel. Saut de cheval à cheval : ex aequo Sarah Clément et Anna Vinuesa. Attente au fer : Vinuesa | Confirmé (publication Facebook, lue en partie sans connexion) |
+| Beaucaire 2026 | Vinuesa | 5e édition, six manades | Confirmé |
+| Bezouce 2026 | Labourayre | Face à Clément et Du Juge. Labourayre et Clément très récompensées, vainqueur général non nommé | **À confirmer** |
 | Saint-Rémy 2026 | Bon | Face à Colombet, Gillet, Saint Léonard, Arlatenco | Confirmé |
-| Béziers 2026 | Grand Salan | Ferrade : Vinuesa | Confirmé |
-| Mouriès 2026 | Clément | 9e édition, face à Vellas, Gillet, La Comtesse | Confirmé |
+| Béziers 2026 | Grand Salan | Ferrade : Vinuesa | Confirmé (publication de la manade Vinuesa) |
+| Mouriès 2026 | Clément | 9e édition, face à Vellas, Gillet, La Comtesse | Confirmé (numéro d'édition non sourcé) |
 
-Sources complètes (Midi Libre, publications publiques des manades et des organisateurs) dans la migration `20261011090200_palmares_2026_dates_2027.sql`. Seule Nîmes 2026 a un classement complet publié (rangs, sans les notes). Les résultats « à confirmer » s'affichent comme tels sur le site tant que l'organisateur ne les a pas validés.
+Sources complètes (Midi Libre, publications publiques des manades et des organisateurs) dans les migrations `20261011090200_palmares_2026_dates_2027.sql` et `20261011210432_sources_a_confirmer.sql`. Sources revérifiées le 11/10/2026. Seule Nîmes 2026 a un classement complet publié (rangs, sans les notes). Les résultats « à confirmer » s'affichent comme tels sur le site tant que l'organisateur ne les a pas validés.
 
 ### 2.3 ter Dates 2027 prévisionnelles
 
-**Une seule date 2027 est annoncée** au 11/10/2026 : la Fête des Gardians d'Arles (jeux de gardians), sam. 01/05/2027 à 15h30. Les autres sont projetées (même jour de semaine, même place dans la fête locale) et affichées sur la page Dates avec la mention « date prévisionnelle » jusqu'à confirmation :
+**Aucune date 2027 n'est confirmée** au 11/10/2026. La Fête des Gardians d'Arles (jeux de gardians, pas une olympiade) est annoncée le sam. 01/05/2027 à 15h30, mais les agendas notent « programme en attente de validation ». Les autres dates sont projetées (même jour de semaine, ou même date quand la fête locale est à date fixe) et affichées sur la page Dates avec la mention « date prévisionnelle » jusqu'à confirmation :
 
 | Soirée | 2026 | 2027 prévisionnel |
 |---|---|---|
-| Arles, Fête des Gardians | n/a | **sam. 01/05/2027, 15h30 (confirmée)** |
+| Arles, Fête des Gardians | n/a | sam. 01/05/2027, 15h30 (annoncée, en attente de validation) |
 | Alès, soirée des gardians | ven. 15/05, 21h30 | ven. 07/05/2027 |
-| Eyguières | lun. 13/07, 21h30 | mar. 13/07/2027 |
+| Eyguières | lun. 13/07, 21h30 | mar. 13/07/2027 (même date) |
 | Aimargues | jeu. 16/07, 21h | jeu. 15/07/2027 |
 | Beaucaire | lun. 20/07 | mar. 20/07/2027 (veille de l'ouverture de la Madeleine, comme en 2026) |
 | Marsillargues | ven. 31/07, 21h30 | ven. 30/07/2027 |
@@ -113,14 +113,14 @@ Sources complètes (Midi Libre, publications publiques des manades et des organi
 | Pérols, Nuit des gardians | lun. 03/08, 21h30 | lun. 02/08/2027 |
 | Fontvieille | mer. 05/08, 21h30 | mer. 04/08/2027 |
 | Bezouce | jeu. 06/08, 21h | jeu. 05/08/2027 |
-| Mauguio | mer. 12/08, 22h30 | mer. 11/08/2027 |
+| Mauguio | mer. 12/08, 22h30 (le programme de juillet disait sam. 08/08) | mer. 11/08/2027 |
 | Saint-Rémy-de-Provence | ven. 14/08, 22h | ven. 13/08/2027 |
 | Béziers, Feria | sam. 15/08 | sam. 14/08/2027 |
 | Beauvoisin | lun. 17/08, 21h30 | lun. 16/08/2027 |
 | Le Crès | lun. 17/08, 21h | lun. 16/08/2027 |
 | Mouriès | jeu. 20/08, 21h30 | jeu. 19/08/2027 |
 | **Nîmes** | **ven. 21/08, 21h** | **ven. 20/08/2027** (toujours un vendredi entre le 18 et le 23 août depuis 2023) |
-| Raphèle-lès-Arles | ven. 28/08, 21h30 | ven. 27/08/2027 |
+| Raphèle-lès-Arles | ven. 28/08, 21h30 (agenda « en attente de validation », tenue non vérifiée) | ven. 27/08/2027 |
 
 ### 2.4 Éditions de référence
 
@@ -135,13 +135,15 @@ Sources complètes (Midi Libre, publications publiques des manades et des organi
 
 ### 2.5 Conséquences pour l'app
 
-1. **Fenêtre de vote réglable** : défaut 19h00-22h00 comme demandé, mais les soirées réelles se tiennent plutôt de 21h à 23h30
+1. **Fenêtre de vote ajustable ou automatique** : défaut 21h00-23h30, l'horaire réel des soirées (décision du 11/10/2026), ou calculée depuis le planning (section 4.1)
 2. **Barème du jury réglable** : sur 10 ou sur 20, car le jury réel note sur 20
-3. **Méthode du classement général réglable** : moyenne des notes, ou cumul de points par place, comme dans le format réel
+3. **Méthode du classement général réglable** : cumul de points par place par défaut, comme dans le format réel (décision du 11/10/2026), ou moyenne des notes
 4. **Déblocage possible manade par manade** : chaque manade passe à tour de rôle dans une épreuve, donc le public peut noter un passage dès qu'il se termine
-5. **Soirée reportée ou annulée** (météo) avec un message affiché au public
-6. **Pas de commentaires publics en V1** : le bien-être animal est un sujet sensible et la modération serait lourde
-7. **Dimensionnement** : 3 000 spectateurs, donc test de charge à 4 500 votants simulés
+5. **Délai maximum de vote** : chaque passage se ferme automatiquement peu après la fin de la manade, pour que le public note à chaud (section 4.4)
+6. **Ordre de passage variable** : l'ordre des manades change d'une épreuve à l'autre et peut changer pendant la soirée (section 4.2)
+7. **Soirée reportée ou annulée** (météo) avec un message affiché au public
+8. **Pas de commentaires publics en V1** : le bien-être animal est un sujet sensible et la modération serait lourde
+9. **Dimensionnement** : 5 000 personnes simultanées, donc tests de charge à 5 000 puis 7 500 votants simulés (section 5.3)
 
 ---
 
@@ -162,7 +164,7 @@ Sources complètes (Midi Libre, publications publiques des manades et des organi
 | Canal | Pour qui | Contenu |
 |---|---|---|
 | **Site web** (navigateur, installable sur l'écran d'accueil) | Le public, et tous les rôles | Vitrine, inscription, notation, classements, notifications web |
-| **App Android** (Google Play) | **Interne par défaut** : admins et juges | Cockpit admin, import du planning, notation jury, notifications natives |
+| **App Android** (Google Play, publication publique prévue) | **Interne par défaut** : admins et juges | Cockpit admin, import du planning, notation jury, notifications natives |
 
 - **Réglage `app_ouverte_au_public`** (désactivé par défaut) : une fois activé, les spectateurs peuvent aussi utiliser l'app Android pour s'inscrire, noter et recevoir les notifications natives. Le site web reste toujours disponible pour le public
 - **Même code** pour les deux canaux : l'app Android est une coque native (Capacitor) autour de l'application web. Toute évolution sort sur les deux canaux en même temps
@@ -189,7 +191,9 @@ Objectif : un site **simple, intuitif et soigné**, pensé d'abord pour le tél�
 **Photos** :
 
 - 20 photos libres de droits déjà repérées et vérifiées sur Wikimedia Commons (gardians, abrivado, ferrade, arènes de Nîmes) : liste, auteurs et licences dans [`docs/photos-libres.md`](photos-libres.md). Aucune photo libre des Olympiades elles-mêmes n'existe : les photos d'épreuves viendront de l'organisateur ou des manades
-- uniquement des photos dont on a le droit d'usage : photos fournies par l'organisateur ou les manades avec l'accord écrit du photographe, ou photos sous licence libre (Wikimedia Commons), toujours créditées
+- uniquement des photos dont on a le droit d'usage : photos fournies par l'organisateur ou les manades avec l'accord écrit du photographe, ou photos sous licence libre (Wikimedia Commons), toujours créditées. Chaque accord est archivé par écrit (photographe, photo, usages autorisés, durée), y compris pour la photo de l'affiche, déclarée « de chez nous » le 10/10/2026
+- personnes reconnaissables (gardians, spectateurs) : accord écrit, ou retrait sur simple demande via le formulaire de contact
+- l'affiche officielle et la charte d'Atch Élevage sont reprises avec l'accord écrit de leurs titulaires, à archiver avec les accords photo
 - les photos de presse (ICI, Objectif Gard, Midi Libre, arènes de Nîmes) ne sont **pas** reprises sans l'accord du photographe ou du média
 - images optimisées (AVIF ou WebP, tailles adaptées au téléphone) pour rester rapides sur le réseau des arènes
 
@@ -202,8 +206,11 @@ Objectif : un site **simple, intuitif et soigné**, pensé d'abord pour le tél�
 Une **soirée** est une édition de l'Olympiade. Champs :
 
 - nom, date, lieu (arènes, ville)
-- fenêtre de vote : début et fin (par défaut 19h00-22h00)
-- manades participantes, avec leur ordre de passage
+- fenêtre de vote, au choix de l'admin :
+  - **ajustable** : début et fin saisis par l'admin, par défaut 21h00-23h30, modifiables à tout moment, y compris pendant la soirée ;
+  - **automatique** : ouverture au début de la première épreuve notée, fermeture à la fin de la dernière épreuve plus le délai maximum de vote (section 4.4), ou à la fin de la dernière épreuve si le délai est désactivé. La base recalcule `vote_debut` et `vote_fin` à chaque modification ou décalage du planning
+- délai maximum de vote par passage (section 4.4)
+- manades participantes, avec un ordre de passage par défaut
 - épreuves (voir 4.2)
 - réglages : mode de vote (4.4), barème du jury (4.5), mode et méthode de classement (4.6), visibilité du classement
 - statut : `brouillon`, `publiée`, `en cours`, `terminée`, `reportée`, `annulée`. Un statut reporté ou annulé affiche au public un message rédigé par l'admin
@@ -214,13 +221,15 @@ Les manades sont gérées dans un **annuaire réutilisable** d'une soirée à l'
 
 Chaque **épreuve** possède : un ordre, un nom, une description courte, une heure de début et une heure de fin prévues, et un type : **notée** ou **démonstration** (affichée au planning, sans vote ni classement, ex. bandido).
 
-Chaque épreuve contient un **passage** par manade participante, dans l'ordre de passage. Le passage est l'unité notée et débloquée : « la manade Vinuesa sur la ferrade ».
+Chaque épreuve contient un **passage** par manade participante. Le passage est l'unité notée et débloquée : « la manade Vinuesa sur la ferrade ».
+
+**Ordres variables** : l'ordre des manades est propre à chaque épreuve (il reprend l'ordre par défaut de la soirée à la création). L'admin peut changer l'ordre des passages et celui des épreuves à tout moment, y compris pendant la soirée, par glisser-déposer. Un changement d'ordre ne touche ni les notes déjà enregistrées ni les passages déjà ouverts ou fermés. Le planning public, l'écran géant et les notifications suivent l'ordre en vigueur.
 
 Le planning se remplit de trois façons :
 
 1. **Import automatique** (4.3), le cas normal
 2. **Modèle par défaut** : les 4 épreuves de référence (section 2.2), avec leurs descriptions
-3. **Saisie manuelle** : ajouter, modifier, réordonner ou supprimer une épreuve, changer l'ordre de passage des manades
+3. **Saisie manuelle** : ajouter, modifier, réordonner ou supprimer une épreuve, changer l'ordre de passage des manades, épreuve par épreuve
 
 **Décalage en direct** : un bouton « Décaler la suite de +N min » repousse toutes les épreuves suivantes quand la soirée prend du retard.
 
@@ -249,9 +258,10 @@ L'admin envoie le planning dans le format qu'il a sous la main :
 
 - modèle `claude-opus-5-5`, sortie structurée (`output_config.format` + schéma Zod), repli serveur en cas de refus activé (`fallbacks: "default"`)
 - appel depuis une Supabase Edge Function. La clé API reste un secret serveur et n'est jamais envoyée au navigateur
-- taille maximale du fichier : 20 Mo
+- taille maximale du fichier déposé : 20 Mo. Les PDF passent par la Files API d'Anthropic (la requête directe est limitée à 32 Mo, base64 compris). Les photos sont réduites dans le navigateur avant l'envoi (grand côté de 2 576 px au plus, la résolution maximale lue par le modèle), car l'API refuse une image de plus de 10 Mo en base64
 - coût estimé : **0,02 à 0,10 € par import** (un planning d'une page ≈ 2 000 à 5 000 jetons en entrée, 1 000 à 3 000 en sortie, au tarif Opus 5.5 de 4 $ / 20 $ par million de jetons)
 - chaque import est historisé : fichier d'origine, JSON obtenu, auteur, date, erreur éventuelle
+- données personnelles : un planning peut contenir des noms de gardians. Le fichier d'origine est supprimé 30 jours après l'import (durée à valider avec l'avocat), le JSON validé reste lié à la soirée. La page Confidentialité mentionne ce traitement et Anthropic comme sous-traitant (section 6)
 
 ### 4.4 Vote du public
 
@@ -276,8 +286,16 @@ L'admin envoie le planning dans le format qu'il a sous la main :
 
 | Mode | Règle |
 |---|---|
-| **Libre** | Pendant la fenêtre de la soirée (ex. 19h00-22h00), le spectateur note n'importe quelle manade sur n'importe quelle épreuve, dans l'ordre qu'il veut. L'admin peut ouvrir ou fermer la fenêtre en avance, ou la prolonger. |
+| **Libre** | Pendant la fenêtre de la soirée (ex. 21h00-23h30), le spectateur note n'importe quelle manade sur n'importe quelle épreuve, dans l'ordre qu'il veut. L'admin peut ouvrir ou fermer la fenêtre en avance, ou la prolonger. |
 | **Par déblocage** | Un passage n'est notable qu'une fois **débloqué** par l'admin, et jusqu'à ce qu'il le **ferme**. L'admin débloque soit **toute l'épreuve d'un coup** (tous les passages), soit **manade par manade**, à la fin de chaque passage. Plusieurs passages peuvent être ouverts en même temps. |
+
+**Délai maximum de vote** (réglage admin, par soirée) : chaque passage se ferme automatiquement **N minutes après la fin du passage de la manade**, pour que le public note à chaud, quand il se souvient encore du passage.
+
+- N est réglable de 1 à 30 minutes, **5 minutes par défaut**, et peut être désactivé
+- fin du passage : le moment où l'admin touche **Passage terminé** dans le cockpit. À défaut, en mode déblocage manade par manade, le moment du déblocage (l'admin débloque à la fin de la manade) ; quand toute l'épreuve est débloquée d'un coup, et en mode libre, l'heure de fin prévue de l'épreuve, décalages compris
+- l'admin peut fermer plus tôt ou prolonger un passage depuis le cockpit
+- le spectateur voit le temps restant sur l'écran de notation
+- la fermeture automatique est appliquée par la base, à l'heure du serveur, comme la fermeture manuelle. Elle ne concerne que le vote du public : le jury garde son propre statut et peut finaliser après (section 4.5)
 
 **Règles communes** :
 
@@ -296,7 +314,7 @@ L'admin envoie le planning dans le format qu'il a sous la main :
 
 - L'admin crée les juges (nom) et les rattache à une soirée. L'app génère pour chaque juge un **lien de connexion personnel**, affiché en QR code ou envoyé par SMS ou WhatsApp. Le juge le scanne et se retrouve connecté, sans mot de passe à retenir
 - **barème réglable par soirée** : sur 10 ou sur 20 (défaut 20, comme le jury réel), au demi-point près, avec un commentaire privé optionnel. Pour les classements combinés, la note jury est ramenée sur 10
-- le vote jury a son **propre statut** par passage. Par défaut il s'ouvre et se ferme en même temps que le vote public. L'admin peut le dissocier, par exemple pour laisser le jury finaliser après la fermeture du public
+- le vote jury a son **propre statut** par passage. Par défaut il s'ouvre et se ferme en même temps que le vote public, sauf la fermeture automatique par délai, qui ne vise que le public (section 4.4). L'admin peut le dissocier, par exemple pour laisser le jury finaliser après la fermeture du public
 - le juge corrige ses notes tant que le vote jury du passage est ouvert. L'admin **verrouille** ensuite les notes du jury
 - l'admin voit en direct quel juge n'a pas encore noté quel passage
 
@@ -313,12 +331,12 @@ L'admin envoie le planning dans le format qu'il a sous la main :
 
 **Méthode du classement général**, choisie par l'admin :
 
-- **Moyenne des notes** (défaut) : moyenne des notes de la manade sur toutes les épreuves
-- **Cumul de points par place** : à chaque épreuve, le 1er reçoit N points (N = nombre de manades), le 2e N−1, etc. Le général additionne ces points. C'est ce qui récompense la régularité, comme Vinuesa à Alès en 2026
+- **Cumul de points par place** (défaut, décision du 11/10/2026) : à chaque épreuve, le 1er reçoit N points (N = nombre de manades), le 2e N−1, etc. Le général additionne ces points. C'est la méthode des soirées réelles, qui récompense la régularité, comme Vinuesa à Alès en 2026
+- **Moyenne des notes** : moyenne des notes de la manade sur toutes les épreuves
 
 **Mode de classement officiel**, choisi par l'admin pour chaque soirée :
 
-1. **Deux classements séparés** : « Jury » et « Prix du public », côte à côte
+1. **Deux classements séparés** : « Jury » et « Prix du public », côte à côte. Le Prix du public est confirmé (11/10/2026)
 2. **Combiné pondéré** : un classement final unique, avec le détail jury et public consultable
 3. **Jury seul officiel** : le classement public est affiché comme indicatif
 
@@ -342,6 +360,8 @@ L'app admin est la même application, installée sur l'écran d'accueil du tél�
    - épreuve en cours, en grand, avec la liste de ses passages
    - boutons **Débloquer** et **Fermer** larges, pour l'épreuve entière ou pour chaque manade, utilisables d'une main en extérieur
    - compteur de votes en temps réel par passage
+   - bouton **Passage terminé**, puis temps restant avant la fermeture automatique de chaque passage, avec **Fermer maintenant** et **Prolonger de +N min**
+   - changement de l'ordre des passages et des épreuves par glisser-déposer
    - passage à l'épreuve suivante, décalage horaire
    - juges en retard de notation
 4. **Résultats** : classements détaillés, vainqueurs par épreuve, révélation du classement, verrouillage final, export CSV et PDF
@@ -359,7 +379,7 @@ URL `/ecran/<soiree>` en lecture seule, prévue pour être lisible à 20 m :
 
 ### 4.9 Avis sur la soirée
 
-Après la fermeture des votes, le spectateur peut laisser une **note globale de la soirée** (1 à 5 étoiles) et un **commentaire facultatif** (500 caractères maximum). Ces avis :
+Après la fermeture du dernier passage de la soirée, le spectateur peut laisser une **note globale de la soirée** (1 à 5 étoiles) et un **commentaire facultatif** (500 caractères maximum). Ces avis :
 
 - ne modifient jamais les notes des manades
 - sont visibles uniquement par les admins (note moyenne, nombre d'avis, liste des commentaires), donc sans modération publique
@@ -375,6 +395,7 @@ La base ouvre les avis d’une soirée `publiee` ou `en_cours` après `vote_fin`
 - **Android** : fonctionnent depuis le navigateur dès que le spectateur les accepte
 - **iPhone** : Apple n'autorise les notifications web **que si le site est ajouté à l'écran d'accueil** ([Pushpad](https://pushpad.xyz/blog/ios-special-requirements-for-web-push-notifications), [WebKit](https://webkit.org/?p=16535)). L'app détecte l'iPhone et affiche un guide en 2 étapes (« Partager », puis « Sur l'écran d'accueil ») avant de proposer les notifications
 - **Secours pour tous** : quand l'app est ouverte, un déblocage déclenche une bannière et une vibration, même sans notification
+- **Consentement** : un écran dédié, distinct de l'inscription, explique l'usage des notifications avec deux boutons de même poids, « Accepter » et « Refuser », avant la demande d'autorisation du navigateur ou d'Android. Le choix est horodaté en base (article 82 de la loi Informatique et Libertés)
 - **Désactivation** : un interrupteur dans l'app coupe les notifications. Aucune notification en dehors des soirées
 - **Volume** : une notification par déblocage, regroupée si l'admin débloque plusieurs passages en moins de 30 s
 
@@ -390,7 +411,7 @@ La base ouvre les avis d’une soirée `publiee` ou `en_cours` après `vote_fin`
 | App installable | PWA (`vite-plugin-pwa`), **un seul manifeste** | Plusieurs PWA sur un même domaine se disputent les liens ([web.dev](https://web.dev/articles/building-multiple-pwas-on-the-same-domain)). Une seule app avec des rôles évite le problème |
 | Base de données | Supabase Postgres + Row Level Security | Les règles de vote (fenêtre, déblocage, une note par personne) sont appliquées par la base |
 | Authentification | Supabase Auth : code à 6 chiffres par email pour les spectateurs ([doc](https://supabase.com/docs/guides/auth/auth-email-passwordless)), email + mot de passe pour les admins, lien de connexion généré par l'admin pour les juges | Un email vérifié par votant, sans mot de passe à retenir |
-| Emails | SMTP Brevo (entreprise française, données dans l'UE), branché sur Supabase Auth et sur le formulaire de contact | L'envoi intégré de Supabase est limité à 2 emails par heure et réservé aux tests |
+| Emails | SMTP Brevo (entreprise française, données dans l'UE selon Brevo, à confirmer dans son DPA), branché sur Supabase Auth et sur le formulaire de contact | L'envoi intégré de Supabase est limité à 2 emails par heure et réservé aux tests |
 | Notifications | Web Push (clés VAPID) pour le site, Firebase Cloud Messaging pour l'app Android. Abonnements enregistrés en base, envoi par une Supabase Edge Function `notifier` déclenchée par un webhook de base de données au déblocage | Gratuit, un seul point d'envoi pour les deux canaux |
 | App Android | Capacitor : coque native Android autour du build web (mode application monopage de React Router), publiée sur Google Play | Une seule base de code, iOS possible plus tard |
 | Temps réel | Supabase Realtime pour admins, juges et écran géant. Relecture périodique pour les spectateurs (voir 5.3) | Respect des quotas Realtime |
@@ -404,32 +425,42 @@ La base ouvre les avis d’une soirée `publiee` ou `en_cours` après `vote_fin`
 profils            (id = auth.users.id, prenom, role: admin | juge | spectateur,
                     consentement_le)
 manades            (id, nom, ville, logo_url)
-soirees            (id, slug, nom, date, lieu, vote_debut, vote_fin,
-                    mode_vote: libre | deblocage,
+soirees            (id, slug, nom, date_soiree, lieu, vote_debut, vote_fin,
+                    mode_vote: libre | deblocage (défaut deblocage),
                     bareme_jury: 10 | 20,
                     mode_classement: separe | combine | jury,
-                    methode_general: moyenne | points,
+                    methode_general: points | moyenne (défaut points),
                     poids_jury 0-100, classement_visible,
-                    statut, message_public)
-soiree_manades     (soiree_id, manade_id, ordre)
+                    statut, message_public, cree_le)
+                    -- à ajouter au lot 1 : mode_fenetre (ajustable | automatique),
+                    --   delai_vote_minutes (1-30, défaut 5, null = désactivé)
+soiree_manades     (soiree_id, manade_id, ordre)   -- ordre par défaut
 soiree_juges       (soiree_id, juge_id)
 epreuves           (id, soiree_id, ordre, nom, description, description_ia,
                     notee, heure_debut, heure_fin)
-passages           (id, epreuve_id, manade_id, ordre,
+passages           (id, epreuve_id, manade_id, ordre,   -- ordre propre à l'épreuve
                     statut_public: a_venir | ouvert | clos,
                     statut_jury:   a_venir | ouvert | clos | verrouille,
                     jury_lie_au_public)
-                    UNIQUE (epreuve_id, manade_id)
+                    UNIQUE (epreuve_id, manade_id), UNIQUE différable (epreuve_id, ordre)
+                    -- à ajouter au lot 2 : fin_passage_le, ferme_le (fermeture
+                    --   automatique calculée par la base). L'écran géant, l'instantané
+                    --   et les notifications lisent le statut effectif : un passage
+                    --   « ouvert » dont ferme_le est dépassé s'affiche fermé
 notes_public       (passage_id, votant_id, note 1-10, maj_le)
                     UNIQUE (passage_id, votant_id)
 notes_jury         (passage_id, juge_id, note pas 0.5 dans le barème,
                     commentaire, maj_le)
                     UNIQUE (passage_id, juge_id)
-avis_soiree        (soiree_id, votant_id, etoiles 1-5, commentaire, cree_le)
+avis_soiree        (soiree_id, votant_id, etoiles 1-5, commentaire, maj_le)
                     UNIQUE (soiree_id, votant_id)
+file_notes         -- file durable des notes du public (section 5.4.1)
+presences_authentifiees, supervision_serveur_minutes
+                   -- supervision admin (section 5.3.1)
 abonnements_push   (id, profil_id, canal: web | android, cible UNIQUE,
-                    p256dh, auth, cree_le)   -- cible = endpoint web ou jeton FCM
-parametres         (cle, valeur jsonb)  -- ex. app_ouverte_au_public
+                    p256dh, auth, consentement_le, cree_le)
+                    -- lot 8, pas encore créée ; cible = endpoint web ou jeton FCM
+parametres         (cle, valeur jsonb)  -- lot 9, pas encore créée ; ex. app_ouverte_au_public
 calendrier         (id, annee, nom, ville, arenes, date_soiree, heure,
                     statut: previsionnelle | confirmee | annulee,
                     lien_billetterie, soiree_id)   -- page Dates
@@ -439,14 +470,14 @@ photos             (id, url, legende, credit, licence, ordre)   -- lot 1, pas en
 contenus           (cle, titre, texte, maj_le)   -- lot 1, pas encore créée ; textes de la vitrine
 messages_contact   (id, prenom, email, message, cree_le, traite)
 imports_planning   (id, soiree_id, fichier, type, statut, resultat jsonb,
-                    erreur, auteur, cree_le)
+                    erreur, auteur, cree_le)   -- lot 3, pas encore créée
 etat_soiree        (soiree_id, instantane jsonb, calcule_le)
-                    -- instantané public : statuts + classements
+                    -- lot 2, pas encore créée ; instantané public : statuts + classements
 ```
 
 **Règles RLS principales** :
 
-- `notes_public` : insertion et modification seulement si `votant_id = auth.uid()`, si l'email du votant est vérifié et si le passage est votable **à l'heure du serveur**, selon le mode (fenêtre de la soirée en mode libre, statut `ouvert` en mode déblocage). Lecture limitée à ses propres notes
+- `notes_public` : insertion et modification seulement si `votant_id = auth.uid()`, si l'email du votant est vérifié et si le passage est votable **à l'heure du serveur**, selon le mode (fenêtre de la soirée en mode libre, statut `ouvert` en mode déblocage), et avant la fermeture automatique du passage (délai maximum de vote, section 4.4). Lecture limitée à ses propres notes
 - `notes_jury` : seulement un juge rattaché à la soirée, passage au statut jury `ouvert`, note conforme au barème. L'admin lit tout
 - un spectateur ne peut écrire que ses propres notes, son avis et ses abonnements aux notifications
 - `messages_contact` : insertion ouverte à tous (avec anti-robot vérifié côté serveur), lecture réservée aux admins
@@ -514,7 +545,7 @@ Une file absorbe les pics et permet les reprises ; elle ajoute des écritures et
 | Disponibilité | Aucune mise en production pendant une soirée |
 | Accessibilité | Contrastes AA, boutons de 48 px minimum, lisible de nuit sous l'éclairage des arènes |
 | Langue | Français uniquement en V1 |
-| RGPD | Données du public : prénom et email, utilisés uniquement pour l'accès au vote et les notifications. Consentement à l'inscription, politique de confidentialité, suppression du compte depuis l'app, suppression automatique des comptes spectateurs inactifs depuis 24 mois. Aucun traceur tiers. Pas de newsletter sans case dédiée, décochée par défaut. Sous-traitants : Supabase, Brevo, Railway |
+| RGPD | Données du public : prénom et email, utilisés uniquement pour l'accès au vote et les notifications. Consentement à l'inscription, politique de confidentialité, suppression du compte depuis l'app, suppression automatique des comptes spectateurs inactifs depuis 24 mois. Aucun traceur tiers. Pas de newsletter sans case dédiée, décochée par défaut. Consentement aux notifications distinct et horodaté (section 4.10). Sous-traitants : Supabase, Brevo, Railway, Cloudflare (Turnstile, avant l'ouverture des inscriptions), Anthropic (import du planning, lot 3), Google Firebase Cloud Messaging et services push des navigateurs (Apple, Google, Mozilla, Microsoft ; lots 8 et 9). DPA signé avec chacun, transferts hors UE documentés pays par pays (clauses contractuelles types ou Data Privacy Framework) dans la page Confidentialité. Encadrés « éditeur » et « responsable du traitement » remplis avant toute communication publique |
 | Référencement | Pages vitrine pré-rendues, titre et description par page, données structurées `Event` pour les dates |
 | Sécurité | Clé API Anthropic et clé `service_role` Supabase uniquement côté serveur. Règles RLS couvertes par des tests automatisés |
 | Signature | Pied de page « Signé TPMGE » selon la spec de l'agence, et mention « Conçue en collaboration avec Atch Élevage et TPMGE » avec le bloc « Partenaire officiel : Atch Élevage » (charte graphique, section 8) |
@@ -549,8 +580,11 @@ Une file absorbe les pics et permet les reprises ; elle ajoute des écritures et
 11. Un déblocage déclenche une notification reçue en **moins de 15 s** sur Android (navigateur) et sur iPhone (site ajouté à l'écran d'accueil)
 12. Les pages Accueil, Classements (2025, 2026, 2027), Dates et Contact s'affichent correctement sur mobile et ordinateur, avec un score Lighthouse mobile d'au moins 90 en performance et en accessibilité
 13. Un message envoyé par le formulaire de contact arrive dans la boîte email de l'organisateur
-14. L'app Android s'installe depuis Google Play (piste de test interne) : un admin y débloque une épreuve, un juge y note et reçoit la notification native. Avec `app_ouverte_au_public` désactivé, un spectateur ne peut pas s'y connecter ; activé, il le peut
+14. L'app Android s'installe depuis Google Play (piste de test interne, puis production publique) : un admin y débloque une épreuve, un juge y note et reçoit la notification native. Avec `app_ouverte_au_public` désactivé, un spectateur ne peut pas s'y connecter ; activé, il le peut
 15. L'admin consulte et exporte les mesures de connexion et de charge ; visiteurs et spectateurs sont refusés par l'API et la base. La supervision reste sans effet sur l'enregistrement d'une note en cas de panne de collecte
+16. Avec un délai maximum de vote de N minutes, une note envoyée directement à l'API plus de N minutes après la fin du passage est **refusée par la base** ; une prolongation par l'admin la rend de nouveau possible jusqu'à la nouvelle échéance
+17. L'admin change l'ordre des manades d'une épreuve pendant la soirée : le planning public et l'écran géant affichent le nouvel ordre en moins de 10 s, et aucune note déjà enregistrée n'est perdue ni déplacée
+18. En fenêtre automatique, un décalage du planning de +N min repousse d'autant la fermeture de la fenêtre, et la base refuse une note après la nouvelle échéance
 
 ---
 
@@ -559,16 +593,16 @@ Une file absorbe les pics et permet les reprises ; elle ajoute des écritures et
 | Lot | Contenu | Estimation |
 |---|---|---|
 | 0 | Socle : dépôt, projet Supabase, schéma, RLS + tests, authentification (code email, admins, juges), SMTP | 2 j |
-| 1 | Admin préparation : soirées, annuaire des manades, épreuves (modèle par défaut et saisie manuelle), passages, réglages, QR code. Gestion de la vitrine (dates, palmarès, textes, photos), reprise du lot 7 | 2,5 j |
-| 2 | Vote public : deux modes, déblocage par épreuve ou par manade, file d'attente hors-ligne, instantané, classements, avis sur la soirée | 3 j |
-| 3 | Import IA du planning : Edge Function, conversions, écran de revue | 1,5 j |
+| 1 | Admin préparation : soirées, annuaire des manades, épreuves (modèle par défaut et saisie manuelle), passages et ordre par épreuve, réglages (fenêtre ajustable ou automatique, délai maximum de vote), QR code. Gestion de la vitrine (dates, palmarès, textes, photos), reprise du lot 7 | 3 j |
+| 2 | Vote public : deux modes, déblocage par épreuve ou par manade, fermeture automatique par délai, file d'attente hors-ligne, instantané, classements, avis sur la soirée. Suppression du compte depuis l'app et purge des comptes inactifs depuis 24 mois | 3,5 j |
+| 3 | Import IA du planning : Edge Function, conversions, écran de revue, durée de conservation des fichiers | 1,5 j |
 | 4 | Jury : liens de connexion, notation, barème, verrouillage | 1 j |
-| 5 | Cockpit en direct et écran géant | 1,5 j |
-| 6 | PWA, test de charge, tests e2e, recette sur téléphones réels | 1,5 j |
+| 5 | Cockpit en direct (dont changement d'ordre en direct, fermeture et prolongation des passages) et écran géant | 2 j |
+| 6 | PWA, supervision admin (section 5.3.1), test de charge, tests e2e, recette sur téléphones réels | 1,5 j |
 | 7 | Site vitrine : accueil, classements 2025-2027, dates, contact, mentions légales. **En ligne depuis le 11/10/2026** ; la gestion des contenus depuis l'admin passe au lot 1 | 2 j |
-| 8 | Notifications : abonnement, guide iPhone, envoi au déblocage, bannière de secours | 1,5 j |
-| 9 | App Android : coque Capacitor, notifications FCM, réglage d'ouverture au public, publication Google Play (test interne) | 2,5 j |
-| | **Total** | **≈ 19 jours** |
+| 8 | Notifications : écran de consentement, abonnement, guide iPhone, envoi au déblocage, bannière de secours | 1,5 j |
+| 9 | App Android : coque Capacitor, notifications FCM, réglage d'ouverture au public, publication Google Play (test interne, puis production publique, décision du 11/10/2026). Un compte développeur personnel créé depuis novembre 2023 doit d'abord tenir 14 jours de test fermé avec au moins 12 testeurs : prévoir ce délai au calendrier, ou ouvrir un compte d'organisation | 3 j |
+| | **Total** | **≈ 21 jours** |
 
 ### 9.1 État du dépôt au 12/10/2026
 
@@ -579,7 +613,7 @@ Une file absorbe les pics et permet les reprises ; elle ajoute des écritures et
 | 2 | **Partiel.** `/noter`, file IndexedDB/PostgreSQL, reçus et reprise présents ; traitement serveur désactivé par défaut. Reste : état réel sur l’accueil, instantané des résultats, calculs de classement, avis et suppression de compte. |
 | 3, 4, 5 | **Non commencés côté interface.** Import IA, saisie jury, cockpit et écran géant absents. Les règles SQL du jury existent. |
 | 6 | **Partiel.** Tests unitaires, SQL et E2E de la vitrine/file/supervision présents. PWA, parcours complet de soirée, recette terrain et charge hébergée 5 000/7 500 restent à faire. |
-| 7 | **Vitrine présente.** Accueil, palmarès éditorial, dates et pages légales. Contact enregistré en base via une API protégée, sans email organisateur. Configuration Turnstile requise ; les coordonnées légales et les données structurées `Event` restent à compléter. |
+| 7 | **Vitrine présente.** Accueil, palmarès éditorial, dates et pages légales. Contact enregistré en base via une API protégée, sans email organisateur. Configuration Turnstile requise ; les coordonnées légales et les données structurées `Event` restent à compléter. Déploiement Railway à aligner sur `main` pour exposer supervision et file des notes. |
 | 8, 9 | **Non commencés.** Notifications et application Android absentes. |
 | Supervision | **Code présent.** `/admin` et `/admin/statistiques`, présence et historique. AAL2 exigé pour les accès administratifs. L’état du déploiement est à vérifier séparément du dépôt. |
 
@@ -601,15 +635,17 @@ Ces travaux ne sont pas réputés livrés par le durcissement de la vitrine.
 ## 10. Questions ouvertes (à trancher avec l'organisateur)
 
 1. **Quelle soirée exactement ?** Nom officiel, lieu, date, et lien vers l'affiche ou la page Facebook. Le nom « Olympiade des manades » est introuvable en ligne
-2. **Horaire** : 19h-22h comme indiqué, ou plutôt 21h-23h30 comme les soirées existantes ?
+2. ~~**Horaire**~~ : **tranché le 11/10/2026** : fenêtre par défaut 21h00-23h30, ajustable ou automatique, avec un délai maximum de vote par passage réglé par l'admin (sections 4.1 et 4.4)
 3. **Manades engagées** et ordre de passage
 4. **Épreuves retenues** : le socle des 4 épreuves, une variante à 3, ou d'autres (tri en piste, jeux anciens) ?
-5. **Jury** : nombre de juges, barème réel (sur 20 ?), méthode de départage actuelle (points par place ou notes ?)
+5. **Jury** : nombre de juges, barème réel (sur 20 ?), règle de départage des ex æquo. Méthode du classement général tranchée le 11/10/2026 : cumul de points par place par défaut
 6. **Accord de l'organisateur** pour utiliser le nom et le logo de l'événement dans l'app, et pour afficher le QR code dans les arènes et sur l'écran
 7. **Affluence attendue** et **réseau sur place** : Wi-Fi public disponible ou 4G uniquement ?
-8. **Prix du public** : y a-t-il un trophée remis en piste au vainqueur du vote du public ?
+8. **Prix du public** : son existence est confirmée (11/10/2026). Reste à savoir si un trophée est remis en piste à son vainqueur
 9. **Photos** : l'organisateur ou les manades peuvent-ils fournir des photos des éditions passées, avec l'accord des photographes ?
 10. **Emails** : quelle adresse reçoit les messages du formulaire de contact ? Quel nom et quelle adresse d'expéditeur pour les emails de code ?
-11. **Nom de domaine** du site : `olympiadedesmanades.fr` est libre au 10/10/2026
-12. **Google Play** : compte développeur (25 $ une seule fois) au nom de qui ? Nom et icône de l'app
-13. **Palmarès** : l'organisateur peut-il confirmer les vainqueurs 2025 et 2026 trouvés dans la presse et sur les réseaux (section 2.3 bis), dont Bezouce 2026, encore « à confirmer » ?
+11. **Nom de domaine** du site : `olympiadedesmanades.fr` et `.com` sont libres au 11/10/2026
+12. **Google Play** : publication publique confirmée (11/10/2026). Compte développeur (25 $ une seule fois) au nom d'une organisation (pas de test fermé obligatoire) ou d'une personne (14 jours de test fermé avec 12 testeurs) ? Nom et icône de l'app
+13. **Palmarès** : l'organisateur peut-il confirmer les vainqueurs trouvés dans la presse et sur les réseaux (section 2.3 bis), dont Nîmes 2025 et Bezouce 2026, « à confirmer », et Aimargues, Eyguières, Mouriès 2026, sourcés par des publications lues en partie ?
+14. **Éditeur et responsable du traitement** : identité de l'organisateur (raison sociale, adresse, directeur de publication) pour les mentions légales et la page Confidentialité
+15. **Accords écrits** : photo de l'affiche, affiche officielle, charte d'Atch Élevage, photos des manades (section 4.0)
