@@ -8,6 +8,14 @@ La [recherche historique](docs/recherche-olympiades.md) conserve les sources et 
 
 Les inscriptions publiques et le traitement des notes restent fermés. Le captcha, la configuration Auth hébergée, le SMTP et la recette de la soirée doivent être validés avant leur ouverture. Les fichiers du dépôt ne prouvent pas que la configuration Supabase ou le déploiement Railway sont à jour.
 
+## Accès réservé prélancement
+
+Avant le lancement public, tout le site peut être fermé aux visiteurs qui n’ont pas reçu un lien secret. Définir `ACCES_TOKEN` (minimum 32 caractères, par exemple `openssl rand -hex 24`) ferme tout le site : pages, assets et `/api/*` répondent **401 « Accès réservé »** sauf lorsque l’ordinateur présente le cookie `olympiade_acces`.
+
+Le lien à transmettre est `https://<site>/?acces=<ACCES_TOKEN>`. Lors de la première ouverture, le serveur pose un cookie durable (un an, `HttpOnly`, `SameSite=Lax`, `Secure` derrière HTTPS) dont la valeur est un HMAC-SHA256 du token — le token lui-même n’apparaît jamais dans le cookie — puis redirige en 303 vers la même URL sans le paramètre `acces`. Les navigations suivantes passent librement.
+
+La route `/sante` reste toujours ouverte (healthcheck Railway, désormais `healthcheckPath = /sante`). Pour lever la barrière, retirer la variable `ACCES_TOKEN` du service et redéployer. En local, la variable est absente de `.env.example` par défaut, et aucun test (unit, e2e) ne la pose : le comportement non protégé reste inchangé.
+
 ## Configuration des corrections de sécurité
 
 Copier `.env.example` vers `.env.local` pour les essais ; les secrets restent hors de Git et hors des variables `VITE_`.

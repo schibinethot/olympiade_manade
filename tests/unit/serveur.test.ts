@@ -1,9 +1,10 @@
+import { createHmac } from 'node:crypto';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { creerServeur, hoteSupabase, portDepuis, SUPABASE_PAR_DEFAUT } from '../../serveur/application.mjs';
+import { accesDepuis, creerServeur, hoteSupabase, portDepuis, SUPABASE_PAR_DEFAUT } from '../../serveur/application.mjs';
 
 // Serveur de production (serveur/application.mjs), servi sur un build factice : réglages de
 // connexion pour l'edge Railway, en-têtes et réponses d'erreur.
@@ -126,5 +127,146 @@ describe('creerServeur', () => {
     expect(csp).toContain('connect-src \'self\' https://abcdefgh.supabase.co wss://abcdefgh.supabase.co');
     expect(csp).toContain('img-src \'self\' data: https://abcdefgh.supabase.co');
     expect(csp).not.toContain(SUPABASE_PAR_DEFAUT);
+  });
+
+  it('sert /sante même sans barrière, en no-store', async () => {
+    const reponse = await fetch(`${base}/sante`);
+    expect(reponse.status).toBe(200);
+    expect(await reponse.text()).toBe('ok');
+    expect(reponse.headers.get('cache-control')).toBe('no-store');
+    expect(reponse.headers.get('content-type')).toContain('text/plain');
+  });
+});
+
+describe('accesDepuis', () => {
+  it('retourne null sans valeur ou pour une valeur vide', () => {
+    expect(accesDepuis(undefined)).toBeNull();
+    expect(accesDepuis('')).toBeNull();
+  });
+
+  it('refuse un token de moins de 32 caractères', () => {
+    for (const valeur of ['x', 'a'.repeat(16), 'a'.repeat(31)]) {
+      expect(() => accesDepuis(valeur), valeur).toThrow(/ACCES_TOKEN/);
+    }
+  });
+
+  it('accepte un token conforme et calcule un cookie attendu stable', () => {
+    const token = 'a'.repeat(48);
+    const config = accesDepuis(token);
+    expect(config).not.toBeNull();
+    const attendu = createHmac('sha256', token).update('olympiade-acces-v1', 'utf8').digest('hex');
+    expect(config!.cookieAttendu).toBe(attendu);
+    expect(config!.cookieAttendu).not.toContain(token);
+  });
+});
+
+describe('creerServeur avec barrière d’accès', () => {
+  const TOKEN_BON = 'z'.repeat(48);
+  const TOKEN_MAUVAIS = 'y'.repeat(48);
+  const COOKIE_ATTENDU = createHmac('sha256', TOKEN_BON).update('olympiade-acces-v1', 'utf8').digest('hex');
+
+  let racine: string;
+  let serveur: ReturnType<typeof creerServeur>;
+  let base: string;
+
+  beforeAll(async () => {
+    racine = build();
+    serveur = creerServeur({
+      racine,
+      supabase: 'abcdefgh.supabase.co',
+      acces: accesDepuis(TOKEN_BON),
+    });
+    await new Promise<void>((ok) => serveur.listen(0, '127.0.0.1', ok));
+    base = `http://127.0.0.1:${(serveur.address() as AddressInfo).port}`;
+  });
+
+  afterAll(async () => {
+    await new Promise((ok) => serveur.close(ok));
+    rmSync(racine, { recursive: true, force: true });
+  });
+
+  it('refuse la page d’accueil sans cookie en 401 « Accès réservé »', async () => {
+    const reponse = await fetch(base, { redirect: 'manual' });
+    expect(reponse.status).toBe(401);
+    expect(reponse.headers.get('x-robots-tag')).toBe('noindex');
+    expect(reponse.headers.get('cache-control')).toBe('no-store');
+    expect(reponse.headers.get('content-type')).toContain('text/html');
+    const corps = await reponse.text();
+    expect(corps).toContain('Accès réservé');
+    expect(corps).toContain('Ce site est en préparation.');
+  });
+
+  it('refuse /api/* sans cookie en 401 JSON', async () => {
+    const reponse = await fetch(`${base}/api/contact`, { method: 'GET' });
+    expect(reponse.status).toBe(401);
+    expect(reponse.headers.get('content-type')).toContain('application/json');
+    expect(reponse.headers.get('cache-control')).toBe('no-store');
+    expect(await reponse.json()).toEqual({ error: 'Accès réservé.' });
+  });
+
+  it('refuse un asset sans cookie en 401', async () => {
+    const reponse = await fetch(`${base}/assets/app-abc123.js`);
+    expect(reponse.status).toBe(401);
+    expect(reponse.headers.get('x-robots-tag')).toBe('noindex');
+  });
+
+  it('échange le lien `?acces=<bon>` contre un cookie et redirige en 303 vers l’URL propre', async () => {
+    const reponse = await fetch(`${base}/?acces=${TOKEN_BON}&x=1`, { redirect: 'manual' });
+    expect(reponse.status).toBe(303);
+    expect(reponse.headers.get('location')).toBe('/?x=1');
+    expect(reponse.headers.get('cache-control')).toBe('no-store');
+
+    const setCookie = reponse.headers.get('set-cookie');
+    expect(setCookie).not.toBeNull();
+    expect(setCookie!).toContain(`olympiade_acces=${COOKIE_ATTENDU}`);
+    expect(setCookie!).toContain('HttpOnly');
+    expect(setCookie!).toContain('SameSite=Lax');
+    expect(setCookie!).toContain('Path=/');
+    expect(setCookie!).toContain('Max-Age=31536000');
+    // Le token en clair ne doit JAMAIS être posé comme valeur de cookie.
+    expect(setCookie!).not.toContain(TOKEN_BON);
+    // En HTTP simple, pas de Secure.
+    expect(setCookie!).not.toMatch(/;\s*Secure/i);
+  });
+
+  it('ajoute Secure derrière HTTPS (x-forwarded-proto: https)', async () => {
+    const reponse = await fetch(`${base}/?acces=${TOKEN_BON}`, {
+      redirect: 'manual',
+      headers: { 'x-forwarded-proto': 'https' },
+    });
+    expect(reponse.status).toBe(303);
+    const setCookie = reponse.headers.get('set-cookie') ?? '';
+    expect(setCookie).toMatch(/;\s*Secure/);
+    expect(reponse.headers.get('strict-transport-security')).toBe('max-age=31536000');
+  });
+
+  it('refuse `?acces=<mauvais>` en 401 sans Set-Cookie', async () => {
+    const reponse = await fetch(`${base}/?acces=${TOKEN_MAUVAIS}`, { redirect: 'manual' });
+    expect(reponse.status).toBe(401);
+    expect(reponse.headers.get('set-cookie')).toBeNull();
+  });
+
+  it('avec le cookie valide, sert normalement la page et un asset', async () => {
+    const entetes = { cookie: `olympiade_acces=${COOKIE_ATTENDU}` };
+    const page = await fetch(base, { headers: entetes });
+    expect(page.status).toBe(200);
+    expect(page.headers.get('content-type')).toContain('text/html');
+    const asset = await fetch(`${base}/assets/app-abc123.js`, { headers: entetes });
+    expect(asset.status).toBe(200);
+    expect(asset.headers.get('content-type')).toContain('text/javascript');
+  });
+
+  it('refuse un cookie à valeur bidon (longueur ou contenu)', async () => {
+    for (const valeur of ['', 'pasHex', '0'.repeat(64), 'a'.repeat(10)]) {
+      const reponse = await fetch(base, { headers: { cookie: `olympiade_acces=${valeur}` } });
+      expect(reponse.status, valeur).toBe(401);
+    }
+  });
+
+  it('garde /sante toujours ouvert, même avec la barrière active', async () => {
+    const reponse = await fetch(`${base}/sante`);
+    expect(reponse.status).toBe(200);
+    expect(await reponse.text()).toBe('ok');
+    expect(reponse.headers.get('cache-control')).toBe('no-store');
   });
 });

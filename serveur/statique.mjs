@@ -3,7 +3,7 @@
 // serveur de serveur/application.mjs sur build/client et écoute.
 
 import { fileURLToPath } from 'node:url';
-import { creerServeur, hoteSupabase, journaliserErreur, portDepuis } from './application.mjs';
+import { accesDepuis, creerServeur, hoteSupabase, journaliserErreur, portDepuis } from './application.mjs';
 import { supervisionDepuisEnvironnement } from './supervision.mjs';
 import { planningNotationDepuisEnvironnement } from './planning-notation.mjs';
 import { fileNotesDepuisEnvironnement } from './file-notes.mjs';
@@ -26,6 +26,7 @@ try {
     supervision: supervisionDepuisEnvironnement(process.env),
     planningNotation: planningNotationDepuisEnvironnement(process.env),
     contact: contactDepuisEnvironnement(process.env),
+    acces: accesDepuis(process.env.ACCES_TOKEN),
   });
 } catch (erreur) {
   journaliserErreur(`démarrage impossible (lancer pnpm build avant pnpm start) : ${RACINE}`, erreur);

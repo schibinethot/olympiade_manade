@@ -16,6 +16,9 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { extname, join, relative, sep } from 'node:path';
 import { brotliCompressSync, constants, gzipSync } from 'node:zlib';
+import { appliquerBarriere } from './acces.mjs';
+
+export { accesDepuis } from './acces.mjs';
 
 export const PORT_PAR_DEFAUT = 8080;
 /** Projet Supabase actuel, si VITE_SUPABASE_URL manque à l'exécution. */
@@ -344,11 +347,16 @@ function repondre(fichiers, req, res) {
  *   supervision?: ReturnType<typeof import('./supervision.mjs').creerSupervision>
  *   planningNotation?: ReturnType<typeof import('./planning-notation.mjs').creerPlanningNotation>
  *   contact?: ReturnType<typeof import('./contact.mjs').creerContact>
+ *   acces?: ReturnType<typeof import('./acces.mjs').accesDepuis>
  * }} options
  */
-export function creerServeur({ racine, supabase, supervision, planningNotation, contact }) {
+export function creerServeur({ racine, supabase, supervision, planningNotation, contact, acces }) {
   const fichiers = indexer(racine, supabase);
+  const barriere = acces ?? null;
   const serveur = createServer((req, res) => {
+    // Barrière d'accès avant toute autre logique : /sante toujours ouvert, lien `?acces=`
+    // échangé contre un cookie durable, le reste refusé en 401 sans cookie valide.
+    if (!appliquerBarriere(barriere, req, res)) return;
     supervision?.observerRequete(req, res);
     if (contact?.estRoute(req.url)) {
       contact.repondre(req, res).catch((erreur) => {
