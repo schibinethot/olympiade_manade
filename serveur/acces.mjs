@@ -20,6 +20,37 @@ const LONGUEUR_MINIMALE = 32;
 export const CHEMIN_SANTE = '/sante';
 export const CORPS_SANTE = 'ok';
 
+/**
+ * Remplace la valeur du paramètre `acces` dans une URL (relative ou absolue) par `***`,
+ * pour éviter de journaliser le token transmis par le navigateur. Chaque occurrence est
+ * masquée (plusieurs `acces=` possibles via une URL mal formée).
+ * @param {string | undefined} url
+ * @returns {string}
+ */
+export function masquerUrl(url) {
+  if (url === undefined) return '';
+  // Capture `?acces=` ou `&acces=` et remplace la valeur jusqu'au prochain `&` ou `#`.
+  // La clé elle-même ($2) est préservée pour conserver la casse du log d'origine.
+  return url.replace(/([?&])(acces)=[^&#]*/gi, '$1$2=***');
+}
+
+/**
+ * Journalise au démarrage l'absence d'ACCES_TOKEN (barrière désactivée). Appelé une fois
+ * depuis le point d'entrée, avant l'écoute. Niveau `warn`, même format JSON que les
+ * autres logs du serveur. Si la configuration existe, rien n'est journalisé.
+ * @param {ReturnType<typeof accesDepuis>} config
+ */
+export function journaliserAbsence(config) {
+  if (config) return;
+  console.warn(
+    JSON.stringify({
+      level: 'warn',
+      timestamp: new Date().toISOString(),
+      message: "barrière d'accès désactivée : ACCES_TOKEN absent, site ouvert à tous",
+    }),
+  );
+}
+
 const EN_TETES_COMMUNS = {
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'strict-origin-when-cross-origin',

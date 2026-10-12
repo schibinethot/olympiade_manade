@@ -16,9 +16,9 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { extname, join, relative, sep } from 'node:path';
 import { brotliCompressSync, constants, gzipSync } from 'node:zlib';
-import { appliquerBarriere } from './acces.mjs';
+import { appliquerBarriere, masquerUrl } from './acces.mjs';
 
-export { accesDepuis } from './acces.mjs';
+export { accesDepuis, journaliserAbsence, masquerUrl } from './acces.mjs';
 
 export const PORT_PAR_DEFAUT = 8080;
 /** Projet Supabase actuel, si VITE_SUPABASE_URL manque à l'exécution. */
@@ -384,7 +384,7 @@ export function creerServeur({ racine, supabase, supervision, planningNotation, 
     try {
       repondre(fichiers, req, res);
     } catch (erreur) {
-      journaliserErreur(`échec de la requête ${req.method} ${req.url}`, erreur);
+      journaliserErreur(`échec de la requête ${req.method} ${masquerUrl(req.url)}`, erreur);
       if (!res.headersSent) texteBrut(req, res, 500, 'Erreur interne\n');
       else res.destroy();
     }

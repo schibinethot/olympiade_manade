@@ -3,8 +3,16 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { accesDepuis, creerServeur, hoteSupabase, portDepuis, SUPABASE_PAR_DEFAUT } from '../../serveur/application.mjs';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import {
+  accesDepuis,
+  creerServeur,
+  hoteSupabase,
+  journaliserAbsence,
+  masquerUrl,
+  portDepuis,
+  SUPABASE_PAR_DEFAUT,
+} from '../../serveur/application.mjs';
 
 // Serveur de production (serveur/application.mjs), servi sur un build factice : réglages de
 // connexion pour l'edge Railway, en-têtes et réponses d'erreur.
@@ -138,6 +146,46 @@ describe('creerServeur', () => {
   });
 });
 
+describe('masquerUrl', () => {
+  it('masque la valeur du paramètre acces où qu’il soit', () => {
+    expect(masquerUrl('/?acces=abc123')).toBe('/?acces=***');
+    expect(masquerUrl('/?acces=abc123&x=1')).toBe('/?acces=***&x=1');
+    expect(masquerUrl('/?x=1&acces=abc123')).toBe('/?x=1&acces=***');
+    expect(masquerUrl('/?x=1&acces=abc123&y=2')).toBe('/?x=1&acces=***&y=2');
+    expect(masquerUrl('/?acces=')).toBe('/?acces=***');
+    expect(masquerUrl('/?acces=abc&acces=def')).toBe('/?acces=***&acces=***');
+    expect(masquerUrl('/?Acces=abc')).toBe('/?Acces=***');
+  });
+
+  it('ne touche pas aux URL sans acces, ni aux fragments', () => {
+    expect(masquerUrl('/')).toBe('/');
+    expect(masquerUrl('/noter?x=1')).toBe('/noter?x=1');
+    expect(masquerUrl('/noter?succes=1')).toBe('/noter?succes=1');
+    expect(masquerUrl('/noter?x=1#acces=abc')).toBe('/noter?x=1#acces=abc');
+    expect(masquerUrl(undefined)).toBe('');
+  });
+});
+
+describe('journaliserAbsence', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('journalise un warn JSON quand ACCES_TOKEN est absent', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    journaliserAbsence(accesDepuis(undefined));
+    expect(warn).toHaveBeenCalledTimes(1);
+    const charge = JSON.parse(warn.mock.calls[0][0] as string);
+    expect(charge.level).toBe('warn');
+    expect(charge.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(charge.message).toBe("barrière d'accès désactivée : ACCES_TOKEN absent, site ouvert à tous");
+  });
+
+  it('ne journalise rien avec une barrière active', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    journaliserAbsence(accesDepuis('a'.repeat(48)));
+    expect(warn).not.toHaveBeenCalled();
+  });
+});
+
 describe('accesDepuis', () => {
   it('retourne null sans valeur ou pour une valeur vide', () => {
     expect(accesDepuis(undefined)).toBeNull();
@@ -268,5 +316,62 @@ describe('creerServeur avec barrière d’accès', () => {
     expect(reponse.status).toBe(200);
     expect(await reponse.text()).toBe('ok');
     expect(reponse.headers.get('cache-control')).toBe('no-store');
+  });
+
+  it('HEAD / sans cookie répond 401 (pas de corps, mais même en-têtes)', async () => {
+    const reponse = await fetch(base, { method: 'HEAD' });
+    expect(reponse.status).toBe(401);
+    expect(reponse.headers.get('x-robots-tag')).toBe('noindex');
+    expect(reponse.headers.get('cache-control')).toBe('no-store');
+  });
+
+  it('refuse les contournements de chemin visant /sante', async () => {
+    // Les trois chemins ne sont pas littéralement « /sante » après analyse URL :
+    //  - //sante : parsé comme protocole-relatif, le pathname devient '/'
+    //  - /%73ante : encodé, pathname reste « /%73ante » (jamais décodé par la barrière)
+    //  - /sante/../admin : normalisé en '/admin' par URL
+    for (const chemin of ['//sante', '/%73ante', '/sante/../admin']) {
+      const reponse = await fetch(`${base}${chemin}`, { redirect: 'manual' });
+      expect(reponse.status, chemin).toBe(401);
+    }
+  });
+
+  it('ignore les paramètres `acces` répétés sans exception, selon le premier', async () => {
+    // URLSearchParams.get('acces') renvoie la PREMIÈRE valeur. Documenté :
+    //  - acces=<mauvais>&acces=<bon> → premier invalide → 401, pas de Set-Cookie
+    //  - acces=<bon>&acces=<mauvais> → premier valide → 303 avec Set-Cookie et Location
+    //    sans AUCUN `acces` (searchParams.delete supprime tous les doublons)
+    const refus = await fetch(`${base}/?acces=${TOKEN_MAUVAIS}&acces=${TOKEN_BON}`, { redirect: 'manual' });
+    expect(refus.status).toBe(401);
+    expect(refus.headers.get('set-cookie')).toBeNull();
+
+    const succes = await fetch(`${base}/?acces=${TOKEN_BON}&acces=${TOKEN_MAUVAIS}`, { redirect: 'manual' });
+    expect(succes.status).toBe(303);
+    const location = succes.headers.get('location') ?? '';
+    expect(location).toBe('/');
+    expect(location).not.toMatch(/acces=/);
+    expect(succes.headers.get('set-cookie')).toContain(`olympiade_acces=${COOKIE_ATTENDU}`);
+  });
+
+  it('refuse un cookie `olympiade_acces=` vide en 401', async () => {
+    const reponse = await fetch(base, { headers: { cookie: 'olympiade_acces=' } });
+    expect(reponse.status).toBe(401);
+  });
+
+  it('deux cookies olympiade_acces (faux puis bon) : prend le premier, refuse en 401 sans exception', async () => {
+    // Comportement documenté : lireCookie renvoie la PREMIÈRE occurrence rencontrée. Un
+    // cookie forgé par le client ne peut donc pas « glisser » un bon cookie dupliqué.
+    const reponse = await fetch(base, {
+      headers: { cookie: `olympiade_acces=invalide; olympiade_acces=${COOKIE_ATTENDU}` },
+    });
+    expect(reponse.status).toBe(401);
+  });
+
+  it('refuse un cookie à caractères non ASCII sans exception', async () => {
+    // Le filtre hex-seulement rejette toute valeur hors [0-9a-f] avant timingSafeEqual.
+    for (const valeur of ['éàç', '%C3%A9', 'ZZZZ', 'abc!@#']) {
+      const reponse = await fetch(base, { headers: { cookie: `olympiade_acces=${valeur}` } });
+      expect(reponse.status, valeur).toBe(401);
+    }
   });
 });
