@@ -43,7 +43,7 @@ test('la carte et la pastille visent la prochaine soirée du calendrier, toutes 
   await page.goto('/');
   await expect(
     page.getByText(
-      'Les votes ouvriront le soir de l’Olympiade, le samedi 1er mai 2027 à 15h30, aux arènes d’Arles. Vous noterez chaque manade de 1 à 10, dès la fin de son passage.',
+      'Les votes ouvriront le soir de l’Olympiade, le samedi 1er mai 2027 à 15h30, aux arènes d’Arles (date prévisionnelle). Vous noterez chaque manade de 1 à 10, dès la fin de son passage.',
     ),
   ).toBeVisible();
   await expect(page.getByText('203 jours', { exact: true })).toBeVisible();
