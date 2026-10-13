@@ -33,7 +33,7 @@ test('la page Dates montre toutes les dates de toutes les années', async ({ pag
   // Playwright refusait l'assertion (strict mode violation). La carte est désignée par son titre.
   const arles = saison.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Arles', exact: true }) });
   await expect(arles).toContainText('samedi 1er mai 2027');
-  await expect(arles).toContainText('Confirmée');
+  await expect(arles).toContainText('Date prévisionnelle');
   const archives2026 = page.locator('#archives-2026');
   await expect(archives2026.getByRole('article').filter({ hasText: 'Beauvoisin' })).toContainText('lundi 17 août 2026');
   await expect(archives2026.getByRole('article').filter({ hasText: 'Nîmes' })).toContainText('Arlatenco');
