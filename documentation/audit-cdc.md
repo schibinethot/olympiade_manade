@@ -47,7 +47,9 @@ Le CDC §2.3 ter et la migration `20261011210432_sources_a_confirmer.sql` classe
 
 Les 2 E2E `/noter` connecté signalés le 12/10 **ne reproduisent plus** : `app/routes/noter.tsx` affiche `momentSoiree` avec ou sans session.
 
-Production : `/admin` répond **200** (l’audit du 12/10 et le README parlaient encore d’un 404). Le README n’est plus à jour sur ce point.
+Production : `/admin` et `/admin/statistiques` répondent **200** ; `GET /api/admin/supervision` sans jeton → **401** (smoke du 13/10, script `pnpm smoke:prod-admin`). Périmètre admin détaillé : **`documentation/admin-perimetre.md`**.
+
+**Admin « opérationnel » prod** : HTTP/API anonymes OK ; **MFA TOTP réel** et **cohérence des stats** avec la base restent à valider manuellement (checklist dans le rapport store `docs/admin-verification-prod.md`).
 
 ---
 
@@ -70,7 +72,7 @@ Le CDC §1.1 et §9.1 décrivent déjà cet écart : livrable actuel = vitrine h
 | Visiteur | Vitrine | **Couvert** | Lectures anon calendrier / palmarès |
 | Spectateur | OTP, notes 1–10, notifs, classement | **Partiel** (OTP + `/noter`, inscriptions fermées, pas de notifs ni live) | RLS notes |
 | Juge | Lien magique, barème 10/20 | **Absent** | Schéma + RLS |
-| Admin | Préparation + cockpit + résultats | **Partiel** (login TOTP + stats charge) | Rôle + AAL2 |
+| Admin | Préparation + cockpit + résultats | **Partiel** (login TOTP + stats charge uniquement ; pas d’écrans participants/soirées/juges/contact) | Rôle + AAL2 |
 | Écran géant | `/ecran/<soiree>` | **Absent** | — |
 
 ### 3.3 Canaux §3.1

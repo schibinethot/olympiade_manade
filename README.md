@@ -34,7 +34,7 @@ Le contrôle de santé Railway utilise `/admin` pour refuser un build qui ne ser
 
 Le contact conserve les messages en base. L’envoi d’un email à l’organisateur, l’effacement des comptes et la purge de rétention restent à mettre en place avant de les annoncer comme disponibles. L’adresse destinataire et la configuration SMTP ne sont pas renseignées dans le dépôt.
 
-Recette locale du 12 octobre 2026 : `pnpm test` **306/306**, TypeScript sans erreur, Playwright **214 réussis et 2 ignorés**, build réussi. Les tests navigateur simulent Supabase Auth et Turnstile ; ils ne valident pas le SMTP ni les clés du projet hébergé. Les modifications et les quatre nouvelles migrations ne sont pas déployées : les routes `/admin` et `/admin/statistiques` de la production répondent encore 404. La publication attend la configuration des services ; aucune inscription ni file de notes n’a été ouverte.
+Recette locale du 12 octobre 2026 : `pnpm test` **306/306**, TypeScript sans erreur, Playwright **214 réussis et 2 ignorés**, build réussi. Les tests navigateur simulent Supabase Auth et Turnstile ; ils ne valident pas le SMTP ni les clés du projet hébergé. En production (13/10/2026), `/admin` et `/admin/statistiques` répondent **HTTP 200** et l’API `/api/admin/supervision` refuse les appels anonymes (**401**) — smoke : `pnpm smoke:prod-admin`. La connexion admin réelle (TOTP) et la cohérence des statistiques en prod restent à recetter manuellement ; voir `documentation/admin-perimetre.md`.
 
 ## Supervision et capacité
 
