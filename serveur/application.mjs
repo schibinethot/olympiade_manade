@@ -27,7 +27,18 @@ export const SUPABASE_PAR_DEFAUT = 'khwlwpzydlrfocfpvywv.supabase.co';
 const REPLI = '/__spa-fallback.html';
 
 // Routes de l'application sans pré-rendu : elles s'hydratent depuis le repli.
-const ROUTES_MONOPAGE = new Set(['/noter', '/inscription', '/inscription/code', '/admin', '/admin/statistiques']);
+const ROUTES_MONOPAGE = new Set([
+  '/noter', '/inscription', '/inscription/code', '/admin', '/admin/statistiques',
+  '/admin/participants', '/admin/messages', '/admin/juges', '/admin/soirees', '/jury',
+]);
+
+/** Routes à paramètre (soirée, écran) : le repli monopage, pas la page introuvable. @param {string} chemin */
+function routeMonopage(chemin) {
+  if (ROUTES_MONOPAGE.has(chemin)) return true;
+  if (chemin.startsWith('/admin/')) return true;
+  if (chemin === '/ecran' || chemin.startsWith('/ecran/')) return true;
+  return false;
+}
 
 // L'edge de Railway garde ses connexions ouvertes 60 s : le serveur doit les garder plus longtemps,
 // sinon il ferme une connexion au moment où l'edge l'utilise (erreurs 502 intermittentes).
@@ -258,7 +269,7 @@ function resoudre(fichiers, chemin) {
   if (fichier) return { fichier, statut: 200, monopage: false };
 
   const repli = /** @type {Fichier} */ (fichiers.get(REPLI));
-  if (ROUTES_MONOPAGE.has(chemin)) return { fichier: repli, statut: 200, monopage: true };
+  if (routeMonopage(chemin)) return { fichier: repli, statut: 200, monopage: true };
   // Fichier attendu (extension, ou dossier des fichiers du build) : jamais la page du repli.
   if (extname(chemin) || chemin === '/assets' || chemin.startsWith('/assets/')) return null;
   return { fichier: repli, statut: 404, monopage: true };
@@ -347,10 +358,12 @@ function repondre(fichiers, req, res) {
  *   supervision?: ReturnType<typeof import('./supervision.mjs').creerSupervision>
  *   planningNotation?: ReturnType<typeof import('./planning-notation.mjs').creerPlanningNotation>
  *   contact?: ReturnType<typeof import('./contact.mjs').creerContact>
+ *   etatSoiree?: ReturnType<typeof import('./instantane.mjs').creerEtatSoiree>
+ *   juges?: { estRoute: (url: string | undefined) => boolean, repondre: (req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) => Promise<void> }
  *   acces?: ReturnType<typeof import('./acces.mjs').accesDepuis>
  * }} options
  */
-export function creerServeur({ racine, supabase, supervision, planningNotation, contact, acces }) {
+export function creerServeur({ racine, supabase, supervision, planningNotation, contact, etatSoiree, juges, acces }) {
   const fichiers = indexer(racine, supabase);
   const barriere = acces ?? null;
   const serveur = createServer((req, res) => {
@@ -369,6 +382,22 @@ export function creerServeur({ racine, supabase, supervision, planningNotation, 
     if (planningNotation?.estRoute(req.url)) {
       planningNotation.repondre(req, res).catch(() => {
         if (!res.headersSent) texteBrut(req, res, 503, 'Planning indisponible\n', { 'Retry-After': '5' });
+        else res.destroy();
+      });
+      return;
+    }
+    if (etatSoiree?.estRoute(req.url)) {
+      etatSoiree.repondre(req, res).catch((erreur) => {
+        journaliserErreur('échec de l’instantané de soirée', erreur);
+        if (!res.headersSent) texteBrut(req, res, 503, 'État de soirée indisponible\n');
+        else res.destroy();
+      });
+      return;
+    }
+    if (juges?.estRoute(req.url)) {
+      juges.repondre(req, res).catch((erreur) => {
+        journaliserErreur('échec de la gestion des juges', erreur);
+        if (!res.headersSent) texteBrut(req, res, 500, 'Erreur interne\n');
         else res.destroy();
       });
       return;

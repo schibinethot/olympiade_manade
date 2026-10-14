@@ -3,6 +3,7 @@
 // passe uniquement par /api/contact, après validation Turnstile côté serveur.
 
 import { isIP } from 'node:net';
+import { courrielDepuisEnvironnement } from './courriel.mjs';
 
 const CHEMIN = '/api/contact';
 const LIMITE_CORPS_OCTETS = 16_384;
@@ -248,7 +249,8 @@ async function demanderJsonBorne(demander, adresse, options) {
 /**
  * @typedef {{ supabaseUrl?: string | null, serviceRoleKey?: string | null, turnstileSecret?: string | null, publicOrigin?: string | null,
  *   trustProxy?: boolean, ipLimit?: number, globalLimit?: number, maxIpEntries?: number, fetchFn?: typeof fetch,
- *   now?: () => number }} OptionsContact
+ *   now?: () => number,
+ *   envoyer?: (contact: { prenom: string, email: string, message: string }) => Promise<{ echec?: boolean }> }} OptionsContact
  */
 
 /** @param {OptionsContact} [options] */
@@ -259,6 +261,7 @@ export function creerContact(options = {}) {
   const turnstileSecret = typeof options.turnstileSecret === 'string' && options.turnstileSecret.trim() ? options.turnstileSecret : null;
   const trustProxy = options.trustProxy === true;
   const demander = options.fetchFn ?? fetch;
+  const envoyer = options.envoyer ?? null;
   // Les tentatives sont limitées avant Siteverify par IP seulement. Le plafond global ne compte
   // qu'après une preuve humaine valide : des jetons vides venant de multiples IP ne le vident pas.
   const limiterTentatives = creerLimiteurContact({
@@ -316,6 +319,16 @@ export function creerContact(options = {}) {
         const statut = insertion.status === 429 ? 429 : 502;
         return repondreJson(req, res, statut, { error: statut === 429 ? 'Trop de demandes. Réessayez plus tard.' : 'Le formulaire est momentanément indisponible.' });
       }
+      if (envoyer) {
+        try {
+          const courriel = await envoyer(valide.champs);
+          if (courriel?.echec) {
+            return repondreJson(req, res, 502, { error: 'Le message est enregistré, mais l’email n’a pas pu être envoyé. Réessayez plus tard.' });
+          }
+        } catch {
+          return repondreJson(req, res, 502, { error: 'Le message est enregistré, mais l’email n’a pas pu être envoyé. Réessayez plus tard.' });
+        }
+      }
       return repondreJson(req, res, 200, { ok: true });
     } catch {
       // Échec réseau, timeout ou réponse illisible : fermeture prudente, sans détail de l'amont.
@@ -338,6 +351,7 @@ export function creerContact(options = {}) {
 
 /** @param {NodeJS.ProcessEnv | Record<string, string | undefined>} env */
 export function contactDepuisEnvironnement(env) {
+  const courriel = courrielDepuisEnvironnement(env);
   return creerContact({
     supabaseUrl: env.VITE_SUPABASE_URL,
     serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
@@ -347,5 +361,6 @@ export function contactDepuisEnvironnement(env) {
     ipLimit: Number(env.CONTACT_RATE_IP_LIMIT),
     globalLimit: Number(env.CONTACT_RATE_GLOBAL_LIMIT),
     maxIpEntries: Number(env.CONTACT_RATE_MAX_IPS),
+    envoyer: courriel.mode === 'off' ? undefined : (contact) => courriel.envoyer(contact),
   });
 }

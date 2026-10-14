@@ -45,6 +45,7 @@ describe('push interrompu après la migration de schéma', () => {
 
 // Fonctions appelées par les politiques RLS : anon et authenticated doivent pouvoir les exécuter.
 const FONCTIONS_DE_REGLES = [
+  'appliquer_fenetre_automatique',
   'avis_ouvert',
   'email_verifie',
   'epreuve_visible',
@@ -62,6 +63,7 @@ const ADMIN = 'DELETE, INSERT, SELECT, UPDATE';
 const DROITS_ATTENDUS = [
   { role: 'anon', table: 'calendrier', droits: LECTURE },
   { role: 'anon', table: 'epreuves', droits: LECTURE },
+  { role: 'anon', table: 'etat_soiree', droits: LECTURE },
   { role: 'anon', table: 'manades', droits: LECTURE },
   { role: 'anon', table: 'palmares', droits: LECTURE },
   { role: 'anon', table: 'passages', droits: LECTURE },
@@ -70,6 +72,7 @@ const DROITS_ATTENDUS = [
   { role: 'authenticated', table: 'avis_soiree', droits: VOTE },
   { role: 'authenticated', table: 'calendrier', droits: ADMIN },
   { role: 'authenticated', table: 'epreuves', droits: ADMIN },
+  { role: 'authenticated', table: 'etat_soiree', droits: LECTURE },
   { role: 'authenticated', table: 'file_notes', droits: LECTURE },
   { role: 'authenticated', table: 'manades', droits: ADMIN },
   { role: 'authenticated', table: 'messages_contact', droits: LECTURE },
@@ -230,6 +233,7 @@ describe('catalogue : fonctions', () => {
             'enregistrer_metrique_serveur(timestamp with time zone,text,integer,integer,bigint,integer,bigint,numeric,integer,integer,integer[])',
         },
         { fonction: 'enregistrer_presence()' },
+        { fonction: 'lire_participants()' },
         { fonction: 'lire_statistiques_file_notes()' },
         { fonction: 'lire_statuts_file_notes(uuid[])' },
         { fonction: 'lire_supervision(integer)' },

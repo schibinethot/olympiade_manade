@@ -97,11 +97,17 @@ export default function Admin() {
 
   return <>
     <TitrePage surtitre="Espace organisateur" titre="Administration">
-      <p>Connectez-vous avec votre compte administrateur pour suivre l’activité et la charge du service.</p>
+      <p>Connectez-vous avec votre compte administrateur pour préparer une soirée, la piloter, puis suivre l’activité du service.</p>
     </TitrePage>
     <div className="px-4 tablette:px-7 paysage:px-10 bureau:px-14">
       {acces === 'chargement' ? <p role="status">Vérification de l’accès…</p> :
-        acces === 'autorise' ? <Link to="/admin/statistiques" className="inline-flex min-h-12 items-center rounded-xl bg-encre px-5 font-semibold text-sable">Statistiques et charge →</Link> :
+        acces === 'autorise' ? <nav className="grid max-w-md gap-3" aria-label="Espaces d’administration">
+          <Link to="/admin/soirees" className="inline-flex min-h-12 items-center rounded-xl border border-trait px-5 font-semibold">Mes soirées</Link>
+          <Link to="/admin/participants" className="inline-flex min-h-12 items-center rounded-xl border border-trait px-5 font-semibold">Participants</Link>
+          <Link to="/admin/juges" className="inline-flex min-h-12 items-center rounded-xl border border-trait px-5 font-semibold">Juges</Link>
+          <Link to="/admin/messages" className="inline-flex min-h-12 items-center rounded-xl border border-trait px-5 font-semibold">Messages de contact</Link>
+          <Link to="/admin/statistiques" className="inline-flex min-h-12 items-center rounded-xl bg-encre px-5 font-semibold text-sable">Statistiques et charge →</Link>
+        </nav> :
         acces === 'deux-facteurs-requis' && facteurId ? <div className="grid gap-4">
           <p>Entrez le code à 6 chiffres de votre application d’authentification.</p>
           {formulaireTotp(facteurId)}

@@ -15,6 +15,8 @@ import { supervisionDepuisEnvironnement } from './supervision.mjs';
 import { planningNotationDepuisEnvironnement } from './planning-notation.mjs';
 import { fileNotesDepuisEnvironnement } from './file-notes.mjs';
 import { contactDepuisEnvironnement } from './contact.mjs';
+import { creerEtatSoiree, instantaneDepuisEnvironnement } from './instantane.mjs';
+import { jugesDepuisEnvironnement } from './juges.mjs';
 
 const RACINE = fileURLToPath(new URL('../build/client/', import.meta.url));
 
@@ -24,9 +26,12 @@ let serveur;
 let port;
 /** @type {ReturnType<typeof fileNotesDepuisEnvironnement>} */
 let fileNotes;
+/** @type {ReturnType<typeof instantaneDepuisEnvironnement>} */
+let instantane;
 try {
   port = portDepuis(process.env.PORT);
   fileNotes = fileNotesDepuisEnvironnement(process.env);
+  instantane = instantaneDepuisEnvironnement(process.env);
   const acces = accesDepuis(process.env.ACCES_TOKEN);
   journaliserAbsence(acces);
   serveur = creerServeur({
@@ -35,6 +40,11 @@ try {
     supervision: supervisionDepuisEnvironnement(process.env),
     planningNotation: planningNotationDepuisEnvironnement(process.env),
     contact: contactDepuisEnvironnement(process.env),
+    etatSoiree: creerEtatSoiree({
+      reel: process.env.ETAT_SOIREE_REEL === 'true',
+      lire: (slug) => (instantane ? instantane.lire(slug) : Promise.resolve(null)),
+    }),
+    juges: jugesDepuisEnvironnement(process.env),
     acces,
   });
 } catch (erreur) {
@@ -44,6 +54,7 @@ try {
 
 serveur.listen(port, () => {
   fileNotes?.demarrer();
+  instantane?.demarrer();
   console.log(
     JSON.stringify({ level: 'info', timestamp: new Date().toISOString(), message: 'serveur prêt', port, fichiers: serveur.fichiers }),
   );
@@ -53,6 +64,7 @@ serveur.listen(port, () => {
 for (const signal of /** @type {const} */ (['SIGTERM', 'SIGINT'])) {
   process.on(signal, () => {
     fileNotes?.arreter();
+    instantane?.arreter();
     serveur.close(() => process.exit(0));
     setTimeout(() => process.exit(0), 5000).unref();
   });

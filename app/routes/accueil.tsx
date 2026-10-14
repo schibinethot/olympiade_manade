@@ -7,8 +7,8 @@ import { ManadesEdition } from '../composants/ManadesEdition';
 import { SaisonAccueil } from '../composants/SaisonAccueil';
 import { VILLE_AFFICHE } from '../donnees/affiche';
 import { prochaineSoireeA, soireeDeReference } from '../lib/accueil';
+import { useInstantanePublic } from '../lib/contexte-etat';
 import { lireDonneesVitrine, lireDonneesVitrineNavigateur, type DonneesVitrine } from '../lib/donnees-vitrine';
-import { ETAT_SOIREE } from '../lib/etat-soiree';
 import { useRelectureApresInteraction } from '../lib/relecture';
 import { useMaintenant } from '../lib/temps';
 import type { Route } from './+types/accueil';
@@ -38,6 +38,7 @@ export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs): Pr
 export default function Accueil({ loaderData }: Route.ComponentProps) {
   const { calendrier, palmares, lueLe } = loaderData;
   const maintenant = useMaintenant(lueLe);
+  const instantane = useInstantanePublic();
   useRelectureApresInteraction(loaderData);
   // Carte et pastille : la prochaine soirée du calendrier. L'affiche reste celle de Nîmes.
   const soiree = calendrier ? soireeDeReference(calendrier, maintenant) : null;
@@ -50,7 +51,16 @@ export default function Accueil({ loaderData }: Route.ComponentProps) {
         className="grid gap-x-[18px] gap-y-3.5 px-4 pt-3.5 tablette:grid-cols-[1.12fr_1fr] tablette:px-7 tablette:pt-[22px] paysage:grid-cols-[1.5fr_1fr] paysage:gap-x-[22px] paysage:px-10 paysage:pt-[26px] bureau:px-14 bureau:pt-[30px]"
       >
         <Affiche soiree={soireeAffiche} />
-        <BlocNoter etat={ETAT_SOIREE} soiree={soiree} calendrierDisponible={calendrier !== null} maintenant={maintenant} />
+        <BlocNoter
+          etat={instantane.etat}
+          soiree={soiree}
+          calendrierDisponible={calendrier !== null}
+          maintenant={maintenant}
+          direct={instantane.etat === 'ouvert' && instantane.soiree ? {
+            epreuve: instantane.soiree.epreuveEnCours ?? undefined,
+            manadeEnPiste: instantane.soiree.manadeEnPiste ?? undefined,
+          } : undefined}
+        />
         <CreditAffiche className="-mt-2 px-1 tablette:-mt-2.5" />
       </section>
 

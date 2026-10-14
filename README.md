@@ -1,8 +1,8 @@
 # Olympiade Manade
 
-Le livrable actuel est une **vitrine hors soirée** : accueil, programme, palmarès éditorial et contact. Le dépôt contient aussi le socle SQL/RLS, une saisie de notes avec file durable désactivée par défaut et une administration de supervision. Il ne permet pas encore de piloter une soirée complète.
+Le livrable actuel couvre la vitrine hors soirée et, une fois un administrateur connecté, la préparation d’une soirée, son cockpit et les classements calculés. Les inscriptions et la file de notes restent fermées par défaut. Le site public ne sort du mode hors soirée que si `ETAT_SOIREE_REEL=true`.
 
-Le [CDC de référence](docs/CDC-MASTER.md) distingue ce livrable de la cible « app de soirée ». Le modèle implémenté en base est celui du CDC : **note publique entière de 1 à 10**, jury sur **10 ou 20** par demi-point, résultats séparés ou combinés et agrégation par moyenne ou points de place. Le moteur de classement et ses écrans restent à construire. Les critères personnalisés, étoiles/favoris pour les passages et coefficients par épreuve décrits dans la recherche ne font pas partie de cette implémentation.
+Le [CDC de référence](docs/CDC-MASTER.md) distingue ce livrable de la cible « app de soirée ». Le modèle implémenté en base est celui du CDC : **note publique entière de 1 à 10**, jury sur **10 ou 20** par demi-point, résultats séparés ou combinés et agrégation par moyenne ou points de place. Le moteur de classement est dans `serveur/classements.mjs`, avec le cas Vinuesa. Les critères personnalisés, étoiles/favoris pour les passages et coefficients par épreuve décrits dans la recherche ne font pas partie de cette implémentation.
 
 La [recherche historique](docs/recherche-olympiades.md) conserve les sources et les pistes explorées ; elle ne constitue pas une seconde spécification. Le nom officiel, la soirée pilote et les coordonnées de l’organisateur restent à confirmer dans le CDC §10.
 
@@ -32,7 +32,9 @@ Avant déploiement, vérifier le diff Auth avec `scripts/supabase-config-diff.ex
 
 Le contrôle de santé Railway utilise `/admin` pour refuser un build qui ne sert pas cette route. La mise à jour du dépôt n’entraîne pas à elle seule un déploiement ; vérifier après publication les réponses HTTP de `/admin` et `/admin/statistiques` ainsi que le refus des API administratives sans session AAL2.
 
-Le contact conserve les messages en base. L’envoi d’un email à l’organisateur, l’effacement des comptes et la purge de rétention restent à mettre en place avant de les annoncer comme disponibles. L’adresse destinataire et la configuration SMTP ne sont pas renseignées dans le dépôt.
+Le contact conserve les messages en base. `SMTP_MODE=off` (défaut) n’envoie pas d’email. `log` journalise le message sans secret, `smtp` l’envoie avec `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `CONTACT_EMAIL_FROM` et `CONTACT_EMAIL_TO`. L’effacement des comptes et la purge de rétention restent à mettre en place. Les secrets SMTP ne sont pas dans le dépôt.
+
+`ETAT_SOIREE_REEL=false` par défaut : l’accueil reste hors soirée. Le passer à `true` (avec la clé service_role) publie l’instantané, les classements de l’année et l’écran `/ecran/<slug>`. Cela n’ouvre ni les inscriptions ni la file de notes. La préparation, le cockpit et les résultats sont sous `/admin`, après le second facteur.
 
 Recette locale du 12 octobre 2026 : `pnpm test` **306/306**, TypeScript sans erreur, Playwright **214 réussis et 2 ignorés**, build réussi. Les tests navigateur simulent Supabase Auth et Turnstile ; ils ne valident pas le SMTP ni les clés du projet hébergé. En production (13/10/2026), `/admin` et `/admin/statistiques` répondent **HTTP 200** et l’API `/api/admin/supervision` refuse les appels anonymes (**401**) — smoke : `pnpm smoke:prod-admin`. La connexion admin réelle (TOTP) et la cohérence des statistiques en prod restent à recetter manuellement ; voir `documentation/admin-perimetre.md`.
 

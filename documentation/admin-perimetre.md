@@ -8,17 +8,15 @@
 
 ## 1. Résumé
 
-L’administration livrée aujourd’hui est une **supervision technique** : connexion sécurisée (captcha, mot de passe, TOTP / AAL2) puis consultation des **statistiques et de la charge** du service. Ce n’est **pas** le cockpit organisateur du CDC (préparation soirée, déblocage, jury, etc.).
+L’administration reste protégée par captcha, mot de passe et TOTP / AAL2. Elle ajoute la préparation et le pilotage d’une soirée, en plus de la supervision des statistiques. Le public reste hors soirée tant que `ETAT_SOIREE_REEL` n’est pas `true`. Les inscriptions et la file de notes restent fermées.
 
 | Zone | Statut |
 |---|---|
 | Connexion `/admin` (Turnstile + mot de passe + TOTP) | **Livré** (code + E2E mockés) |
 | Écran `/admin/statistiques` | **Livré** |
 | API `GET /api/admin/supervision` | **Livré** (Bearer JWT admin AAL2) |
-| Consultation détaillée participants | **Absent** (pas de route UI) |
-| Consultation / édition soirées, planning, passages | **Absent** |
-| Annuaire manades, juges, liens magiques | **Absent** (schéma SQL seulement) |
-| Messages de contact déposés | **Absent** (insert serveur + table `messages_contact`, pas d’écran admin) |
+| Participants, soirées, juges, messages | **Livré** (consultation et actions CDC, RLS AAL2) |
+| Cockpit, classements calculés, écran `/ecran/:slug` | **Livré**, public figé sans `ETAT_SOIREE_REEL` |
 | Contenus vitrine éditables | **Absent** (F-09) |
 
 ---
@@ -29,8 +27,15 @@ L’administration livrée aujourd’hui est une **supervision technique** : con
 |---|---|---|
 | `/admin` | `app/routes/admin.tsx` | Formulaire de connexion, enrôlement TOTP, saisie du second facteur |
 | `/admin/statistiques` | `app/routes/admin-statistiques.tsx` | Tableaux de bord, graphiques, export CSV des mesures serveur |
-
-Aucune autre route `admin/*` n’est déclarée dans `app/routes.ts`.
+| `/admin/soirees` | `app/routes/admin-soirees.tsx` | Liste, création, annuaire des manades |
+| `/admin/soirees/:id` | `app/routes/admin-soiree.tsx` | Préparation : réglages, planning, juges, duplication |
+| `/admin/soirees/:id/direct` | `app/routes/admin-direct.tsx` | Cockpit |
+| `/admin/soirees/:id/resultats` | `app/routes/admin-resultats.tsx` | Classements calculés, CSV, révélation |
+| `/admin/participants` | `app/routes/admin-participants.tsx` | Comptes via `lire_participants()` |
+| `/admin/juges` | `app/routes/admin-juges.tsx` | Création et lien magique |
+| `/admin/messages` | `app/routes/admin-messages.tsx` | Messages de contact |
+| `/ecran/:slug` | `app/routes/ecran.tsx` | Écran géant |
+| `/jury` | `app/routes/jury.tsx` | Notation jury |
 
 **Contrôle d’accès côté client** : `app/lib/useAccesAdmin.ts` — rôle `admin` dans `profils`, puis `aal2` via Supabase MFA (facteur TOTP vérifié).
 
