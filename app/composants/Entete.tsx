@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useMatches } from 'react-router';
 import { aCalendrier, formaterJourMois, soireeDeReference } from '../lib/accueil';
 import { seDeconnecter, traduireErreurAuth } from '../lib/auth';
-import { ETAT_SOIREE, type EtatSoiree } from '../lib/etat-soiree';
+import { type EtatSoiree } from '../lib/etat-soiree';
+import { useInstantanePublic } from '../lib/contexte-etat';
 import { useMaintenant } from '../lib/temps';
 import { useSession } from '../lib/useSession';
 import { Icone } from './Icone';
@@ -46,7 +47,9 @@ type Props = {
  * Spectateur connecté : son prénom et « Se déconnecter », dans le menu sous 1000 px, à droite de
  * l'en-tête au-delà. Le bouton « Noter » reste grisé tant que les votes sont fermés.
  */
-export function Entete({ generique = false, etat = ETAT_SOIREE }: Props) {
+export function Entete({ generique = false, etat }: Props) {
+  const publie = useInstantanePublic();
+  const effectif = etat ?? publie.etat;
   const menu = useRef<HTMLElement>(null);
   const { pathname } = useLocation();
   // React Router pré-rend /classements à l'adresse « /classements/ » : sans la barre finale, la page
@@ -66,7 +69,7 @@ export function Entete({ generique = false, etat = ETAT_SOIREE }: Props) {
     .find(aCalendrier);
   const maintenant = useMaintenant(donnees?.lueLe ?? null);
   const soiree = donnees?.calendrier && maintenant ? soireeDeReference(donnees.calendrier, maintenant) : null;
-  const ouvert = etat === 'ouvert';
+  const ouvert = effectif === 'ouvert';
 
   // Le popover reste ouvert après une navigation côté client : on le referme.
   useEffect(() => {

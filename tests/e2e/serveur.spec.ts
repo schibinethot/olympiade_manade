@@ -18,7 +18,7 @@ test('le serveur de production sert les pages pré-rendues, le repli et les en-t
   expect(accueil.headers()['content-security-policy']).not.toContain('unsafe-inline');
 
   expect(accueil.headers()['x-robots-tag']).toBeUndefined();
-  for (const chemin of ['/noter', '/inscription', '/inscription/code', '/admin', '/admin/statistiques']) {
+  for (const chemin of ['/noter', '/inscription', '/inscription/code', '/admin', '/admin/statistiques', '/admin/participants', '/jury']) {
     const page = await request.get(chemin);
     expect(page.status(), chemin).toBe(200);
     expect(await page.text()).toContain('<div');

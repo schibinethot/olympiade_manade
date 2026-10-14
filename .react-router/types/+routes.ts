@@ -44,6 +44,41 @@ type Pages = {
   "/admin/statistiques": {
     params: {};
   };
+  "/admin/participants": {
+    params: {};
+  };
+  "/admin/messages": {
+    params: {};
+  };
+  "/admin/juges": {
+    params: {};
+  };
+  "/admin/soirees": {
+    params: {};
+  };
+  "/admin/soirees/:soireeId": {
+    params: {
+      "soireeId": string;
+    };
+  };
+  "/admin/soirees/:soireeId/direct": {
+    params: {
+      "soireeId": string;
+    };
+  };
+  "/admin/soirees/:soireeId/resultats": {
+    params: {
+      "soireeId": string;
+    };
+  };
+  "/ecran/:slug": {
+    params: {
+      "slug": string;
+    };
+  };
+  "/jury": {
+    params: {};
+  };
   "/*": {
     params: {
       "*": string;
@@ -54,7 +89,7 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/classements" | "/dates" | "/contact" | "/mentions-legales" | "/confidentialite" | "/noter" | "/inscription" | "/inscription/code" | "/admin" | "/admin/statistiques" | "/*";
+    page: "/" | "/classements" | "/dates" | "/contact" | "/mentions-legales" | "/confidentialite" | "/noter" | "/inscription" | "/inscription/code" | "/admin" | "/admin/statistiques" | "/admin/participants" | "/admin/messages" | "/admin/juges" | "/admin/soirees" | "/admin/soirees/:soireeId" | "/admin/soirees/:soireeId/direct" | "/admin/soirees/:soireeId/resultats" | "/ecran/:slug" | "/jury" | "/*";
   };
   "routes/accueil.tsx": {
     id: "routes/accueil";
@@ -100,6 +135,42 @@ type RouteFiles = {
     id: "routes/admin-statistiques";
     page: "/admin/statistiques";
   };
+  "routes/admin-participants.tsx": {
+    id: "routes/admin-participants";
+    page: "/admin/participants";
+  };
+  "routes/admin-messages.tsx": {
+    id: "routes/admin-messages";
+    page: "/admin/messages";
+  };
+  "routes/admin-juges.tsx": {
+    id: "routes/admin-juges";
+    page: "/admin/juges";
+  };
+  "routes/admin-soirees.tsx": {
+    id: "routes/admin-soirees";
+    page: "/admin/soirees";
+  };
+  "routes/admin-soiree.tsx": {
+    id: "routes/admin-soiree";
+    page: "/admin/soirees/:soireeId";
+  };
+  "routes/admin-direct.tsx": {
+    id: "routes/admin-direct";
+    page: "/admin/soirees/:soireeId/direct";
+  };
+  "routes/admin-resultats.tsx": {
+    id: "routes/admin-resultats";
+    page: "/admin/soirees/:soireeId/resultats";
+  };
+  "routes/ecran.tsx": {
+    id: "routes/ecran";
+    page: "/ecran/:slug";
+  };
+  "routes/jury.tsx": {
+    id: "routes/jury";
+    page: "/jury";
+  };
   "routes/introuvable.tsx": {
     id: "routes/introuvable";
     page: "/*";
@@ -119,5 +190,14 @@ type RouteModules = {
   "routes/inscription-code": typeof import("./app/routes/inscription-code.tsx");
   "routes/admin": typeof import("./app/routes/admin.tsx");
   "routes/admin-statistiques": typeof import("./app/routes/admin-statistiques.tsx");
+  "routes/admin-participants": typeof import("./app/routes/admin-participants.tsx");
+  "routes/admin-messages": typeof import("./app/routes/admin-messages.tsx");
+  "routes/admin-juges": typeof import("./app/routes/admin-juges.tsx");
+  "routes/admin-soirees": typeof import("./app/routes/admin-soirees.tsx");
+  "routes/admin-soiree": typeof import("./app/routes/admin-soiree.tsx");
+  "routes/admin-direct": typeof import("./app/routes/admin-direct.tsx");
+  "routes/admin-resultats": typeof import("./app/routes/admin-resultats.tsx");
+  "routes/ecran": typeof import("./app/routes/ecran.tsx");
+  "routes/jury": typeof import("./app/routes/jury.tsx");
   "routes/introuvable": typeof import("./app/routes/introuvable.tsx");
 };

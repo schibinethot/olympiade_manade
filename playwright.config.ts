@@ -24,11 +24,14 @@ export default defineConfig({
   // déploiement, et une valeur posée dans .env.local ne doit pas changer ce qui est testé (une
   // variable déjà présente dans l'environnement l'emporte sur les fichiers .env de Vite).
   webServer: {
-    command: 'pnpm build && pnpm start',
+    // Clés factices seulement si l'environnement n'en fournit pas : le build des tests CI
+    // garde les vraies clés publishable (pré-rendu vitrine). Elles ne sont pas des secrets.
+    command: 'if [ -z "$VITE_SUPABASE_PUBLISHABLE_KEY" ]; then export VITE_SUPABASE_URL=https://khwlwpzydlrfocfpvywv.supabase.co; export VITE_SUPABASE_PUBLISHABLE_KEY=cle-publique-de-test; fi; pnpm build && pnpm start',
     // Le script Turnstile est toujours intercepté localement par tests/outils/turnstile.ts. Les
     // secrets vides garantissent que le vrai endpoint /api/contact reste fermé durant les E2E.
     env: {
       PORT: String(PORT), VITE_INSCRIPTION_OUVERTE: 'false', FILE_NOTES_ACTIVE: 'false',
+      ETAT_SOIREE_REEL: 'false', SMTP_MODE: 'off',
       VITE_TURNSTILE_SITE_KEY: 'test-site-key', TURNSTILE_SECRET_KEY: '', SUPABASE_SERVICE_ROLE_KEY: '',
     },
     url: `http://localhost:${PORT}`,

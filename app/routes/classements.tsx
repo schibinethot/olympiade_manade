@@ -3,7 +3,9 @@ import { CarteResultat } from '../composants/CarteResultat';
 import { Icone } from '../composants/Icone';
 import { OngletsAnnee, idOnglet } from '../composants/OngletsAnnee';
 import { TitrePage } from '../composants/TitrePage';
+import { ClassementCalcule } from '../composants/ClassementCalcule';
 import { anneeChoisie, anneesClassements, resultatsAnnee } from '../lib/classements';
+import { useInstantanePublic } from '../lib/contexte-etat';
 import { jourParis } from '../lib/dates';
 import { lireDonneesVitrine, lireDonneesVitrineNavigateur, type DonneesVitrine } from '../lib/donnees-vitrine';
 import { useHydrate } from '../lib/hydratation';
@@ -73,6 +75,8 @@ export default function Classements({ loaderData }: Route.ComponentProps) {
   const [parametres, setParametres] = useSearchParams();
 
   const annees = anneesClassements(palmares, calendrier);
+  const instantane = useInstantanePublic();
+  const anneeDirect = instantane.soiree?.dateSoiree ? Number(instantane.soiree.dateSoiree.slice(0, 4)) : null;
   // La page pré-rendue ne connaît pas `?annee=` : l'hydratation reprend l'onglet par défaut, puis
   // l'adresse prend le relais.
   const annee = anneeChoisie(hydrate ? parametres.get('annee') : null, annees);
@@ -112,6 +116,8 @@ export default function Classements({ loaderData }: Route.ComponentProps) {
               <CarteResultat key={resultat.id} resultat={resultat} aLaUne={rang === 0} />
             ))}
           </div>
+        ) : annee !== null && instantane.soiree?.classements && anneeDirect === annee ? (
+          <ClassementCalcule classements={instantane.soiree.classements} />
         ) : annee !== null && aVenir ? (
           <AnneeEnDirect annee={annee} soirees={soireesAnnee.length} />
         ) : (

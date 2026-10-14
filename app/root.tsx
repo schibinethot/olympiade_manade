@@ -4,9 +4,10 @@ import type { Route } from './+types/root';
 import { Entete } from './composants/Entete';
 import { PiedDePage } from './composants/PiedDePage';
 import { TitrePage } from './composants/TitrePage';
-import { SuiviPresence } from './composants/SuiviPresence';
-import { SuiviNotes } from './composants/SuiviNotes';
 import feuilleDeStyle from './app.css?url';
+import { SuiviNotes } from './composants/SuiviNotes';
+import { SuiviPresence } from './composants/SuiviPresence';
+import { FournisseurEtatSoiree } from './lib/contexte-etat';
 
 const police = (fichier: string) =>
   ({ rel: 'preload', href: `/polices/${fichier}`, as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' }) as const;
@@ -70,11 +71,13 @@ function Coque({ children, generique = false }: { children: ReactNode; generique
 
 export default function App() {
   return (
-    <Coque>
-      <SuiviPresence />
-      <SuiviNotes />
-      <Outlet />
-    </Coque>
+    <FournisseurEtatSoiree>
+      <Coque>
+        <SuiviPresence />
+        <SuiviNotes />
+        <Outlet />
+      </Coque>
+    </FournisseurEtatSoiree>
   );
 }
 
