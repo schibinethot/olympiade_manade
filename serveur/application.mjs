@@ -36,6 +36,7 @@ const ROUTES_MONOPAGE = new Set([
 function routeMonopage(chemin) {
   if (ROUTES_MONOPAGE.has(chemin)) return true;
   if (chemin.startsWith('/admin/')) return true;
+  if (chemin === '/compte') return true;
   if (chemin === '/ecran' || chemin.startsWith('/ecran/')) return true;
   return false;
 }
@@ -165,6 +166,7 @@ function empreintesScriptsEnLigne(html) {
 
 /** @param {string} chemin */
 function cacheControl(chemin) {
+  if (chemin === '/sw.js' || chemin === '/manifest.webmanifest') return 'no-cache';
   if (chemin.startsWith('/assets/')) return 'public, max-age=31536000, immutable';
   if (chemin.endsWith('.html') || chemin.endsWith('.data')) return 'no-cache';
   // Polices, logos, favicon : noms fixes, donc revalidés au bout d'un jour.
@@ -360,10 +362,11 @@ function repondre(fichiers, req, res) {
  *   contact?: ReturnType<typeof import('./contact.mjs').creerContact>
  *   etatSoiree?: ReturnType<typeof import('./instantane.mjs').creerEtatSoiree>
  *   juges?: { estRoute: (url: string | undefined) => boolean, repondre: (req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) => Promise<void> }
+ *   complements?: { estRoute: (url: string | undefined) => boolean, repondre: (req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) => Promise<void> }
  *   acces?: ReturnType<typeof import('./acces.mjs').accesDepuis>
  * }} options
  */
-export function creerServeur({ racine, supabase, supervision, planningNotation, contact, etatSoiree, juges, acces }) {
+export function creerServeur({ racine, supabase, supervision, planningNotation, contact, etatSoiree, juges, complements, acces }) {
   const fichiers = indexer(racine, supabase);
   const barriere = acces ?? null;
   const serveur = createServer((req, res) => {
@@ -390,6 +393,14 @@ export function creerServeur({ racine, supabase, supervision, planningNotation, 
       etatSoiree.repondre(req, res).catch((erreur) => {
         journaliserErreur('échec de l’instantané de soirée', erreur);
         if (!res.headersSent) texteBrut(req, res, 503, 'État de soirée indisponible\n');
+        else res.destroy();
+      });
+      return;
+    }
+    if (complements?.estRoute(req.url)) {
+      complements.repondre(req, res).catch((erreur) => {
+        journaliserErreur('échec d’une route de soirée', erreur);
+        if (!res.headersSent) texteBrut(req, res, 503, 'Service indisponible\n');
         else res.destroy();
       });
       return;

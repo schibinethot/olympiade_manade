@@ -320,7 +320,9 @@ export function instantaneDepuisEnvironnement(env, deps = {}) {
       const lignes = await reponse.json();
       if (!Array.isArray(lignes)) return null;
       const choisis = lignes
-        .map((ligne) => ligne.instantane)
+        .map((ligne) => (ligne.instantane && typeof ligne.instantane === 'object'
+          ? { ...ligne.instantane, calculeLe: ligne.calcule_le ?? null }
+          : null))
         .filter((instantane) => instantane && typeof instantane === 'object');
       if (slug) {
         return choisis.find((instantane) => instantane.soiree?.slug === slug) ?? null;

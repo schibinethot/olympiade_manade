@@ -23,12 +23,13 @@ function corpsPoint(corps) {
 }
 
 /**
- * @param {{ from: string, to: string, subject: string, text: string }} message
+ * @param {{ from: string, to: string, subject: string, text: string, replyTo?: string }} message
  */
 export function composerCourriel(message) {
   return [
     `From: ${message.from}`,
     `To: ${message.to}`,
+    ...(message.replyTo ? [`Reply-To: ${message.replyTo}`] : []),
     `Subject: ${sujetEncode(message.subject)}`,
     'MIME-Version: 1.0',
     'Content-Type: text/plain; charset=utf-8',
@@ -41,7 +42,7 @@ export function composerCourriel(message) {
 
 /**
  * @param {{ host: string, port: number, user: string, pass: string, timeoutMs?: number }} smtp
- * @param {{ from: string, to: string, subject: string, text: string }} message
+ * @param {{ from: string, to: string, subject: string, text: string, replyTo?: string }} message
  */
 export function envoyerSmtp(smtp, message) {
   const timeoutMs = smtp.timeoutMs ?? 10_000;
@@ -179,7 +180,7 @@ export function courrielDepuisEnvironnement(env, deps = {}) {
         return { mode, envoye: false, echec: false };
       }
       if (!pret || !from || !to) return { mode, envoye: false, echec: true };
-      await transport({ host, port, user, pass }, { from, to, subject: sujet, text });
+      await transport({ host, port, user, pass }, { from, to, subject: sujet, text, replyTo: contact.email });
       return { mode, envoye: true, echec: false };
     },
   };
