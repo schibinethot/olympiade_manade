@@ -399,6 +399,77 @@ La base ouvre les avis d’une soirée `publiee` ou `en_cours` après `vote_fin`
 - **Désactivation** : un interrupteur dans l'app coupe les notifications. Aucune notification en dehors des soirées
 - **Volume** : une notification par déblocage, regroupée si l'admin débloque plusieurs passages en moins de 30 s
 
+### 4.11 Emails
+
+**Objectif** : envoyer aux inscrits des emails utiles autour de **leur** date (bienvenue, rappels, remerciement, résultats), puis leur annoncer les autres dates. Raison : encourager l'inscription **avant** la soirée (section 4.4) et faire revenir le public aux autres dates de la saison. L'organisateur écrit lui-même tous les textes dans l'admin. Design validé le 17/10/2026 : `docs/superpowers/specs/2026-10-17-sequence-emails-design.md`.
+
+**Destinataires** : les spectateurs inscrits à la notation et les abonnés aux actualités de l'accueil. Une même adresse ne fait qu'un destinataire.
+
+**Rattachement à une date**
+- à l'inscription, la personne est rattachée à la **prochaine date confirmée** du calendrier. Le formulaire ne gagne aucun champ pour cela
+- sans date confirmée, la personne est rattachée à la première date qui passe au statut `confirmee`
+- le lien « Je viens » d'une annonce **ajoute** un rattachement sans retirer les autres. La personne reçoit alors les rappels de cette date
+- une personne peut suivre plusieurs dates. Le rattachement s'arrête à J+7
+
+**La séquence (9 emails)**
+
+Toutes les heures sont celles de Paris. Les jours et heures ci-dessous sont des valeurs de départ, modifiables par l'admin.
+
+| # | Email | Quand | Pour qui |
+|---|---|---|---|
+| 0 | Confirmez votre adresse | Moins de 5 min après le dépôt du formulaire actualités. Lien valable 7 jours. Pas de rappel. Hors plafond journalier | Abonnés non confirmés |
+| 1 | Bienvenue | Moins de 5 min après l'inscription (confirmation de l'email pour un spectateur, clic de confirmation pour un abonné). Encart « date proche » si la date suivie tombe dans 0 à 7 jours | Tous les confirmés |
+| 2 | Une semaine avant | J-7, 10 h | Rattachés à la date |
+| 3 | Veille | J-1, 18 h | Rattachés |
+| 4 | Jour J | J, 10 h | Rattachés |
+| 5 | Lendemain | J+1, 10 h | Rattachés |
+| 6 | Prochaines dates | J+7, 10 h : les 3 prochaines dates confirmées, chacune avec un lien « Je viens » | Rattachés ayant consenti aux annonces |
+| 7 | Annonce d'une date | J-10, 10 h, pour chaque autre date confirmée. Dates d'une même semaine regroupées. Au plus une annonce par personne tous les 7 jours | Consentants non rattachés à cette date |
+| 8 | Message aux inscrits d'une date | Bouton dans l'admin : changement d'horaire, report, annulation, info de dernière minute. Aperçu, puis confirmation qui affiche le nombre de destinataires | Rattachés à une date |
+
+**Consentement et double confirmation**
+- les annonces (emails 6 et 7) ne partent qu'avec un consentement explicite. Spectateurs : case dédiée, **décochée par défaut**, dont le libellé est exactement le texte de consentement conservé en preuve. Abonnés : couverts par le texte qu'ils ont accepté
+- un abonné aux actualités reçoit d'abord l'email 0. Tant qu'il n'a pas cliqué, **rien d'autre ne part**. Au clic : rattachement à la prochaine date, puis bienvenue
+- le clic du titulaire est exigé pour tout abonnement aux annonces, y compris pour un spectateur déjà vérifié. Le dépôt du formulaire ne change rien avant ce clic
+- les abonnés déjà inscrits reçoivent une seule demande de confirmation, au premier passage en `SMTP_MODE=smtp`
+- un dépôt répété pour une demande en attente renvoie la confirmation au plus une fois par 24 h
+- chaque email porte un lien de désinscription en un clic (en-têtes `List-Unsubscribe` et `List-Unsubscribe-Post`). La page propose « arrêter les annonces » ou « tout arrêter »
+
+**Règles d'envoi**
+- **pas de rattrapage** : une étape dont l'heure est déjà passée à l'inscription est sautée
+- **un email automatique par personne et par jour au plus**, toutes dates confondues (le jour compte jusqu'à 06 h). Priorité : étapes de la date la plus proche, lendemain, annonces, prochaines dates. Une étape bloquée est sautée, sauf les annonces, reportées et fusionnées avec la suivante. Le message n° 8 échappe au plafond
+- une étape qui tombe le même jour que la bienvenue est sautée : l'encart la remplace
+- l'email 6 (prochaines dates) part au plus une fois par 7 jours glissants
+- **envoi au plus une fois** : la ligne d'envoi est réservée en base avant l'envoi. Un redémarrage ou deux instances ne produisent pas de doublon. En cas de plantage entre la réservation et l'envoi, l'email est perdu et l'échec est visible au journal
+- **date annulée** (`calendrier.statut`) : étapes 2 à 5 arrêtées, email 6 conservé pour les consentants. Personne n'est rattaché d'office. L'admin se voit proposer le message n° 8
+- **date redevenue prévisionnelle** : étapes 2 à 5 suspendues
+- **soirée de notation reportée ou annulée** alors que le calendrier dit `confirmee` : étapes 2 à 5 suspendues, y compris le lendemain, et alerte pour l'admin
+- **date déplacée** : les étapes se recalculent sur la nouvelle date. Une étape déjà envoyée ne repart pas
+- dates sans app de notation : mêmes modèles. Le jour J devient « c'est ce soir, heure, arènes », le lendemain un simple merci
+- compte spectateur supprimé : sa ligne de destinataire est supprimée, sauf s'il est aussi abonné aux actualités
+- le texte par défaut du lendemain ne contient pas de ligne d'invitation à laisser un avis (les avis sont rarement ouverts à J+1, 10 h). L'admin peut la rajouter
+
+**Variables et règle « au fur et à mesure »**
+- l'admin clique sur une variable pour l'insérer, sans syntaxe à retenir
+- personne : prénom. Date : date, date courte, jour, heure, compte à rebours, jours restants, année. Lieu : nom de l'événement, ville, arènes. Infos : infos pratiques (nouveau champ texte de 1 000 caractères par date), manades engagées, vainqueur, prochaines dates. Liens : billetterie, noter, classement, dates, « Je viens »
+- une ligne dont la variable n'a pas encore de valeur **disparaît** de l'email. Le même modèle s'enrichit donc tout seul quand l'admin complète la date. Sans prénom, « Bonjour {{prenom}}, » devient « Bonjour, »
+- mise en forme permise : paragraphes, gras, liens, listes à puces, bouton. Texte et valeurs toujours échappés, pas de HTML libre
+- un seul module de rendu sert à l'aperçu et à l'envoi : HTML compatible clients mail, version texte, charte du site
+
+**Admin `/admin/emails`** (AAL2)
+- **Séquence** : frise des emails avec quand, pour qui, interrupteur actif / inactif, dernier envoi et envois prévus dans les 7 jours
+- **Éditeur** : objet, pré-en-tête, corps, barre de variables, encart « date proche » (bienvenue), réglage du jour et de l'heure borné de J-14 à J+7, aperçu en direct mobile / ordinateur, « M'envoyer un test », « Revenir au texte d'origine ». Un corps identique au texte par défaut est refusé à l'envoi du message n° 8
+- **Dates** : nombre de rattachés par date, champ « Infos pratiques », bouton « Écrire aux inscrits de cette date »
+- **Envois** : journal par étape et par date (envoyés, échecs, sautés), mode d'envoi courant, désinscriptions. Journal conservé 12 mois
+
+**Prérequis d'envoi**
+- aucun envoi réel tant que `SMTP_MODE` n'est pas `smtp`. En mode `log`, l'envoi est journalisé avec l'adresse masquée
+- aucun envoi réel tant que la barrière d'accès (`ACCES_TOKEN`) est active : les liens des emails seraient inaccessibles aux destinataires
+- offre Brevo payante avant l'ouverture au public : l'offre gratuite plafonne à 300 emails par jour, pour environ 5 000 destinataires par date
+- domaine expéditeur authentifié (SPF, DKIM, DMARC)
+- variables Railway : `SMTP_MODE=smtp`, `SMTP_*`, `EMAILS_FROM`, `EMAILS_CLE_LIENS` (clé de 64 caractères hexadécimaux, `openssl rand -hex 32`), `CONTACT_ORIGIN`. Facultatives : `EMAILS_DEBIT_PAR_SECONDE` (1 à 20, 5 par défaut), `EMAILS_TRUST_RAILWAY_PROXY`. Sans clé valide, le planificateur reste inactif
+- relecture juridique de la nouvelle finalité et des textes de consentement, et mise à jour de la page Confidentialité
+
 ---
 
 ## 5. Architecture technique
@@ -545,7 +616,7 @@ Une file absorbe les pics et permet les reprises ; elle ajoute des écritures et
 | Disponibilité | Aucune mise en production pendant une soirée |
 | Accessibilité | Contrastes AA, boutons de 48 px minimum, lisible de nuit sous l'éclairage des arènes |
 | Langue | Français uniquement en V1 |
-| RGPD | Données du public : prénom et email, utilisés uniquement pour l'accès au vote et les notifications. Consentement à l'inscription, politique de confidentialité, suppression du compte depuis l'app, suppression automatique des comptes spectateurs inactifs depuis 24 mois. Aucun traceur tiers. Pas de newsletter sans case dédiée, décochée par défaut. Consentement aux notifications distinct et horodaté (section 4.10). Sous-traitants : Supabase, Brevo, Railway, Cloudflare (Turnstile, avant l'ouverture des inscriptions), Anthropic (import du planning, lot 3), Google Firebase Cloud Messaging et services push des navigateurs (Apple, Google, Mozilla, Microsoft ; lots 8 et 9). DPA signé avec chacun, transferts hors UE documentés pays par pays (clauses contractuelles types ou Data Privacy Framework) dans la page Confidentialité. Encadrés « éditeur » et « responsable du traitement » remplis avant toute communication publique |
+| RGPD | Données du public : prénom et email, utilisés pour l'accès au vote, les notifications et les emails de la section 4.11 : rappels liés à la date suivie, et annonces des autres dates avec consentement explicite. Consentement à l'inscription, politique de confidentialité, suppression du compte depuis l'app, suppression automatique des comptes spectateurs inactifs depuis 24 mois. Aucun traceur tiers. Annonces des autres dates : case dédiée, décochée par défaut, libellé identique au texte de consentement conservé. Double confirmation des abonnés par un clic sur un lien reçu par email, désinscription en un clic dans chaque email, liste d'opposition respectée. Journal des envois conservé 12 mois. Abonnements non confirmés supprimés 30 jours après l'envoi de la confirmation. Consentement aux notifications distinct et horodaté (section 4.10). Sous-traitants : Supabase, Brevo, Railway, Cloudflare (Turnstile, avant l'ouverture des inscriptions), Anthropic (import du planning, lot 3), Google Firebase Cloud Messaging et services push des navigateurs (Apple, Google, Mozilla, Microsoft ; lots 8 et 9). DPA signé avec chacun, transferts hors UE documentés pays par pays (clauses contractuelles types ou Data Privacy Framework) dans la page Confidentialité. Encadrés « éditeur » et « responsable du traitement » remplis avant toute communication publique |
 | Référencement | Pages vitrine pré-rendues, titre et description par page, données structurées `Event` pour les dates |
 | Sécurité | Clé API Anthropic et clé `service_role` Supabase uniquement côté serveur. Règles RLS couvertes par des tests automatisés |
 | Signature | Pied de page « Signé TPMGE » selon la spec de l'agence, et mention « Conçue en collaboration avec Atch Élevage et TPMGE » avec le bloc « Partenaire officiel : Atch Élevage » (charte graphique, section 8) |
@@ -561,7 +632,12 @@ Une file absorbe les pics et permet les reprises ; elle ajoute des écritures et
 - autres langues que le français
 - espaces sponsors et publicité (seule exception : la mention du partenaire Atch Élevage décrite dans la charte graphique)
 - statistiques multi-soirées, championnat sur l'année, historique par manade
-- newsletter et emailing marketing
+- éditeur visuel par blocs pour les emails
+- tests A/B des emails
+- statistiques d'ouverture et de clic (un pixel de suivi est un traceur)
+- segmentation avancée des destinataires
+- newsletter libre envoyée à toute la base (seul le message aux inscrits d'une date existe, section 4.11)
+- import de listes d'adresses externes
 
 ---
 
@@ -615,6 +691,7 @@ Une file absorbe les pics et permet les reprises ; elle ajoute des écritures et
 | 6 | **Partiel.** Tests unitaires, SQL et E2E de la vitrine/file/supervision présents. PWA, parcours complet de soirée, recette terrain et charge hébergée 5 000/7 500 restent à faire. |
 | 7 | **Vitrine présente.** Accueil, palmarès éditorial, dates et pages légales. Contact enregistré en base via une API protégée, sans email organisateur. Configuration Turnstile requise ; les coordonnées légales et les données structurées `Event` restent à compléter. Déploiement Railway à aligner sur `main` pour exposer supervision et file des notes. |
 | 8, 9 | **Non commencés.** Notifications et application Android absentes. |
+| Emails | **Construit, non déployé.** Séquence de 9 emails, admin `/admin/emails`, double confirmation, désinscription, planificateur (section 4.11), sur la branche `feat/sequence-emails`. Reste : fusion, migrations, offre Brevo, SPF/DKIM/DMARC, variables Railway, relecture juridique, page Confidentialité. |
 | Supervision | **Code présent.** `/admin` et `/admin/statistiques`, présence et historique. AAL2 exigé pour les accès administratifs. L’état du déploiement est à vérifier séparément du dépôt. |
 
 Les audits du 12/10/2026 dans `documentation/` sont des constats antérieurs aux corrections ; leurs résultats de tests ne remplacent pas une recette du nouveau build. La production Railway observée dans l’audit servait encore un ancien build sans `/admin` ; les onze migrations antérieures aux correctifs du 12/10 sont présentes dans le projet Supabase lié, vérifié par `supabase migration list --linked`.
