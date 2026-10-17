@@ -4,6 +4,7 @@ import { BOUTON, CadreAdmin, useClientAdmin } from '../composants/admin/CadreAdm
 import { ClassementCalcule } from '../composants/ClassementCalcule';
 import type { InstantanePublic } from '../lib/contexte-etat';
 import { calculerClassements, exporterClassementsCsv } from '../../serveur/classements.mjs';
+import { documentPdf, telechargerFichier } from '../lib/pdf';
 
 type Classements = NonNullable<NonNullable<InstantanePublic['soiree']>['classements']>;
 
@@ -17,11 +18,12 @@ export default function Resultats() {
 }
 
 function Calcul({ soireeId }: { soireeId: string }) {
-  const { client, erreurClient } = useClientAdmin();
+  const { client, session, erreurClient } = useClientAdmin();
   const [resultat, setResultat] = useState<Classements | null>(null);
   const [nom, setNom] = useState('');
   const [visible, setVisible] = useState(true);
   const [erreur, setErreur] = useState<string | null>(null);
+  const [avis, setAvis] = useState<{ etoiles: number; commentaire: string | null }[]>([]);
 
   useEffect(() => {
     if (!client) return;
@@ -73,6 +75,9 @@ function Calcul({ soireeId }: { soireeId: string }) {
           notesJury: jurys.get(passage.id) ?? [],
         }];
       });
+      const lectureAvis = await client.from('avis_soiree').select('etoiles, commentaire').eq('soiree_id', soireeId);
+      if (!actif) return;
+      setAvis((lectureAvis.data ?? []) as { etoiles: number; commentaire: string | null }[]);
       setResultat(calculerClassements(passagesCalcul, {
         mode: soiree.data.mode_classement,
         methode: soiree.data.methode_general,
@@ -93,11 +98,33 @@ function Calcul({ soireeId }: { soireeId: string }) {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
+  function exporterPdf() {
+    if (!resultat) return;
+    const lignes = [
+      nom,
+      resultat.provisoire ? 'Classement provisoire' : 'Classement',
+      ...resultat.parEpreuve.flatMap((epreuve) => {
+        const lignesEpreuve = epreuve.public ?? epreuve.jury ?? epreuve.combine ?? [];
+        return [`${epreuve.nom}`, ...lignesEpreuve.map((ligne) => `${ligne.rang}. ${ligne.manadeNom} — ${ligne.score}`)];
+      }),
+    ];
+    telechargerFichier(`classements-${nom || 'soiree'}.pdf`, documentPdf({ titre: 'Résultats', lignes }), 'application/pdf');
+  }
+
   async function reveler(valeur: boolean) {
     if (!client) return;
     const { error } = await client.from('soirees').update({ classement_visible: valeur }).eq('id', soireeId);
     if (error) setErreur('La visibilité n’a pas pu être modifiée.');
-    else setVisible(valeur);
+    else {
+      setVisible(valeur);
+      if (valeur && session?.access_token) {
+        await fetch('/api/notifications/diffuser', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ cle: `${soireeId}-classement`, texte: 'Le classement est révélé.', url: '/classements' }),
+        }).catch(() => undefined);
+      }
+    }
   }
 
   if (erreurClient) return <p role="alert" className="text-rouge-alerte">{erreurClient}</p>;
@@ -107,11 +134,17 @@ function Calcul({ soireeId }: { soireeId: string }) {
     <>
       <div className="flex flex-wrap gap-2">
         <button type="button" className={BOUTON} onClick={exporter}>Exporter CSV</button>
+        <button type="button" className={BOUTON} onClick={exporterPdf}>Exporter PDF</button>
         <button type="button" className={BOUTON} onClick={() => void reveler(!visible)}>{visible ? 'Masquer le classement public' : 'Révéler le classement public'}</button>
         <Link to={`/admin/soirees/${soireeId}/direct`} className={BOUTON}>Cockpit</Link>
       </div>
       <p className="text-sm text-encre-2">{nom} · {visible ? 'visible du public lorsque la soirée réelle est activée' : 'masqué pour le public'}</p>
       <ClassementCalcule classements={resultat} />
+      <section className="rounded-[22px] border border-trait bg-creme p-5">
+        <h2 className="font-display text-2xl">Avis des spectateurs</h2>
+        <p className="mt-1 text-sm text-encre-2">{avis.length ? `Moyenne ${((avis.reduce((total, ligne) => total + ligne.etoiles, 0) / avis.length).toFixed(1))} sur 5 · ${avis.length} avis` : 'Aucun avis.'}</p>
+        <ul className="mt-3 grid gap-2 text-sm">{avis.filter((ligne) => ligne.commentaire).map((ligne) => <li key={ligne.commentaire}>{ligne.etoiles}/5 — {ligne.commentaire}</li>)}</ul>
+      </section>
     </>
   );
 }

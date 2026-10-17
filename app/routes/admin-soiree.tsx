@@ -1,6 +1,10 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type DragEvent, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router';
 import { BOUTON, BOUTON_PLEIN, CadreAdmin, CARTE, CHAMP, useClientAdmin } from '../composants/admin/CadreAdmin';
+import { ImportPlanning } from '../composants/admin/ImportPlanning';
+import { CodeQr } from '../composants/CodeQr';
+import { etapesReordre } from '../lib/ordre';
+import { documentPdf, matriceQr, telechargerFichier } from '../lib/pdf';
 import { EPREUVES_MODELE, champParis, depuisChampParis, etapesEchange, horairesModele, slugifier } from '../lib/preparation';
 
 type Soiree = {
@@ -29,7 +33,7 @@ export default function PreparationSoiree() {
 }
 
 function Editeur({ soireeId }: { soireeId: string }) {
-  const { client, erreurClient } = useClientAdmin();
+  const { client, session, erreurClient } = useClientAdmin();
   const [soiree, setSoiree] = useState<Soiree | null>(null);
   const [annuaire, setAnnuaire] = useState<Manade[]>([]);
   const [engages, setEngages] = useState<LienManade[]>([]);
@@ -40,6 +44,8 @@ function Editeur({ soireeId }: { soireeId: string }) {
   const [erreur, setErreur] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
+  const [origine, setOrigine] = useState('');
+  useEffect(() => { setOrigine(window.location.origin); }, []);
 
   async function recharger() {
     if (!client) return;
@@ -207,6 +213,28 @@ function Editeur({ soireeId }: { soireeId: string }) {
     await executer(() => client.from('epreuves').delete().eq('id', id));
   }
 
+  async function glisser(table: 'epreuves' | 'passages' | 'soiree_manades', liste: { id: string; ordre: number }[], depuis: number, vers: number) {
+    if (!client) return;
+    const etapes = etapesReordre(liste, depuis, vers);
+    if (!etapes.length) return;
+    await executer(async () => {
+      for (const etape of etapes) {
+        const requete = table === 'soiree_manades'
+          ? client.from(table).update({ ordre: etape.ordre }).eq('soiree_id', soireeId).eq('manade_id', etape.id)
+          : client.from(table).update({ ordre: etape.ordre }).eq('id', etape.id);
+        const resultat = await requete;
+        if (resultat.error) return resultat;
+      }
+      return { error: null };
+    });
+  }
+
+  function depot(evenement: DragEvent, vers: number, appliquer: (depuis: number) => void) {
+    evenement.preventDefault();
+    const depuis = Number(evenement.dataTransfer.getData('text/plain'));
+    if (Number.isInteger(depuis)) appliquer(depuis);
+  }
+
   async function deplacerPassage(epreuveId: string, index: number, sens: -1 | 1) {
     if (!client) return;
     const liste = passages.filter((passage) => passage.epreuve_id === epreuveId).sort((a, b) => a.ordre - b.ordre);
@@ -359,7 +387,14 @@ function Editeur({ soireeId }: { soireeId: string }) {
           {annuaire.map((manade) => {
             const index = engages.findIndex((lien) => lien.manade_id === manade.id);
             return (
-              <li key={manade.id} className="flex min-h-12 flex-wrap items-center gap-2">
+              <li
+                key={manade.id}
+                className="flex min-h-12 flex-wrap items-center gap-2"
+                draggable={index >= 0}
+                onDragStart={(evenement) => evenement.dataTransfer.setData('text/plain', String(index))}
+                onDragOver={(evenement) => evenement.preventDefault()}
+                onDrop={(evenement) => depot(evenement, index, (depuis) => void glisser('soiree_manades', engages.map((lien) => ({ id: lien.manade_id, ordre: lien.ordre })), depuis, index))}
+              >
                 <button type="button" className={BOUTON} onClick={() => void basculerManade(manade.id, index >= 0)}>{index >= 0 ? 'Retirer' : 'Engager'} {manade.nom}</button>
                 {index >= 0 ? <>
                   <span className="text-sm text-encre-2">Ordre {engages[index]?.ordre}</span>
@@ -376,11 +411,19 @@ function Editeur({ soireeId }: { soireeId: string }) {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-2xl">Planning</h2>
           <button type="button" className={BOUTON} onClick={() => void poserModele()} disabled={enCours}>Modèle des 4 épreuves</button>
+          <p className="mt-2 w-full text-sm text-encre-2">Glissez une ligne pour changer l’ordre, ou utilisez Monter et Descendre. Les notes déjà enregistrées ne sont pas modifiées.</p>
         </div>
         {epreuves.map((epreuve, index) => {
           const liste = passages.filter((passage) => passage.epreuve_id === epreuve.id).sort((a, b) => a.ordre - b.ordre);
           return (
-            <article key={epreuve.id} className="mt-4 border-t border-trait pt-4">
+            <article
+              key={epreuve.id}
+              className="mt-4 border-t border-trait pt-4"
+              draggable
+              onDragStart={(evenement) => evenement.dataTransfer.setData('text/plain', String(index))}
+              onDragOver={(evenement) => evenement.preventDefault()}
+              onDrop={(evenement) => depot(evenement, index, (depuis) => void glisser('epreuves', epreuves.map((ligne) => ({ id: ligne.id, ordre: ligne.ordre })), depuis, index))}
+            >
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="font-semibold">{epreuve.ordre}. {epreuve.nom}{epreuve.notee ? '' : ' · démonstration'}</h3>
                 <button type="button" className={BOUTON} onClick={() => void deplacerEpreuve(index, -1)} disabled={index === 0}>Monter</button>
@@ -390,7 +433,14 @@ function Editeur({ soireeId }: { soireeId: string }) {
               {epreuve.description ? <p className="mt-1 text-sm text-encre-2">{epreuve.description}</p> : null}
               <ul className="mt-2 grid gap-1">
                 {liste.map((passage, rang) => (
-                  <li key={passage.id} className="flex min-h-12 items-center gap-2">
+                  <li
+                    key={passage.id}
+                    className="flex min-h-12 items-center gap-2"
+                    draggable
+                    onDragStart={(evenement) => { evenement.stopPropagation(); evenement.dataTransfer.setData('text/plain', String(rang)); }}
+                    onDragOver={(evenement) => evenement.preventDefault()}
+                    onDrop={(evenement) => { evenement.stopPropagation(); depot(evenement, rang, (depuis) => void glisser('passages', liste.map((ligne) => ({ id: ligne.id, ordre: ligne.ordre })), depuis, rang)); }}
+                  >
                     <span>{nomManade.get(passage.manade_id) ?? 'Manade'}</span>
                     <button type="button" className={BOUTON} onClick={() => void deplacerPassage(epreuve.id, rang, -1)} disabled={rang === 0}>Monter</button>
                     <button type="button" className={BOUTON} onClick={() => void deplacerPassage(epreuve.id, rang, 1)} disabled={rang === liste.length - 1}>Descendre</button>
@@ -409,6 +459,16 @@ function Editeur({ soireeId }: { soireeId: string }) {
         </form>
       </section>
 
+      {client ? (
+        <ImportPlanning
+          client={client}
+          soireeId={soireeId}
+          jour={soiree.date_soiree}
+          dejaSaisi={epreuves.length > 0}
+          sessionToken={session?.access_token}
+          onApplique={() => void recharger()}
+        />
+      ) : null}
       <section className={CARTE}>
         <h2 className="font-display text-2xl">Juges de la soirée</h2>
         {!juges.length ? <p className="mt-2 text-sm text-encre-2">Aucun compte juge. Créez-en un depuis la page Juges.</p> : (
@@ -419,6 +479,27 @@ function Editeur({ soireeId }: { soireeId: string }) {
             })}
           </ul>
         )}
+      </section>
+
+      <section className={CARTE}>
+        <h2 className="font-display text-2xl">QR code de vote et affiche</h2>
+        <p className="mt-1 text-sm text-encre-2">À afficher dans les arènes. Le public ouvre /noter. Les inscriptions restent fermées tant que le drapeau de build n’est pas ouvert.</p>
+        {origine && soiree ? (
+          <div className="mt-4 inline-block rounded-2xl bg-white p-3">
+            <CodeQr valeur={`${origine}/noter`} libelle={`QR code de vote pour ${soiree.nom}`} />
+          </div>
+        ) : null}
+        <p className="mt-2 break-all text-sm">{origine ? `${origine}/noter` : '/noter'}</p>
+        <button type="button" className={`${BOUTON} mt-3`} onClick={() => {
+          if (!soiree || !origine) return;
+          const url = `${origine}/noter`;
+          telechargerFichier(`affiche-${soiree.slug}.pdf`, documentPdf({
+            titre: soiree.nom,
+            lignes: [soiree.lieu ?? '', soiree.date_soiree, 'Votez sur votre téléphone', url],
+            qr: matriceQr(url),
+            legendeQr: 'Scannez pour noter les manades',
+          }), 'application/pdf');
+        }}>Télécharger l’affiche PDF</button>
       </section>
     </>
   );
