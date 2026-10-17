@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { AvisSoiree } from './AvisSoiree';
+import { ChoixNotifications } from './Notifications';
+import { useInstantanePublic } from '../lib/contexte-etat';
 import { useFileNotes, type FileNoteItem } from '../lib/file-notes';
 import { passageOuvert, useNotesConfirmees, usePlanningNotation } from '../lib/notation';
-import { useMaintenant } from '../lib/temps';
+import { echeanceVote, libelleTempsRestant } from '../lib/temps-restant';
 
 const motifs: Record<string, string> = {
   vote_ferme: 'Vote fermé, note non prise en compte.',
@@ -23,9 +26,15 @@ function etatNote(item: FileNoteItem): string {
 
 export function NotationPublic({ compte }: { compte: string }) {
   const { planning, chargement, erreur } = usePlanningNotation();
+  const instantane = useInstantanePublic();
   const file = useFileNotes(compte);
   const [erreurSaisie, setErreurSaisie] = useState<string | null>(null);
-  const maintenant = useMaintenant(null);
+  const [horloge, setHorloge] = useState<number | null>(null);
+  useEffect(() => {
+    setHorloge(Date.now());
+    const minuteur = setInterval(() => setHorloge(Date.now()), 1000);
+    return () => clearInterval(minuteur);
+  }, []);
   const passages = planning?.soirees.flatMap((s) => s.epreuves.flatMap((e) => e.passages.map((p) => p.id))) ?? [];
   const confirmees = useNotesConfirmees(compte, passages);
   const dernieres = new Map<string, FileNoteItem>();
@@ -50,6 +59,13 @@ export function NotationPublic({ compte }: { compte: string }) {
     {chargement ? <p role="status">Lecture des passages…</p> : null}
     {planning && !planning.fileActive ? <p role="status" className="mb-5 rounded-xl bg-lin p-4">L’enregistrement des notes n’est pas encore activé.</p> : null}
     {planning && planning.soirees.length === 0 ? <p>Les votes ouvriront le soir de l’Olympiade. Aucun passage n’est proposé pour le moment.</p> : null}
+    {instantane.source === 'instantane' && instantane.soiree ? (
+      <p className="mb-5 text-sm text-encre-2">
+        Instantané public relu{instantane.calculeLe ? ` à ${new Date(instantane.calculeLe).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}` : ''}.
+        {instantane.soiree.epreuveEnCours ? ` ${instantane.soiree.epreuveEnCours}` : ''}
+        {instantane.soiree.manadeEnPiste ? ` · ${instantane.soiree.manadeEnPiste}` : ''}
+      </p>
+    ) : null}
     {planning?.soirees.map((soiree) => <section key={soiree.id} aria-labelledby={`soiree-${soiree.id}`} className="mb-8">
       <h2 id={`soiree-${soiree.id}`} className="font-display text-3xl">{soiree.nom}</h2>
       {soiree.message_public ? <p className="mt-2 text-encre-2">{soiree.message_public}</p> : null}
@@ -58,10 +74,21 @@ export function NotationPublic({ compte }: { compte: string }) {
         <div className="grid gap-4 tablette:grid-cols-2">{epreuve.passages.map((passage) => {
           const item = dernieres.get(passage.id);
           const selection = item?.note ?? confirmees.notes[passage.id];
-          const ouvert = passageOuvert(soiree, passage, maintenant?.getTime() ?? Date.now());
+          const maintenantMs = horloge ?? Date.now();
+          const ouvert = passageOuvert(soiree, passage, maintenantMs);
+          const depuisInstantane = instantane.soiree?.passages.find((ligne) => ligne.id === passage.id)?.fermeLe;
+          const reste = horloge == null ? null : libelleTempsRestant(echeanceVote({
+            mode: soiree.mode_vote,
+            voteFin: soiree.vote_fin,
+            delaiMinutes: soiree.delai_vote_minutes,
+            finPassage: passage.fin_passage_le,
+            fermeLe: depuisInstantane ?? passage.ferme_le,
+            heureFin: epreuve.heure_fin,
+          }), maintenantMs, ouvert);
           return <fieldset key={passage.id} className="min-w-0 rounded-[22px] border border-trait bg-creme p-5">
             <legend className="px-2 font-display text-2xl">{passage.manades.nom}</legend>
-            <p className="mb-3 text-sm text-encre-2">{ouvert ? 'À vous de noter' : passage.statut_public === 'a_venir' && soiree.mode_vote === 'deblocage' ? 'Vote à venir' : 'Vote fermé'}</p>
+            <p className="mb-1 text-sm text-encre-2">{ouvert ? 'À vous de noter' : passage.statut_public === 'a_venir' && soiree.mode_vote === 'deblocage' ? 'Vote à venir' : 'Vote fermé'}</p>
+            {reste ? <p className="mb-3 text-sm font-semibold tabular-nums">{reste}</p> : <p className="mb-3 text-sm text-encre-2"> </p>}
             <div className="grid grid-cols-5 gap-2">{Array.from({ length: 10 }, (_, i) => i + 1).map((n) => <button key={n} type="button" aria-label={`${n} sur 10`} aria-pressed={selection === n}
               disabled={!ouvert || !planning.fileActive || file.loading || !!file.storageError}
               onClick={() => void noter(passage.id, n)}
@@ -73,6 +100,8 @@ export function NotationPublic({ compte }: { compte: string }) {
         })}</div>
       </div>)}
     </section>)}
+    <AvisSoiree compte={compte} soirees={planning?.soirees ?? []} />
+    <ChoixNotifications compte={compte} />
     {file.items.length ? <details className="rounded-2xl border border-trait bg-creme p-5"><summary className="min-h-12 cursor-pointer font-semibold">Suivi de vos derniers envois</summary>
       <p className="mb-3 text-sm text-encre-2">Les notes gardées sur l’appareil doivent parvenir au serveur avant la fermeture du vote. Une note déjà reçue à temps peut finir d’être enregistrée ensuite.</p>
       <ul className="space-y-2">{file.items.slice(0, 20).map((item) => <li key={item.id} className="border-t border-trait pt-2 text-sm"><time dateTime={new Date(item.createdAt).toISOString()}>{new Date(item.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time> · {etatNote(item)}</li>)}</ul>

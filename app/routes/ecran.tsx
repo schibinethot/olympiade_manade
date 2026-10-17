@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 import { ClassementCalcule } from '../composants/ClassementCalcule';
+import { CodeQr } from '../composants/CodeQr';
 import { useInstantanePublic, type InstantanePublic } from '../lib/contexte-etat';
 
 export function meta() {
@@ -44,6 +45,9 @@ export default function Ecran() {
   const instantane = cible ?? contexte;
   const soiree = instantane.soiree?.slug === slug ? instantane.soiree : null;
   const ouvert = soiree && instantane.etat === 'ouvert';
+  const [origine, setOrigine] = useState('');
+  useEffect(() => { setOrigine(window.location.origin); }, []);
+  const urlVote = origine ? `${origine}/noter` : '';
 
   return (
     <div className="min-h-dvh bg-encre px-6 py-8 text-sable">
@@ -63,7 +67,11 @@ export default function Ecran() {
           <p className="mt-8 font-display text-4xl tablette:text-6xl">{soiree.epreuveEnCours ?? 'Épreuve à venir'}</p>
           <p className="mt-3 text-3xl">{soiree.manadeEnPiste ? soiree.manadeEnPiste : 'Manade à venir'}</p>
           {ouvert ? <p className="mt-6 text-4xl font-bold text-or-clair">Votez maintenant !</p> : null}
-          <p className="mt-8 break-all text-2xl">Notez sur ce site : /noter</p>
+          <div className="mt-8 inline-block rounded-2xl bg-white p-4 text-encre">
+            {urlVote ? <CodeQr valeur={urlVote} libelle="QR code pour noter les manades" taille={280} /> : <p className="text-2xl">QR code de vote</p>}
+            <p className="mt-3 max-w-xs text-lg font-semibold text-encre">Votez maintenant sur votre téléphone</p>
+          </div>
+          <p className="mt-4 break-all text-xl">{urlVote || '/noter'}</p>
           {soiree.classements ? <div className="mt-10 text-encre"><ClassementCalcule classements={soiree.classements} /></div>
             : <p className="mt-10 text-2xl">Le classement sera révélé au moment de la remise des prix.</p>}
         </>

@@ -7,6 +7,7 @@ import { VILLE_AFFICHE } from '../donnees/affiche';
 import { EPREUVES } from '../donnees/epreuves';
 import { formaterJourMois } from '../lib/accueil';
 import { noteProjections, sectionsDates, type LigneDate, type SectionDates } from '../lib/calendrier';
+import { evenementsDesDates } from '../lib/evenements';
 import { lireDonneesVitrine, lireDonneesVitrineNavigateur, type DonneesVitrine } from '../lib/donnees-vitrine';
 import { useRelectureApresInteraction } from '../lib/relecture';
 import { useMaintenant } from '../lib/temps';
@@ -197,8 +198,12 @@ export default function Dates({ loaderData }: Route.ComponentProps) {
   const sections = calendrier ? sectionsDates(calendrier, palmares, maintenant) : [];
   const saison = sections.find((s) => s.type === 'saison');
 
+  const evenements = calendrier?.length ? evenementsDesDates(calendrier) : null;
   return (
     <>
+      {evenements ? (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(evenements).replaceAll('<', '\\u003c') }} />
+      ) : null}
       <TitrePage
         surtitre="Calendrier"
         titre={saison ? <>Dates <em>{saison.annee}</em></> : 'Dates'}

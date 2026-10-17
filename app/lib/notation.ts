@@ -1,11 +1,17 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase';
 
-export type PassageNotation = { id: string; ordre: number; statut_public: 'a_venir' | 'ouvert' | 'clos'; manades: { nom: string } };
-export type EpreuveNotation = { id: string; nom: string; ordre: number; notee: boolean; passages: PassageNotation[] };
+export type PassageNotation = {
+  id: string; ordre: number; statut_public: 'a_venir' | 'ouvert' | 'clos';
+  fin_passage_le?: string | null; ferme_le?: string | null; manades: { nom: string };
+};
+export type EpreuveNotation = {
+  id: string; nom: string; ordre: number; notee: boolean; heure_fin?: string | null; passages: PassageNotation[];
+};
 export type SoireeNotation = {
   id: string; nom: string; date_soiree: string; mode_vote: 'libre' | 'deblocage';
-  vote_debut: string; vote_fin: string; statut: 'publiee' | 'en_cours'; message_public: string | null; epreuves: EpreuveNotation[];
+  vote_debut: string; vote_fin: string; delai_vote_minutes?: number | null;
+  statut: 'publiee' | 'en_cours'; message_public: string | null; epreuves: EpreuveNotation[];
 };
 type Planning = { generatedAt: string; fileActive: boolean; soirees: SoireeNotation[] };
 
