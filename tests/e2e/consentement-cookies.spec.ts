@@ -5,8 +5,8 @@
  * l'affichage et le comportement du bandeau. Ce spec utilise @playwright/test
  * directement et non le fixture test-e2e.ts (qui pré-consent les autres tests).
  *
- * Les appels à /api/cookie-consent/* sont interceptés avec page.route()
- * car l'API back n'existe pas encore dans ce worktree.
+ * Les appels à /api/cookie-consent/* sont interceptés avec page.route() : le serveur des e2e
+ * n'a pas de clé service_role, ses réponses ne dépendraient que des valeurs par défaut.
  */
 
 import { test, expect, type Page } from '@playwright/test';
@@ -36,6 +36,10 @@ const REPONSE_SETTINGS = {
 
 /** Intercepte les appels API cookies et Turnstile avant chaque test. */
 async function intercepterApiCookies(page: Page) {
+  // vanilla-cookieconsent masque la fenêtre aux robots, dont navigator.webdriver (Playwright).
+  await page.addInitScript(() => {
+    Object.defineProperty(Navigator.prototype, 'webdriver', { get: () => false });
+  });
   await simulerTurnstile(page);
   await page.route('**/api/cookie-consent/settings', (route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(REPONSE_SETTINGS) }),

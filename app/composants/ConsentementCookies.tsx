@@ -126,17 +126,13 @@ async function loguerConsentement(
 function construireConfig(
   params: ParametresCookies,
   mode: 'fenetre' | 'bandeau',
-  definirPrefsOuvertes: (ouvert: boolean) => void,
 ): Parameters<typeof CookieConsent.run>[0] {
   const estFenetre = mode === 'fenetre';
   const hote = typeof window !== 'undefined' ? window.location.hostname : 'olympiadedesmanades.fr';
 
   return {
-    // Les bots (et Playwright) ont navigator.webdriver=true.
-    // hideFromBots: false laisse la modal s'afficher, ce qui est correct
-    // pour les tests e2e et acceptable côté SEO (Google gère les modales).
-    hideFromBots: false,
-
+    // hideFromBots reste à sa valeur par défaut (vrai), comme sur SITE-AM : les robots
+    // d'indexation ne voient pas la fenêtre. Les e2e masquent navigator.webdriver pour l'afficher.
     guiOptions: {
       consentModal: estFenetre
         ? {
@@ -256,13 +252,13 @@ function construireConfig(
                     {
                       name: 'olympiade_acces',
                       domain: hote,
-                      expiration: "Session",
+                      expiration: "1 an",
                       description: "Accès à la préversion du site.",
                     },
                     {
                       name: 'sb-khwlwpzydlrfocfpvywv-auth-token (localStorage)',
                       domain: hote,
-                      expiration: "Session",
+                      expiration: "Jusqu’à la déconnexion",
                       description: "Session de vote et de jury (stockage local, supprimé à la déconnexion).",
                     },
                   ],
@@ -354,7 +350,6 @@ function construireConfig(
 
     onModalShow: ({ modalName }: { modalName: string }) => {
       if (modalName === 'preferencesModal') {
-        definirPrefsOuvertes(true);
         document.documentElement.classList.add('cc-hide-consent-modal');
         CookieConsent.hide();
       }
@@ -362,7 +357,6 @@ function construireConfig(
 
     onModalHide: ({ modalName }: { modalName: string }) => {
       if (modalName === 'preferencesModal') {
-        definirPrefsOuvertes(false);
         document.documentElement.classList.remove('cc-hide-consent-modal');
       }
     },
@@ -459,9 +453,11 @@ export function ConsentementCookies() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Mode aucun : pas de bandeau
+    // Mode aucun : pas de bandeau. Une fenêtre ouverte sur la page précédente est retirée,
+    // le choix déjà enregistré est conservé.
     if (mode === 'aucun') {
-      document.documentElement.classList.remove('cc-consent-site', 'cc-consent-bandeau');
+      document.documentElement.classList.remove('cc-consent-site', 'cc-consent-bandeau', 'cc-hide-consent-modal');
+      CookieConsent.reset(false);
       return;
     }
 
@@ -475,11 +471,7 @@ export function ConsentementCookies() {
     document.documentElement.classList.remove('cc-hide-consent-modal');
     CookieConsent.reset(false);
 
-    void CookieConsent.run(
-      construireConfig(params, mode, (_ouvert: boolean) => {
-        // État local géré dans la closure de construireConfig
-      }),
-    );
+    void CookieConsent.run(construireConfig(params, mode));
 
     return () => {
       document.documentElement.classList.remove('cc-hide-consent-modal');

@@ -33,8 +33,13 @@ export default function Confidentialite() {
               IP, date et heure, pages demandées, type de navigateur) pour assurer le fonctionnement et la sécurité du site.
               Le serveur conserve aussi des compteurs techniques agrégés (requêtes, erreurs, volume de données et temps
               de réponse), sans adresse IP ni historique individuel de navigation dans ces compteurs.
-              Avec votre accord, des outils de mesure d’audience et de publicité peuvent être activés (voir section « Traceurs »). Base légale&nbsp;: intérêt légitime à sécuriser le service (art. 6(1)(f) RGPD).
+              Base légale&nbsp;: intérêt légitime à sécuriser le service (art. 6(1)(f) RGPD).
               Durée&nbsp;: celle fixée par chaque hébergeur pour ses journaux techniques.
+            </li>
+            <li>
+              <strong>Choix relatifs aux cookies</strong>&nbsp;: à chaque choix, nous enregistrons un identifiant
+              pseudonyme du navigateur, l’adresse IP pseudonymisée, le type de navigateur, la page et la date, ainsi que
+              les catégories acceptées. Ces données servent à prouver votre consentement (art. 7(1) et 6(1)(c) RGPD).
             </li>
             <li>
               <strong>Formulaire de contact</strong>&nbsp;: prénom, email, message et date d’envoi. Les trois champs du
@@ -88,6 +93,7 @@ export default function Confidentialite() {
             <li>Abonnement aux actualités&nbsp;: adresse et consentement conservés jusqu’à votre demande de retrait ou l’arrêt de la liste d’information.</li>
             <li>Comptes spectateurs inactifs&nbsp;: supprimés après 24 mois d’inactivité.</li>
             <li>Mesures techniques agrégées et derniers signaux d’activité&nbsp;: conservation de 30 jours.</li>
+            <li>Preuves de vos choix relatifs aux cookies&nbsp;: conservées 12 mois, puis supprimées.</li>
             <li>
               Messages de contact&nbsp;: conservés le temps nécessaire pour vous répondre, puis supprimés. La durée exacte
               sera fixée avec l’organisateur.
@@ -101,12 +107,10 @@ export default function Confidentialite() {
           </p>
 
           <p>
-            <strong>Traceurs nécessaires</strong>&nbsp;: le cookie <code>cc_cookie</code> conserve votre choix
-            de consentement (durée&nbsp;: 365&nbsp;jours par défaut, modifiable). Le cookie
-            <code>olympiade_acces</code> permet l’accès à la préversion. Votre session de jury et
-            d’organisateur est stockée en mémoire locale du navigateur (stockage local,
-            supprimée à la déconnexion). L’identifiant <code>cc_visitor_id</code> est une preuve
-            pseudonyme de votre choix, conservé dans le stockage local.
+            <strong>Traceurs nécessaires</strong>&nbsp;: le cookie <code>cc_cookie</code> conserve votre choix de
+            consentement, au plus 13&nbsp;mois. Le cookie <code>olympiade_acces</code> ouvre l’accès à la préversion
+            du site. L’identifiant <code>cc_visitor_id</code>, conservé dans le stockage local, relie votre choix à sa
+            preuve sans vous identifier.
           </p>
 
           <p>
@@ -126,21 +130,20 @@ export default function Confidentialite() {
             <button type="button" onClick={afficherPreferences} className={LIEN_TEXTE}>
               Gérer les cookies
             </button>
-            &nbsp;». La durée de validité de votre choix est de 365&nbsp;jours. Votre consentement
-            est retiré automatiquement à l’expiration, ou à tout moment via le bouton ci-dessus.
+            &nbsp;». Refuser est aussi simple qu’accepter et ne limite pas l’accès au site. À l’expiration de votre
+            choix, il vous est demandé à nouveau.
           </p>
 
           <p>
-            Lorsque vous vous inscrivez, une donnée de session est enregistrée dans votre navigateur pour vous
-            reconnaître. Elle est strictement nécessaire au service, ne sert à aucun suivi et est supprimée à
-            votre déconnexion.
+            Lorsque vous vous inscrivez, une donnée de session est enregistrée dans votre navigateur pour vous reconnaître.
+            Elle est strictement nécessaire au service, ne sert à aucun suivi et est supprimée à votre déconnexion.
           </p>
-
           <p>
-            Vos notes en attente d’envoi sont conservées sur cet appareil pour reprendre en cas de coupure,
-            séparément pour chaque compte. Les confirmations locales sont conservées au plus 7 jours et les
-            refus au plus 30 jours. Effacer les données du navigateur supprime les notes qui n’ont pas encore
-            été reçues par le serveur.
+            Vos notes en attente d’envoi sont conservées sur cet appareil pour reprendre en cas de coupure, séparément pour
+            chaque compte. Elles sont envoyées lorsque vous revenez sur le site avec le même compte et une connexion.
+            Les confirmations locales sont conservées au plus 7 jours et les refus au plus 30 jours, avec nettoyage à
+            l’utilisation. Les reçus serveur restent associés à votre compte pour éviter les doublons lors des reprises.
+            Effacer les données du navigateur supprime les notes qui n’ont pas encore été reçues par le serveur.
           </p>
         </SectionLegale>
 
