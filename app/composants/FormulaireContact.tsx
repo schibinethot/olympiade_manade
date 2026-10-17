@@ -17,7 +17,7 @@ const CHAMP =
 const ERREUR = 'flex items-start gap-1.5 text-[13px] leading-snug text-rouge';
 
 /**
- * Formulaire de contact (maquette : carte « Infos & dates »), partagé par l'accueil et /contact.
+ * Formulaire de contact (page /contact).
  *
  * - Validation identique aux contraintes de public.messages_contact (app/lib/contact.ts).
  * - Champ piège « site_web », invisible, contrôlé par le serveur sans confirmer sa détection.

@@ -3,7 +3,6 @@ import { Affiche, CreditAffiche } from '../composants/Affiche';
 import { BlocNoter } from '../composants/BlocNoter';
 import { DernierVainqueur } from '../composants/DernierVainqueur';
 import { Epreuves } from '../composants/Epreuves';
-import { FormulaireContact } from '../composants/FormulaireContact';
 import { InscriptionActualites } from '../composants/InscriptionActualites';
 import { ManadesEdition } from '../composants/ManadesEdition';
 import { SaisonAccueil } from '../composants/SaisonAccueil';
@@ -74,17 +73,8 @@ export default function Accueil({ loaderData }: Route.ComponentProps) {
       <Epreuves />
       <DernierVainqueur palmares={palmares} />
 
-      <div className="grid gap-3.5 px-4 pt-9 pb-1 tablette:grid-cols-[1.25fr_1fr] tablette:gap-[18px] tablette:px-7 tablette:pt-11 paysage:px-10 paysage:pt-14 bureau:px-14">
+      <div className="px-4 pt-9 pb-1 tablette:px-7 tablette:pt-11 paysage:px-10 paysage:pt-14 bureau:px-14">
         <SaisonAccueil calendrier={calendrier} maintenant={maintenant} />
-        <section aria-labelledby="titre-contact" className="rounded-[22px] border border-trait bg-creme p-5">
-          <h2 id="titre-contact" className="font-display text-[21px] leading-[1.2] font-bold">
-            Infos &amp; dates
-          </h2>
-          <p className="mt-1.5 text-[14px] text-encre-2">
-            Infos, dates, une manade à inscrire, une photo à proposer&nbsp;: écrivez à l’organisation, elle vous répond.
-          </p>
-          <FormulaireContact />
-        </section>
       </div>
     </>
   );

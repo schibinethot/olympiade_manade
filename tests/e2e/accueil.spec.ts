@@ -126,9 +126,9 @@ test('si Supabase ne répond pas, l’accueil garde les données du pré-rendu',
   await expect(page.getByText('Informations momentanément indisponibles')).toHaveCount(0);
 });
 
-// Formulaire de contact de l'accueil (règles de la Task 5, testées dès cette tâche).
+// Formulaire de contact (page dédiée ; retiré de l’accueil).
 
-test('le formulaire de contact de l’accueil envoie une seule fois et confirme', async ({ page }) => {
+test('le formulaire de contact envoie une seule fois et confirme', async ({ page }) => {
   let appels = 0;
   let corps: unknown = null;
   let url = '';
@@ -139,7 +139,7 @@ test('le formulaire de contact de l’accueil envoie une seule fois et confirme'
     await new Promise((r) => setTimeout(r, 300));
     await route.fulfill({ status: 200, json: { ok: true } });
   });
-  await page.goto('/');
+  await page.goto('/contact');
   await page.getByLabel('Prénom').fill('Léa');
   await page.getByLabel('Email', { exact: true }).fill('lea@exemple.fr');
   await page.getByLabel('Message').fill('Bonjour, quelle sera la date à Nîmes en 2027 ?');
@@ -160,7 +160,7 @@ test('le formulaire de contact refuse un message trop court sans appeler le serv
     appels += 1;
     return route.fulfill({ status: 200, json: { ok: true } });
   });
-  await page.goto('/');
+  await page.goto('/contact');
   await page.getByLabel('Prénom').fill('Léa');
   await page.getByLabel('Email', { exact: true }).fill('lea@exemple.fr');
   await page.getByLabel('Message').fill('Court');
@@ -174,7 +174,7 @@ test('le formulaire de contact signale un échec d’envoi', async ({ page }) =>
   await page.route('**/api/contact', (route) =>
     route.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"erreur"}' }),
   );
-  await page.goto('/');
+  await page.goto('/contact');
   await page.getByLabel('Prénom').fill('Léa');
   await page.getByLabel('Email', { exact: true }).fill('lea@exemple.fr');
   await page.getByLabel('Message').fill('Bonjour, quelle sera la date à Nîmes en 2027 ?');
@@ -196,7 +196,7 @@ test('le formulaire de contact signale le plafond de messages atteint, une seule
       }),
     });
   });
-  await page.goto('/');
+  await page.goto('/contact');
   await page.getByLabel('Prénom').fill('Léa');
   await page.getByLabel('Email', { exact: true }).fill('lea@exemple.fr');
   await page.getByLabel('Message').fill('Bonjour, quelle sera la date à Nîmes en 2027 ?');
@@ -213,11 +213,11 @@ test('le champ piège est transmis au serveur qui répond sans déposer le messa
     appels += 1;
     return route.fulfill({ status: 200, json: { ok: true } });
   });
-  await page.goto('/');
+  await page.goto('/contact');
   await page.getByLabel('Prénom').fill('Robot');
   await page.getByLabel('Email', { exact: true }).fill('robot@exemple.fr');
   await page.getByLabel('Message').fill('Message automatique de plus de dix caractères.');
-  await page.getByRole('region', { name: 'Infos & dates' }).locator('input[name="site_web"]').fill('https://spam.example', { force: true });
+  await page.locator('input[name="site_web"]').fill('https://spam.example', { force: true });
   await page.getByRole('button', { name: 'Envoyer' }).click();
   await expect(page.getByText('Merci, votre message est enregistré. Il n’est pas envoyé par email automatiquement.')).toBeVisible();
   expect(appels).toBe(1);
