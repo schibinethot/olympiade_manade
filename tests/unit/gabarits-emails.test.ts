@@ -125,6 +125,19 @@ describe('compteARebours', () => {
   it('n’a plus de texte une semaine après la date', () => {
     expect(compteARebours('2027-07-31', '21:30:00', new Date('2027-08-07T10:00:00+02:00'))).toEqual({ texte: null, jours: -7 });
   });
+  it.each([
+    ['passage à l’heure d’été, veille à 23 h 30', '2027-03-28', '2027-03-27T23:30:00+01:00', 'demain', 1],
+    ['passage à l’heure d’été, jour même à 00 h 30', '2027-03-28', '2027-03-28T00:30:00+01:00', 'ce soir', 0],
+    ['passage à l’heure d’hiver, veille à 23 h 30', '2027-10-31', '2027-10-30T23:30:00+02:00', 'demain', 1],
+    ['passage à l’heure d’hiver, jour même à 00 h 30', '2027-10-31', '2027-10-31T00:30:00+02:00', 'ce soir', 0],
+  ])('%s', (_cas, date, maintenant, texte, jours) => {
+    expect(compteARebours(date, '21:30:00', new Date(maintenant))).toEqual({ texte, jours });
+  });
+
+  it('accepte une heure sur un chiffre', () => {
+    expect(formaterDate('2027-05-01', '9:30').heure).toBe('9 h 30');
+    expect(compteARebours('2027-05-01', '9:30', new Date('2027-05-01T08:00:00+02:00')).texte).toBe('aujourd’hui');
+  });
 });
 
 describe('variables', () => {
@@ -330,6 +343,80 @@ describe('rendreEmail : mise en forme', () => {
   });
 });
 
+describe('rendreEmail : robustesse (revue, tour 1)', () => {
+  it('refuse une origine qui n’est pas une URL http(s) absolue, pour les deux cibles', () => {
+    for (const cible of ['email', 'apercu'] as const) {
+      for (const origine of ['', '/', 'olympiadedesmanades.fr', 'javascript:alert(1)']) {
+        expect(() => rendreEmail(modele('Corps.'), contexte({ origine }), { cible }), `${cible} ${origine}`).toThrow(/origine/i);
+      }
+    }
+  });
+
+  it('refuse un email sans lien de désinscription valable ; l’aperçu retombe sur la page de désinscription', () => {
+    for (const desinscription of ['', 'javascript:alert(1)', '/emails/desinscription?j=x']) {
+      const liens = { desinscription, confirmation: null, jeViens: null };
+      expect(() => rendreEmail(modele('Corps.'), contexte({ liens }), { cible: 'email' }), desinscription).toThrow(/désinscription/i);
+      const apercu = rendreEmail(modele('Corps.'), contexte({ liens }), { cible: 'apercu' });
+      expect(apercu.html).toContain(`href="${ORIGINE}/emails/desinscription"`);
+    }
+  });
+
+  it('ne fait jamais un lien d’une valeur qui n’est pas en http(s)', () => {
+    const rendu = rendreEmail(
+      modele('Billetterie : {{lien_billetterie}}\n\nAvant [billets]({{lien_billetterie}}) après\n\n{{prochaines_dates}}'),
+      contexte({
+        date: dateSommieres({ lien_billetterie: 'javascript:alert(1)' }),
+        prochaines: [{ ...dateSommieres(), lienJeViens: 'javascript:alert(2)' }],
+      }),
+      { cible: 'email' },
+    );
+    expect(rendu.html).not.toContain('javascript');
+    expect(rendu.html).not.toContain('Billetterie');
+    expect(rendu.html).not.toContain('Je viens');
+    expect(rendu.html).toContain('sam. 31/07 · Sommières, Arènes Gilles Arnaud · 21 h 30');
+    expect(rendu.texte).not.toContain('javascript');
+  });
+
+  it('n’imbrique jamais de lien : une variable de lien dans un texte de lien reste du texte', () => {
+    const rendu = rendreEmail(
+      modele('[Voir {{lien_dates}}](https://olympiadedesmanades.fr/dates)\n\n[[Aller sur {{lien_dates}}|{{lien_dates}}]]'),
+      contexte(),
+      { cible: 'apercu' },
+    );
+    expect(rendu.html).not.toMatch(/<a [^>]*>(?:(?!<\/a>)[\s\S])*<a /);
+    expect(rendu.html).toContain(`>Voir ${ORIGINE}/dates</a>`);
+    expect(rendu.html).toContain(`>Aller sur ${ORIGINE}/dates</a>`);
+    expect(rendu.texte).toContain(`Voir ${ORIGINE}/dates${NB}: https://olympiadedesmanades.fr/dates`);
+  });
+
+  it('tolère une date sans liste de manades', () => {
+    const rendu = rendreEmail(
+      modele('Liste des manades : {{manades}}\n\nFin.'),
+      contexte({ date: dateSommieres({ manades: undefined as unknown as string[] }) }),
+      { cible: 'email' },
+    );
+    expect(rendu.html).not.toContain('Liste des manades');
+    expect(rendu.html).toContain('Fin.');
+  });
+
+  it('met la marge de l’encart sur son tableau, pas sur la cellule', () => {
+    const html = rendreEmail(modele('Corps.', { encart: 'Encart.' }), contexte({ encartDateProche: true }), { cible: 'email' }).html;
+    const encart = /<table [^>]*style="([^"]*)"><tr><td bgcolor="#efe7d8" style="([^"]*)">/.exec(html);
+    expect(encart).not.toBeNull();
+    expect(encart?.[1]).toContain('margin:8px 0 20px');
+    expect(encart?.[2]).not.toContain('margin');
+    expect(encart?.[2]).toContain('border:1px solid #b78649');
+  });
+
+  it('cale la carte et le pied à 600 px dans Outlook par un tableau fantôme', () => {
+    const html = rendreEmail(modele('Corps.'), contexte(), { cible: 'email' }).html;
+    expect(html).toContain('<!--[if mso]><table role="presentation" width="600" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->');
+    expect(html).toContain('<!--[if mso]></td></tr></table><![endif]-->');
+    expect(html.indexOf('<!--[if mso]><table')).toBeLessThan(html.indexOf('bgcolor="#fcfbf7"'));
+    expect(html.indexOf('<!--[if mso]></td>')).toBeGreaterThan(html.indexOf('Se désinscrire'));
+  });
+});
+
 describe('modèles par défaut', () => {
   it('suit l’ordre de la frise et couvre chaque étape', () => {
     expect(ETAPES).toEqual([
@@ -416,6 +503,32 @@ describe('modèles par défaut', () => {
     }
   });
 
+  it('n’invite plus à l’avis le lendemain, et renvoie vers les prochaines dates', () => {
+    const { corps, preheader } = MODELES_DEFAUT.lendemain;
+    expect(corps).not.toContain('{{lien_noter}}');
+    expect(corps).not.toMatch(/avis/i);
+    expect(corps).toContain('{{lien_dates}}');
+    expect(corps).toContain('{{vainqueur}}');
+    expect(corps).toContain('{{lien_classement}}');
+    expect(preheader).not.toMatch(/dès qu|publiés|prochain email|recevrez/i);
+  });
+
+  it('ne parle de « Je viens » que s’il y a un lien « Je viens »', () => {
+    const sansLien = (date: DateEnrichie) => ({ ...date, lienJeViens: null });
+    for (const cle of ['prochaines_dates', 'annonce'] as const) {
+      const rendu = rendreEmail(MODELES_DEFAUT[cle], contexte({
+        prochaines: [sansLien(dateSommieres())],
+        annoncees: [sansLien(dateSommieres())],
+      }), { cible: 'email' });
+      expect(rendu.html, cle).not.toContain('Je viens');
+      expect(rendu.texte, cle).not.toContain('Je viens');
+    }
+  });
+
+  it('ne promet pas de noter « sans attendre le réseau » la veille', () => {
+    expect(MODELES_DEFAUT.veille.corps).not.toContain('sans attendre le réseau');
+  });
+
   it('fige le texte du consentement aux annonces', () => {
     expect(CONSENTEMENT_ANNONCES_TEXTE).toBe('J’accepte de recevoir par email l’annonce des prochaines dates de l’Olympiade des Manades.');
     expect(CONSENTEMENT_ANNONCES_VERSION).toBe('2026-10-17');
@@ -449,6 +562,6 @@ describe('aperçu, logo et isomorphisme', () => {
 
   it('n’importe aucun module node:, car l’admin importe ce module', () => {
     const source = readFileSync(new URL('../../serveur/gabarits-emails.mjs', import.meta.url), 'utf8');
-    expect(source).not.toMatch(/from ['"]node:|import\(['"]node:|require\(/);
+    expect(source).not.toMatch(/\bfrom\s+['"](node:)?(fs|path|crypto|os|url|buffer|stream)['"]|import\s*\(?\s*['"]node:|\brequire\(|\bprocess\.|\bBuffer\b/);
   });
 });

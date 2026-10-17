@@ -213,7 +213,7 @@ const MODELES_BRUTS = {
       '',
       '{{infos_pratiques}}',
       '',
-      'Pour noter sans attendre le réseau, ajoutez le site à votre écran d’accueil et activez les notifications. [J’ouvre le site]({{lien_noter}})',
+      'Pour ne rien manquer le soir venu, ajoutez le site à votre écran d’accueil et activez les notifications. [J’ouvre le site]({{lien_noter}})',
       '',
       'À très vite dans les arènes !',
     ),
@@ -246,7 +246,7 @@ const MODELES_BRUTS = {
   lendemain: {
     nom: 'Le lendemain',
     sujet: 'Merci pour la soirée à {{ville}} !',
-    preheader: 'Un grand merci, et les résultats dès qu’ils sont publiés.',
+    preheader: 'Merci pour cette soirée, et rendez-vous pour la suite de la saison.',
     corps: lignes(
       'Bonjour {{prenom}},',
       '',
@@ -256,7 +256,7 @@ const MODELES_BRUTS = {
       '',
       '[Voir le classement complet]({{lien_classement}})',
       '',
-      'Un avis sur la soirée ? [Dites-le en quelques mots]({{lien_noter}})',
+      'La saison continue ! [Voir les prochaines dates]({{lien_dates}})',
       '',
       'À bientôt dans les arènes !',
     ),
@@ -267,15 +267,13 @@ const MODELES_BRUTS = {
   prochaines_dates: {
     nom: 'Les prochaines dates',
     sujet: 'La saison continue : les prochaines dates de l’Olympiade',
-    preheader: 'Choisissez votre prochaine soirée en un clic.',
+    preheader: 'Les prochaines soirées de la saison.',
     corps: lignes(
       'Bonjour {{prenom}},',
       '',
       'Merci encore d’avoir suivi l’Olympiade des Manades à {{ville}}, le {{date}}. La saison continue !',
       '',
       '{{prochaines_dates}}',
-      '',
-      'Un clic sur « Je viens » et vous recevrez les rappels de cette date.',
       '',
       '[Voir tout le calendrier]({{lien_dates}})',
     ),
@@ -286,15 +284,13 @@ const MODELES_BRUTS = {
   annonce: {
     nom: 'Annonce d’une date',
     sujet: 'L’Olympiade des Manades revient {{compte_a_rebours}}',
-    preheader: 'Un clic sur « Je viens » et vous recevrez les rappels de votre date.',
+    preheader: 'Les prochaines soirées de l’Olympiade des Manades.',
     corps: lignes(
       'Bonjour {{prenom}},',
       '',
       'L’Olympiade des Manades revient {{compte_a_rebours}}, le {{date}} à {{ville}} !',
       '',
       '{{dates_annoncees}}',
-      '',
-      'Un clic sur « Je viens » et vous recevrez l’heure, les arènes et la billetterie avant la soirée.',
       '',
       '[Voir tout le calendrier]({{lien_dates}})',
     ),
@@ -341,7 +337,14 @@ export const MODELES_DEFAUT = /** @type {Readonly<Record<Etape, Readonly<ModeleD
 const JOUR_LONG = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', timeZone: 'UTC' });
 const JOUR_COURT = new Intl.DateTimeFormat('fr-FR', { weekday: 'short', timeZone: 'UTC' });
 const MOIS_LONG = new Intl.DateTimeFormat('fr-FR', { month: 'long', timeZone: 'UTC' });
-const JOUR_PARIS = new Intl.DateTimeFormat('en-CA', { timeZone: FUSEAU, year: 'numeric', month: '2-digit', day: '2-digit' });
+const JOUR_PARIS = new Intl.DateTimeFormat('en-US', { timeZone: FUSEAU, year: 'numeric', month: 'numeric', day: 'numeric' });
+
+/** Minuit UTC du jour civil de Paris où tombe `instant`. */
+function jourParis(/** @type {Date} */ instant) {
+  const parties = JOUR_PARIS.formatToParts(instant);
+  const lire = (/** @type {string} */ type) => Number(parties.find((partie) => partie.type === type)?.value);
+  return Date.UTC(lire('year'), lire('month') - 1, lire('day'));
+}
 
 /** @param {string} dateIso « AAAA-MM-JJ » */
 function lireJour(dateIso) {
@@ -387,9 +390,8 @@ export function formaterDate(dateIso, heure) {
  */
 export function compteARebours(dateIso, heure, maintenant) {
   const cible = lireJour(dateIso).utc.getTime();
-  const aujourdhui = lireJour(JOUR_PARIS.format(maintenant)).utc.getTime();
-  const jours = Math.round((cible - aujourdhui) / 86_400_000);
-  const heures = heure ? Number(heure.slice(0, 2)) : null;
+  const jours = Math.round((cible - jourParis(maintenant)) / 86_400_000);
+  const heures = heure ? Number(heure.split(':')[0]) : null;
   /** @type {string | null} */
   let texte = null;
   if (jours > 1) texte = `dans ${jours} jours`;
@@ -438,6 +440,7 @@ function urlSure(/** @type {string | null | undefined} */ valeur) {
 /**
  * @typedef {{
  *   cible: CibleEmail,
+ *   base: string,
  *   valeurs: Map<string, string | null>,
  *   listes: Map<string, DateAnnoncee[]>,
  *   prenomAbsent: boolean,
@@ -450,7 +453,9 @@ function urlSure(/** @type {string | null | undefined} */ valeur) {
  * @returns {Rendu}
  */
 function preparer(contexte, cible) {
-  const base = contexte.origine.replace(/\/+$/, '');
+  const origine = urlSure(contexte.origine);
+  if (!origine) throw new TypeError('Origine invalide : une URL http(s) absolue est attendue.');
+  const base = origine.replace(/\/+$/, '');
   const date = contexte.date;
   /** @type {Map<string, string | null>} */
   const valeurs = new Map(VARIABLES.map((variable) => [variable.cle, null]));
@@ -474,7 +479,7 @@ function preparer(contexte, cible) {
       ['ville', nettoyer(date.ville)],
       ['arenes', nettoyer(date.arenes)],
       ['infos_pratiques', nettoyer(date.infos_pratiques)],
-      ['manades', nettoyer(date.manades.filter(Boolean).join(', '))],
+      ['manades', nettoyer((date.manades ?? []).filter(Boolean).join(', '))],
       ['vainqueur', nettoyer(date.vainqueur)],
       ['lien_billetterie', urlSure(date.lien_billetterie)],
       ['lien_noter', soiree && (soiree.statut === 'publiee' || soiree.statut === 'en_cours') ? urlSure(`${base}/noter`) : null],
@@ -485,7 +490,7 @@ function preparer(contexte, cible) {
     ['prochaines_dates', contexte.prochaines ?? []],
     ['dates_annoncees', contexte.annoncees ?? []],
   ]);
-  return { cible, valeurs, listes, prenomAbsent: valeurs.get('prenom') === null };
+  return { cible, base, valeurs, listes, prenomAbsent: valeurs.get('prenom') === null };
 }
 
 /** Valeur texte d'une variable, ou null si elle est inconnue ou vide. */
@@ -543,9 +548,12 @@ const STYLES = Object.freeze({
   lien: `color:${COULEURS.orInk};text-decoration:underline;word-break:break-word`,
   boutonLigne: 'margin:8px 0 24px',
   bouton: `display:inline-block;padding:14px 26px;border-radius:12px;background-color:${COULEURS.encre};color:${COULEURS.creme};font-family:${POLICE};font-size:16px;font-weight:600;line-height:1.2;text-align:center;text-decoration:none`,
-  encart: `margin:8px 0 20px;padding:20px 22px 4px;background-color:${COULEURS.lin};border:1px solid ${COULEURS.or};border-radius:12px`,
+  encart: `padding:20px 22px 4px;background-color:${COULEURS.lin};border:1px solid ${COULEURS.or};border-radius:12px`,
   pied: `max-width:600px;margin:0 auto;padding:20px 24px 4px;font-family:${POLICE};font-size:13px;line-height:1.5;color:${COULEURS.encre2};text-align:center`,
 });
+
+/** Marge de l'encart : sur son tableau dans l'email (Outlook ignore la marge d'une cellule), sur le bloc dans l'aperçu. */
+const MARGE_ENCART = 'margin:8px 0 20px';
 
 /** @type {readonly [string, string][]} */
 const REGLES_APERCU = Object.freeze([
@@ -561,7 +569,7 @@ const REGLES_APERCU = Object.freeze([
   ['.apercu-email .ee-lien', STYLES.lien],
   ['.apercu-email .ee-bouton-ligne', STYLES.boutonLigne],
   ['.apercu-email .ee-bouton', STYLES.bouton],
-  ['.apercu-email .ee-encart', STYLES.encart],
+  ['.apercu-email .ee-encart', `${MARGE_ENCART};${STYLES.encart}`],
   ['.apercu-email .ee-pied', STYLES.pied],
   ['.apercu-email strong', 'font-weight:700'],
 ]);
@@ -591,8 +599,15 @@ function apparence(/** @type {Rendu} */ rendu, /** @type {keyof typeof STYLES} *
   return rendu.cible === 'email' ? `style="${STYLES[style]}"` : `class="${classe}"`;
 }
 
-function ancre(/** @type {string} */ href, /** @type {string} */ contenuHtml, /** @type {Rendu} */ rendu) {
-  return `<a href="${echapper(href)}" target="_blank" rel="noopener noreferrer" ${apparence(rendu, 'lien', 'ee-lien')}>${contenuHtml}</a>`;
+/**
+ * @param {string} href
+ * @param {string} contenuHtml
+ * @param {Rendu} rendu
+ * @param {keyof typeof STYLES} [style]
+ * @param {string} [classe]
+ */
+function ancre(href, contenuHtml, rendu, style = 'lien', classe = 'ee-lien') {
+  return `<a href="${echapper(href)}" target="_blank" rel="noopener noreferrer" ${apparence(rendu, style, classe)}>${contenuHtml}</a>`;
 }
 
 /** Texte d'un lien dans la version texte : « texte : url ». */
@@ -601,12 +616,13 @@ const lienTexte = (/** @type {string} */ texte, /** @type {string} */ url) => `$
 /**
  * @param {string} nom
  * @param {Rendu} rendu
+ * @param {boolean} dansLien vrai dans le texte d'un lien ou d'un bouton : pas de lien imbriqué
  * @returns {Morceau}
  */
-function rendreVariable(nom, rendu) {
+function rendreVariable(nom, rendu, dansLien) {
   const valeur = valeurTexte(nom, rendu);
   if (valeur === null) return { html: '', texte: '' };
-  if (nom.startsWith('lien_')) return { html: ancre(valeur, echapper(valeur), rendu), texte: valeur };
+  if (nom.startsWith('lien_') && !dansLien) return { html: ancre(valeur, echapper(valeur), rendu), texte: valeur };
   return { html: echapper(valeur).replace(/\r?\n/g, '<br>'), texte: valeur };
 }
 
@@ -616,9 +632,10 @@ const RE_EN_LIGNE = /\[([^[\]\n]+)\]\(([^()\s]*)\)|\{\{\s*([^{}]*?)\s*\}\}|\*\*/
  * Gras, liens et variables d'une ligne. Seuls les ** appariés font du gras.
  * @param {string} source
  * @param {Rendu} rendu
+ * @param {boolean} [dansLien] vrai pour le texte d'un lien ou d'un bouton
  * @returns {Morceau}
  */
-function rendreEnLigne(source, rendu) {
+function rendreEnLigne(source, rendu, dansLien = false) {
   const jetons = [...source.matchAll(RE_EN_LIGNE)];
   const gras = jetons.filter((jeton) => jeton[0] === '**');
   const grasApparies = new Set(gras.slice(0, gras.length - (gras.length % 2)));
@@ -640,7 +657,7 @@ function rendreEnLigne(source, rendu) {
         texte += '**';
       }
     } else if (jeton[3] !== undefined) {
-      const morceau = rendreVariable(jeton[3], rendu);
+      const morceau = rendreVariable(jeton[3], rendu, dansLien);
       html += morceau.html;
       texte += morceau.texte;
     } else {
@@ -650,7 +667,7 @@ function rendreEnLigne(source, rendu) {
         texte += jeton[0];
         continue;
       }
-      const contenu = rendreEnLigne(jeton[1], rendu);
+      const contenu = rendreEnLigne(jeton[1], rendu, true);
       html += url === null ? contenu.html : ancre(url, contenu.html, rendu);
       texte += url === null ? contenu.texte : lienTexte(contenu.texte, url);
     }
@@ -676,7 +693,7 @@ function lireLigne(ligne, rendu) {
   const bouton = /^\[\[([^[\]|]+)\|([^[\]|\s]+)\]\]$/.exec(ligne);
   if (bouton) {
     const url = resoudreUrl(bouton[2], rendu);
-    if (typeof url === 'string') return { type: 'bouton', libelle: rendreEnLigne(bouton[1].trim(), rendu), url };
+    if (typeof url === 'string') return { type: 'bouton', libelle: rendreEnLigne(bouton[1].trim(), rendu, true), url };
     return { type: 'p', morceau: url === null ? rendreEnLigne(bouton[1].trim(), rendu) : rendreEnLigne(ligne, rendu) };
   }
   if (ligne.startsWith('- ')) return { type: 'element', morceau: rendreEnLigne(ligne.slice(2).trim(), rendu) };
@@ -688,7 +705,7 @@ function rendreGroupe(groupe, rendu) {
   const email = rendu.cible === 'email';
   const premier = groupe[0];
   if (premier.type === 'bouton') {
-    const lien = `<a href="${echapper(premier.url)}" target="_blank" rel="noopener noreferrer" ${apparence(rendu, 'bouton', 'ee-bouton')}>${premier.libelle.html}</a>`;
+    const lien = ancre(premier.url, premier.libelle.html, rendu, 'bouton', 'ee-bouton');
     return {
       html: email
         ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="${STYLES.boutonLigne}"><tr><td bgcolor="${COULEURS.encre}" style="border-radius:12px;background-color:${COULEURS.encre};mso-padding-alt:14px 26px">${lien}</td></tr></table>`
@@ -804,18 +821,19 @@ export function rendreEmail(modele, contexte, { cible } = { cible: 'email' }) {
   if (cible !== 'email' && cible !== 'apercu') throw new TypeError(`Cible inconnue : ${String(cible)}`);
   const rendu = preparer(contexte, cible);
   const email = cible === 'email';
+  // Un email sans lien de désinscription valable ne part pas ; l'aperçu de l'admin, lui, peut s'en passer.
+  const desinscription = urlSure(contexte.liens.desinscription) ?? (email ? null : `${rendu.base}/emails/desinscription`);
+  if (!desinscription) throw new TypeError('Lien de désinscription invalide : une URL http(s) est obligatoire dans un email.');
   const sujet = rendreTexteSimple(modele.sujet, rendu);
   const preheader = rendreTexteSimple(modele.preheader ?? '', rendu);
   const corps = rendreCorps(modele.corps, rendu);
   const encart = contexte.encartDateProche && modele.encart ? rendreCorps(modele.encart, rendu) : null;
-  const base = contexte.origine.replace(/\/+$/, '');
-  const desinscription = urlSure(contexte.liens.desinscription) ?? `${base}/emails/desinscription`;
-  const logo = `${base}/email/logo.png`;
+  const logo = `${rendu.base}/email/logo.png`;
   const dimensions = `width="${LOGO.largeur}" height="${LOGO.hauteur}"`;
 
   const htmlEncart = encart && encart.html
     ? (email
-      ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate"><tr><td bgcolor="${COULEURS.lin}" ${apparence(rendu, 'encart', 'ee-encart')}>\n${encart.html}\n</td></tr></table>`
+      ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="${MARGE_ENCART};border-collapse:separate"><tr><td bgcolor="${COULEURS.lin}" style="${STYLES.encart}">\n${encart.html}\n</td></tr></table>`
       : `<div class="ee-encart">\n${encart.html}\n</div>`)
     : '';
   const pied = `${echapper(PIED_TEXTE)}<br>${ancre(desinscription, 'Se désinscrire', rendu)} · ${ancre(SITE, 'olympiadedesmanades.fr', rendu)}`;
@@ -836,6 +854,8 @@ export function rendreEmail(modele, contexte, { cible } = { cible: 'email' }) {
         ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:${COULEURS.sable}">${echapper(preheader)}${REMPLISSAGE}</div>`
         : '',
       `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${COULEURS.sable}"><tr><td align="center" style="${STYLES.fond}">`,
+      // Outlook (moteur Word) ignore max-width : un tableau fantôme cale la carte et le pied à 600 px.
+      '<!--[if mso]><table role="presentation" width="600" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->',
       `<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="${COULEURS.creme}" style="${STYLES.carte}">`,
       `<tr><td height="4" bgcolor="${COULEURS.or}" style="${STYLES.filet}">&nbsp;</td></tr>`,
       `<tr><td style="${STYLES.entete}"><img src="${echapper(logo)}" ${dimensions} alt="Olympiade des Manades" style="${STYLES.logo}"></td></tr>`,
@@ -845,6 +865,7 @@ export function rendreEmail(modele, contexte, { cible } = { cible: 'email' }) {
       '</td></tr>',
       '</table>',
       `<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;margin:0 auto"><tr><td style="${STYLES.pied}">${pied}</td></tr></table>`,
+      '<!--[if mso]></td></tr></table><![endif]-->',
       '</td></tr></table>',
       '</body>',
       '</html>',
