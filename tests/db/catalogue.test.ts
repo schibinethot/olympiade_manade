@@ -56,7 +56,7 @@ const FONCTIONS_DE_REGLES = [
 ];
 
 // Fonctions internes de prive (hors déclencheurs), appelées seulement par d'autres fonctions de prive.
-const FONCTIONS_INTERNES = ['rattacher_prochaine_date'];
+const FONCTIONS_INTERNES = ['jour_des_soirees', 'rattacher_prochaine_date'];
 
 // Droits de table attendus pour les rôles de l'API, tels que les migrations RLS les accordent.
 // Toute différence (droit en trop ou manquant) doit être une décision, donc une mise à jour ici.
@@ -288,7 +288,7 @@ describe('catalogue : fonctions', () => {
          where p.pronamespace = 'public'::regnamespace order by 1`,
       );
       expect(rows).toEqual([
-        { fonction: 'emails_a_traiter(timestamp with time zone)' },
+        { fonction: 'emails_a_traiter(timestamp with time zone,boolean)' },
         { fonction: 'enregistrer_choix_notifications(text)' },
         {
           fonction:

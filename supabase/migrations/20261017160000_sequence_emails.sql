@@ -8,6 +8,8 @@
 --   envois_emails        journal des envois, réservé avant l'envoi (unicité = jamais de doublon).
 --
 -- Les destinataires ne sont écrits que par les déclencheurs ci-dessous et par le serveur (service_role).
+-- Le formulaire actualités ne vérifie pas l'adresse : un dépôt ne change rien d'effectif (annonces,
+-- désinscription, confirmation) avant le clic de confirmation envoyé à cette adresse.
 -- Les modèles par défaut sont semés par le serveur au démarrage (MODELES_DEFAUT, tâche 5) : cette
 -- migration n'insère aucun modèle.
 
@@ -48,7 +50,9 @@ create table public.modeles_emails (
   constraint modeles_emails_echeance_complete check (
     cle in ('confirmation', 'bienvenue', 'message')
     or (jours_decalage is not null and heure_envoi is not null)
-  )
+  ),
+  -- Le double opt-in ne peut pas être coupé : sans confirmation, aucun abonné ne pourrait jamais confirmer.
+  constraint modeles_emails_confirmation_active check (cle <> 'confirmation' or actif)
 );
 
 -- Destinataires ------------------------------------------------------------------------------------
@@ -59,6 +63,8 @@ create table public.destinataires_emails (
   prenom text null,
   profil_id uuid null unique references public.profils (id) on delete set null,
   abonne boolean not null default false,
+  -- Dépôt du formulaire actualités en attente du clic de confirmation (adresse non vérifiée par ce dépôt).
+  abonnement_a_confirmer boolean not null default false,
   annonces boolean not null default false,
   annonces_le timestamptz null,
   annonces_texte text null,
@@ -74,7 +80,8 @@ create table public.destinataires_emails (
     and email ~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$'
   ),
   constraint destinataires_emails_prenom_borne check (
-    prenom is null or (length(prenom) <= 60 and length(btrim(prenom, E' \t\r\n')) >= 1)
+    prenom is null
+    or (length(prenom) <= 60 and length(btrim(prenom, E' \t\r\n')) >= 1 and prenom !~ '[[:cntrl:]]')
   ),
   constraint destinataires_emails_annonces_texte_borne check (
     annonces_texte is null or length(btrim(annonces_texte, E' \t\r\n')) between 1 and 500
@@ -140,8 +147,11 @@ create table public.envois_emails (
     etape in ('confirmation', 'bienvenue', 'message') or calendrier_id is not null
   ),
   constraint envois_emails_message_requis check ((etape = 'message') = (message_id is not null)),
+  -- Confirmation et bienvenue ne portent sur aucune date : l'unicité les borne à une par adresse et par mode.
+  constraint envois_emails_sans_date check (etape not in ('confirmation', 'bienvenue') or calendrier_id is null),
   -- Réservation avant envoi : une seule ligne par destinataire, étape, date, message et mode (réel ou simulé).
-  -- NULLS NOT DISTINCT : une confirmation (sans date ni message) ne peut être réservée qu'une fois.
+  -- NULLS NOT DISTINCT : une confirmation ou une bienvenue (sans date ni message) n'est réservée qu'une fois
+  -- par mode ; une nouvelle confirmation suppose la suppression de l'ancienne ligne (nouveau dépôt).
   constraint envois_emails_unique unique nulls not distinct (destinataire_id, etape, calendrier_id, message_id, reel)
 );
 create index envois_emails_calendrier_idx on public.envois_emails (calendrier_id);
@@ -185,7 +195,8 @@ grant select on public.modeles_emails to service_role;
 grant insert (cle, nom, actif, sujet, preheader, corps, encart, jours_decalage, heure_envoi)
   on public.modeles_emails to service_role;
 grant select, delete on public.destinataires_emails to service_role;
-grant update (confirme_le, annonces, annonces_le, annonces_texte, annonces_version, desinscrit_le)
+grant update (confirme_le, abonnement_a_confirmer, annonces, annonces_le, annonces_texte, annonces_version,
+  desinscrit_le)
   on public.destinataires_emails to service_role;
 grant select, insert on public.rattachements_emails to service_role;
 grant select, insert on public.messages_inscrits to service_role;
@@ -257,24 +268,71 @@ create trigger destinataires_emails_horodater
   before update on public.destinataires_emails
   for each row execute function prive.horodater_destinataire_email();
 
+-- Clic de confirmation d'un abonnement (action « confirmer » du serveur) : un seul update du service,
+-- abonnement_a_confirmer de vrai à faux, suffit. Le déclencheur en applique tous les effets, avec le texte
+-- et la version acceptés au dépôt, horodatés au clic :
+--   confirme_le = coalesce(confirme_le, maintenant), desinscrit_le = null, annonces = true.
+-- Si l'abonnement a été retiré entre-temps (désinscription, effacement), la demande est seulement annulée.
+create function prive.confirmer_abonnement_email() returns trigger
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  v_texte text;
+  v_version text;
+begin
+  if not old.abonnement_a_confirmer or new.abonnement_a_confirmer then
+    return new;
+  end if;
+  select a.consentement_texte, a.consentement_version into v_texte, v_version
+  from public.abonnements_actualites a
+  where a.email = new.email;
+  if not found then
+    return new;
+  end if;
+  new.confirme_le := coalesce(old.confirme_le, new.confirme_le, now());
+  new.desinscrit_le := null;
+  new.annonces := true;
+  new.annonces_le := now();
+  new.annonces_texte := v_texte;
+  new.annonces_version := v_version;
+  return new;
+end
+$$;
+
+create trigger destinataires_emails_confirmer_abonnement
+  before update on public.destinataires_emails
+  for each row execute function prive.confirmer_abonnement_email();
+
 -- Rattachement à une date ----------------------------------------------------------------------------
 
--- Prochaine date confirmée à partir d'aujourd'hui (Paris). Un rattachement existant n'est jamais doublé.
-create function prive.rattacher_prochaine_date(p_destinataire uuid, p_origine text) returns void
+-- Jour de soirée (Paris) d'un instant : une soirée finit après minuit, une date compte donc encore comme
+-- « aujourd'hui » jusqu'à 06:00 le lendemain. Une inscription le 01/08 à 00:30 suit la soirée du 31/07.
+create function prive.jour_des_soirees(p_instant timestamptz) returns date
+language sql stable set search_path = ''
+as $$
+  select ((p_instant at time zone 'Europe/Paris') - interval '6 hours')::date;
+$$;
+
+-- Prochaine date confirmée à partir du jour de soirée. Un rattachement existant n'est jamais doublé.
+create function prive.rattacher_prochaine_date(p_destinataire uuid, p_origine text, p_instant timestamptz default now())
+returns void
 language sql security definer set search_path = ''
 as $$
   insert into public.rattachements_emails (destinataire_id, calendrier_id, origine)
   select p_destinataire, c.id, p_origine
   from public.calendrier c
   where c.statut = 'confirmee'
-    and c.date_soiree >= (now() at time zone 'Europe/Paris')::date
+    and c.date_soiree >= prive.jour_des_soirees(p_instant)
   order by c.date_soiree, c.heure nulls last, c.id
   limit 1
   on conflict do nothing;
 $$;
 
--- Une adresse devient confirmée (insertion déjà confirmée, ou confirme_le qui passe de nul à une date) :
--- elle suit la prochaine date. Une adresse désinscrite n'est rattachée à rien.
+-- Une adresse suit la prochaine date quand elle devient confirmée (insertion déjà confirmée, ou confirme_le
+-- qui passe de nul à une date), ou quand sa désinscription est levée par un clic de confirmation alors
+-- qu'elle n'a plus de date active (aucune date d'au moins J-7). Une adresse désinscrite n'est rattachée à rien.
+-- Sans liste de colonnes : le clic passe confirme_le et desinscrit_le par le déclencheur BEFORE, que
+-- « update of » ne verrait pas.
 create function prive.rattacher_destinataire_confirme() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
@@ -282,18 +340,27 @@ begin
   if new.confirme_le is null or new.desinscrit_le is not null then
     return null;
   end if;
-  if tg_op = 'UPDATE' then
-    if old.confirme_le is not null then
-      return null;
-    end if;
+  if tg_op = 'INSERT' then
+    perform prive.rattacher_prochaine_date(new.id, 'inscription');
+    return null;
   end if;
-  perform prive.rattacher_prochaine_date(new.id, 'inscription');
+  if old.confirme_le is null then
+    perform prive.rattacher_prochaine_date(new.id, 'inscription');
+  elsif old.desinscrit_le is not null
+        and not exists (
+          select 1
+          from public.rattachements_emails r
+          join public.calendrier c on c.id = r.calendrier_id
+          where r.destinataire_id = new.id and c.date_soiree >= prive.jour_des_soirees(now()) - 7
+        ) then
+    perform prive.rattacher_prochaine_date(new.id, 'inscription');
+  end if;
   return null;
 end
 $$;
 
 create trigger destinataires_emails_rattacher
-  after insert or update of confirme_le on public.destinataires_emails
+  after insert or update on public.destinataires_emails
   for each row execute function prive.rattacher_destinataire_confirme();
 
 -- Une date qui passe à confirmée et devient la prochaine accueille les confirmés qui n'ont plus de date
@@ -302,7 +369,7 @@ create function prive.rattacher_premiere_confirmation() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
 declare
-  v_jour date := (now() at time zone 'Europe/Paris')::date;
+  v_jour date := prive.jour_des_soirees(now());
 begin
   if new.statut <> 'confirmee' then
     return null;
@@ -343,38 +410,26 @@ create trigger calendrier_rattacher_premiere_confirmation
 
 -- Abonnés aux actualités -------------------------------------------------------------------------------
 
--- Dépôt du formulaire de l'accueil : l'adresse n'est pas vérifiée, sauf si un compte spectateur l'a déjà
--- confirmée par son code. Une adresse désinscrite qui revient repart de zéro (nouvelle confirmation,
--- nouvelle bienvenue) : ses anciens envois de ces deux étapes ne doivent pas bloquer les nouveaux.
+-- Dépôt du formulaire de l'accueil : n'importe qui peut saisir n'importe quelle adresse. Le dépôt ne fait
+-- que demander une confirmation : abonne et abonnement_a_confirmer passent à vrai, sans toucher aux
+-- annonces, à la confirmation ni à une désinscription (une personne opposée reçoit au plus cette demande).
+-- L'ancien envoi de confirmation est supprimé pour qu'une nouvelle demande puisse partir ; la bienvenue,
+-- elle, ne part qu'une fois par adresse.
 create function prive.inscrire_abonne_emails() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
 declare
   v_id uuid;
-  v_etait_desinscrit boolean;
 begin
-  select d.desinscrit_le is not null into v_etait_desinscrit
-  from public.destinataires_emails d
-  where d.email = new.email
-  for update;
-
-  insert into public.destinataires_emails as d
-    (email, abonne, annonces, annonces_le, annonces_texte, annonces_version)
-  values (new.email, true, true, new.consentement_le, new.consentement_texte, new.consentement_version)
+  insert into public.destinataires_emails as d (email, abonne, abonnement_a_confirmer)
+  values (new.email, true, true)
   on conflict (email) do update set
     abonne = true,
-    annonces = true,
-    annonces_le = excluded.annonces_le,
-    annonces_texte = excluded.annonces_texte,
-    annonces_version = excluded.annonces_version,
-    desinscrit_le = null,
-    confirme_le = case when d.profil_id is null then null else d.confirme_le end
+    abonnement_a_confirmer = true
   returning d.id into v_id;
 
-  if coalesce(v_etait_desinscrit, false) then
-    delete from public.envois_emails e
-    where e.destinataire_id = v_id and e.etape in ('confirmation', 'bienvenue');
-  end if;
+  delete from public.envois_emails e
+  where e.destinataire_id = v_id and e.etape = 'confirmation';
   return null;
 end
 $$;
@@ -387,6 +442,7 @@ create trigger abonnements_actualites_inscrire_destinataire
 --   - adresse désinscrite : la ligne reste comme liste d'opposition, sans annonces ;
 --   - ni profil ni désinscription (effacement demandé à l'admin) : la ligne disparaît ;
 --   - spectateur : il garde ses rappels de date, mais plus les annonces acceptées par cet abonnement.
+-- Une demande de confirmation en attente est annulée.
 create function prive.retirer_abonne_emails() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
@@ -396,6 +452,7 @@ begin
 
   update public.destinataires_emails d
   set abonne = false,
+      abonnement_a_confirmer = false,
       annonces = case
         when d.desinscrit_le is not null then false
         when d.annonces_texte = old.consentement_texte and d.annonces_version = old.consentement_version then false
@@ -423,7 +480,11 @@ language plpgsql security definer set search_path = ''
 as $$
 declare
   v_email text := lower(btrim(new.email, E' \t\r\n'));
-  v_prenom text := left(nullif(btrim(new.raw_user_meta_data ->> 'prenom', E' \t\r\n'), ''), 60);
+  -- Caractères de contrôle remplacés par une espace avant le nettoyage (en-têtes et version texte des e-mails).
+  v_prenom text := left(
+    nullif(btrim(regexp_replace(new.raw_user_meta_data ->> 'prenom', '[[:cntrl:]]', ' ', 'g'), E' \t\r\n'), ''),
+    60
+  );
   v_annonces boolean := coalesce((new.raw_user_meta_data ->> 'annonces') = 'true', false);
 begin
   if new.email_confirmed_at is null
@@ -444,15 +505,10 @@ begin
     return null;
   end if;
 
+  -- Première confirmation seulement : aucune autre ligne ne peut déjà porter ce profil. Si un cas imprévu
+  -- (confirmation annulée puis refaite, adresse changée entre-temps) violait l'unicité de profil_id,
+  -- le bloc d'exception ci-dessous l'absorbe.
   begin
-    -- Un profil ne suit qu'une adresse : une ancienne ligne d'une autre adresse est détachée,
-    -- ou supprimée si elle n'avait plus d'autre raison d'exister.
-    delete from public.destinataires_emails d
-    where d.profil_id = new.id and d.email <> v_email and not d.abonne;
-    update public.destinataires_emails d
-    set profil_id = null
-    where d.profil_id = new.id and d.email <> v_email;
-
     insert into public.destinataires_emails as d
       (email, prenom, profil_id, confirme_le, annonces, annonces_le, annonces_texte, annonces_version)
     values (
@@ -487,14 +543,17 @@ create trigger auth_users_destinataire_emails
   after insert or update of email_confirmed_at on auth.users
   for each row execute function prive.inscrire_spectateur_emails();
 
--- Compte supprimé : la ligne disparaît, sauf si l'adresse est aussi abonnée aux actualités (profil_id
--- passe alors à nul par la clé étrangère).
+-- Compte supprimé : la ligne disparaît, sauf si l'adresse est aussi abonnée aux actualités. Elle perd alors
+-- le prénom venu du compte (minimisation) ; profil_id passe à nul par la clé étrangère.
 create function prive.retirer_profil_emails() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
 begin
   delete from public.destinataires_emails d
   where d.profil_id = old.id and not d.abonne;
+  update public.destinataires_emails d
+  set prenom = null
+  where d.profil_id = old.id;
   return old;
 end
 $$;
@@ -505,7 +564,9 @@ create trigger profils_retirer_destinataire_emails
 
 revoke execute on function prive.marquer_modele_email() from public, anon, authenticated;
 revoke execute on function prive.horodater_destinataire_email() from public, anon, authenticated;
-revoke execute on function prive.rattacher_prochaine_date(uuid, text) from public, anon, authenticated;
+revoke execute on function prive.confirmer_abonnement_email() from public, anon, authenticated;
+revoke execute on function prive.jour_des_soirees(timestamptz) from public, anon, authenticated;
+revoke execute on function prive.rattacher_prochaine_date(uuid, text, timestamptz) from public, anon, authenticated;
 revoke execute on function prive.rattacher_destinataire_confirme() from public, anon, authenticated;
 revoke execute on function prive.rattacher_premiere_confirmation() from public, anon, authenticated;
 revoke execute on function prive.inscrire_abonne_emails() from public, anon, authenticated;
@@ -515,9 +576,10 @@ revoke execute on function prive.retirer_profil_emails() from public, anon, auth
 
 -- RPC du planificateur -------------------------------------------------------------------------------------
 
--- Tout ce dont calculerEnvois (serveur/echeances-emails.mjs) a besoin à l'instant p_maintenant, en un appel.
--- Les jours sont ceux de Paris ; le fuseau de la session n'influe sur rien (horodatages rendus en UTC).
-create function public.emails_a_traiter(p_maintenant timestamptz) returns jsonb
+-- Tout ce dont calculerEnvois (serveur/echeances-emails.mjs) a besoin à l'instant p_maintenant, en un appel,
+-- pour le mode courant (p_reel = SMTP_MODE smtp). Les jours sont ceux de Paris ; le fuseau de la session
+-- n'influe sur rien (horodatages rendus en UTC).
+create function public.emails_a_traiter(p_maintenant timestamptz, p_reel boolean) returns jsonb
 language sql stable security definer
 set search_path = ''
 set timezone = 'UTC'
@@ -571,35 +633,41 @@ as $$
     where c.id in (select f.id from fenetre f) or c.id in (select p.id from prochaines p)
   ),
   destinataires as (
-    select d.id, d.email, d.prenom, d.profil_id, d.abonne, d.annonces, d.confirme_le, d.inscrit_le
+    select d.id, d.email, d.prenom, d.profil_id, d.abonne, d.abonnement_a_confirmer,
+           d.desinscrit_le is not null as desinscrit, d.annonces, d.confirme_le, d.inscrit_le
     from public.destinataires_emails d cross join jour
-    where d.desinscrit_le is null
-      and (
-        -- rattachés à une date de la fenêtre ;
-        exists (
-          select 1 from public.rattachements_emails r join fenetre f on f.id = r.calendrier_id
-          where r.destinataire_id = d.id
-        )
-        -- abonnés non confirmés inscrits depuis moins de 30 jours, ou dont la confirmation n'est jamais
-        -- vraiment partie (mode log jusqu'ici) : ils la recevront au premier passage en smtp ;
-        or (
-          d.abonne and d.confirme_le is null
-          and (
-            d.inscrit_le > p_maintenant - interval '30 days'
-            or not exists (
-              select 1 from public.envois_emails e
-              where e.destinataire_id = d.id and e.etape = 'confirmation' and e.reel and e.statut = 'envoye'
-            )
+    where
+      -- confirmation à envoyer, y compris à une adresse désinscrite (une seule demande par dépôt) :
+      -- inscrite depuis moins de 30 jours, ou sans tentative réelle aboutie ni vieille de 30 jours
+      -- (mode log jusqu'ici : la demande partira au premier passage en smtp) ;
+      (
+        d.abonnement_a_confirmer
+        and (
+          d.inscrit_le > p_maintenant - interval '30 days'
+          or not exists (
+            select 1 from public.envois_emails e
+            where e.destinataire_id = d.id and e.etape = 'confirmation' and e.reel
+              and (e.statut = 'envoye' or e.cree_le <= p_maintenant - interval '30 days')
           )
         )
-        -- confirmés depuis moins de 24 h (bienvenue) ;
-        or d.confirme_le > p_maintenant - interval '24 hours'
-        -- consentants aux annonces quand une date confirmée de la fenêtre est à venir.
-        or (
-          d.annonces
-          and exists (
-            select 1 from public.calendrier c join fenetre f on f.id = c.id
-            where c.statut = 'confirmee' and c.date_soiree >= jour.j
+      )
+      or (
+        d.desinscrit_le is null
+        and (
+          -- rattachés à une date de la fenêtre ;
+          exists (
+            select 1 from public.rattachements_emails r join fenetre f on f.id = r.calendrier_id
+            where r.destinataire_id = d.id
+          )
+          -- confirmés depuis moins de 24 h (bienvenue) ;
+          or d.confirme_le > p_maintenant - interval '24 hours'
+          -- consentants aux annonces quand une date confirmée de la fenêtre est à venir.
+          or (
+            d.annonces
+            and exists (
+              select 1 from public.calendrier c join fenetre f on f.id = c.id
+              where c.statut = 'confirmee' and c.date_soiree >= jour.j
+            )
           )
         )
       )
@@ -642,6 +710,8 @@ as $$
                  'prenom', d.prenom,
                  'profil_id', d.profil_id,
                  'abonne', d.abonne,
+                 'abonnement_a_confirmer', d.abonnement_a_confirmer,
+                 'desinscrit', d.desinscrit,
                  'annonces', d.annonces,
                  'confirme_le', d.confirme_le,
                  'inscrit_le', d.inscrit_le
@@ -650,8 +720,8 @@ as $$
              ), '[]'::jsonb)
       from destinataires d
     ),
-    -- Seulement ceux des adresses confirmées : tant qu'une adresse revenue après désinscription n'a pas
-    -- reconfirmé, aucun rappel de date ne part vers elle.
+    -- Seulement ceux des adresses confirmées et non désinscrites : aucun rappel de date vers une adresse
+    -- opposée, même quand elle figure ici pour sa seule demande de confirmation.
     'rattachements', (
       select coalesce(jsonb_agg(
                jsonb_build_object(
@@ -665,10 +735,10 @@ as $$
       from public.rattachements_emails r
       join destinataires d on d.id = r.destinataire_id
       join fenetre f on f.id = r.calendrier_id
-      where d.confirme_le is not null
+      where d.confirme_le is not null and not d.desinscrit
     ),
-    -- Envois de moins de 10 jours ou portant sur une date de la fenêtre ; confirmation et bienvenue
-    -- quel que soit leur âge, puisqu'elles ne partent qu'une fois.
+    -- Envois du mode courant : de moins de 10 jours ou portant sur une date de la fenêtre ; confirmation et
+    -- bienvenue quel que soit leur âge, puisqu'elles ne partent qu'une fois.
     'envois', (
       select coalesce(jsonb_agg(
                jsonb_build_object(
@@ -689,19 +759,22 @@ as $$
              ), '[]'::jsonb)
       from public.envois_emails e
       join destinataires d on d.id = e.destinataire_id
-      where e.cree_le > p_maintenant - interval '10 days'
-         or e.calendrier_id in (select f.id from fenetre f)
-         or e.etape in ('confirmation', 'bienvenue')
+      where e.reel = p_reel
+        and (
+          e.cree_le > p_maintenant - interval '10 days'
+          or e.calendrier_id in (select f.id from fenetre f)
+          or e.etape in ('confirmation', 'bienvenue')
+        )
     )
   );
 $$;
 
-revoke all on function public.emails_a_traiter(timestamptz) from public, anon, authenticated;
-grant execute on function public.emails_a_traiter(timestamptz) to service_role;
+revoke all on function public.emails_a_traiter(timestamptz, boolean) from public, anon, authenticated;
+grant execute on function public.emails_a_traiter(timestamptz, boolean) to service_role;
 
--- Reprise des abonnés déjà inscrits : ils entrent non confirmés et recevront une seule demande de
--- confirmation au premier passage en smtp (design, section 2).
-insert into public.destinataires_emails (email, abonne, annonces, annonces_le, annonces_texte, annonces_version, inscrit_le)
-select a.email, true, true, a.consentement_le, a.consentement_texte, a.consentement_version, a.cree_le
+-- Reprise des abonnés déjà inscrits : comme un dépôt, ils attendent leur clic et recevront une seule
+-- demande de confirmation au premier passage en smtp (design, section 2).
+insert into public.destinataires_emails (email, abonne, abonnement_a_confirmer, inscrit_le)
+select a.email, true, true, a.cree_le
 from public.abonnements_actualites a
 on conflict (email) do nothing;
