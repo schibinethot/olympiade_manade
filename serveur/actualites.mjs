@@ -1,6 +1,7 @@
 // @ts-check
 // Collecte des consentements aux actualités. La clé service_role reste dans ce processus ; aucun
-// compte n'est créé et aucun email n'est envoyé depuis cet endpoint.
+// compte n'est créé et aucun email n'est envoyé depuis cet endpoint : la demande de confirmation part
+// avec le planificateur de la séquence (serveur/emails.mjs), qui lit les déclencheurs de la base.
 
 import { isIP } from 'node:net';
 import {
@@ -29,6 +30,8 @@ export const CONSENTEMENT_ACTUALITES_VERSION = '2026-10-17';
 export const CONSENTEMENT_ACTUALITES_TEXTE =
   'J’accepte de recevoir par email les actualités, informations pratiques, résultats et notations de l’Olympiade des Manades.';
 const SOURCE = 'accueil';
+const JOUR_MS = 86_400_000;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Railway documente X-Real-IP comme l'adresse cliente fixée par son ingress. Cette confiance reste
@@ -76,7 +79,7 @@ export function validerCorpsActualites(corps) {
 /**
  * @typedef {{ supabaseUrl?: string | null, serviceRoleKey?: string | null, turnstileSecret?: string | null,
  *   publicOrigin?: string | null, trustRailwayProxy?: boolean, ipLimit?: number, globalLimit?: number,
- *   maxIpEntries?: number, fetchFn?: typeof fetch, now?: () => number }} OptionsActualites
+ *   maxIpEntries?: number, fetchFn?: typeof fetch, now?: () => number, confirmationActive?: boolean }} OptionsActualites
  */
 
 /** @param {OptionsActualites} [options] */
@@ -98,6 +101,48 @@ export function creerActualites(options = {}) {
     limite: entierBorne(options.globalLimit, GLOBAL_MAX_DEFAUT, 1, 100_000),
   });
   const configure = !!(supabaseUrl && serviceRoleKey && turnstileSecret && publicOrigin);
+  // Vrai seulement si la confirmation part pour de vrai (planificateur actif en SMTP réel) : l'accueil
+  // dit alors « vérifiez votre boîte mail ». Même réponse pour une nouvelle adresse et une adresse connue.
+  const confirmationActive = options.confirmationActive === true;
+  const maintenant = options.now ?? Date.now;
+
+  /** @param {string} chemin @param {RequestInit} [init] */
+  function service(chemin, init = {}) {
+    return avecDelai(demander, `${supabaseUrl}${chemin}`, {
+      ...init,
+      headers: {
+        apikey: /** @type {string} */ (serviceRoleKey),
+        Authorization: `Bearer ${serviceRoleKey}`,
+        ...(init.headers ?? {}),
+      },
+    });
+  }
+
+  /**
+   * Nouveau dépôt d'une adresse déjà connue (409) dont la demande attend encore son clic : si la dernière
+   * confirmation réelle a plus de 24 h, ou a échoué ou été sautée, elle est supprimée pour qu'une nouvelle
+   * parte au passage suivant du planificateur. Au plus une par 24 h. Lancé après la réponse, pour que sa
+   * durée ne révèle pas si l'adresse existait ; aucune adresse ni corps de réponse dans le journal.
+   * @param {string} email
+   */
+  async function renvoyerConfirmation(email) {
+    const lecture = await service(`/rest/v1/destinataires_emails?select=id,abonnement_a_confirmer&email=eq.${encodeURIComponent(email)}&limit=1`);
+    if (!lecture.ok) throw new Error(`HTTP ${lecture.status}`);
+    const [destinataire] = /** @type {{ id?: unknown, abonnement_a_confirmer?: unknown }[]} */ (await lecture.json());
+    if (!destinataire || destinataire.abonnement_a_confirmer !== true || typeof destinataire.id !== 'string' || !UUID.test(destinataire.id)) return;
+    const envois = await service(`/rest/v1/envois_emails?select=id,statut,cree_le&destinataire_id=eq.${destinataire.id}&etape=eq.confirmation&reel=is.true`);
+    if (!envois.ok) throw new Error(`HTTP ${envois.status}`);
+    const instant = maintenant();
+    for (const envoi of /** @type {{ id?: unknown, statut?: unknown, cree_le?: unknown }[]} */ (await envois.json())) {
+      const ancien = typeof envoi.cree_le === 'string' && instant - Date.parse(envoi.cree_le) > JOUR_MS;
+      const aRefaire = envoi.statut === 'echec' || envoi.statut === 'saute' || (envoi.statut !== 'en_attente' && ancien);
+      if (!aRefaire || typeof envoi.id !== 'string') continue;
+      const suppression = await service(`/rest/v1/envois_emails?id=eq.${encodeURIComponent(envoi.id)}`, {
+        method: 'DELETE', headers: { Prefer: 'return=minimal' },
+      });
+      if (!suppression.ok) throw new Error(`HTTP ${suppression.status}`);
+    }
+  }
 
   /** @param {import('node:http').IncomingMessage} req @param {import('node:http').ServerResponse} res */
   async function repondre(req, res) {
@@ -166,7 +211,17 @@ export function creerActualites(options = {}) {
           error: statut === 429 ? 'Trop de demandes. Réessayez plus tard.' : 'Le formulaire est momentanément indisponible.',
         });
       }
-      return repondreJson(req, res, 200, { ok: true });
+      repondreJson(req, res, 200, { ok: true, confirmation: confirmationActive });
+      if (insertion.status === 409 && confirmationActive) {
+        renvoyerConfirmation(valide.email).catch((erreur) => {
+          console.error(JSON.stringify({
+            level: 'error', timestamp: new Date().toISOString(), message: 'renvoi de confirmation impossible',
+            // Statut HTTP seul, jamais un corps de réponse ni un message qui pourrait en citer un extrait.
+            erreur: erreur instanceof Error ? (/^HTTP \d{3}$/.test(erreur.message) ? erreur.message : erreur.name) : 'inconnue',
+          }));
+        });
+      }
+      return;
     } catch {
       return repondreJson(req, res, 503, { error: 'Le formulaire est momentanément indisponible.' });
     }
@@ -185,9 +240,13 @@ export function creerActualites(options = {}) {
   };
 }
 
-/** @param {NodeJS.ProcessEnv | Record<string, string | undefined>} env */
-export function actualitesDepuisEnvironnement(env) {
+/**
+ * @param {NodeJS.ProcessEnv | Record<string, string | undefined>} env
+ * @param {{ confirmationActive?: boolean }} [plus] état du planificateur d'e-mails (serveur/emails.mjs)
+ */
+export function actualitesDepuisEnvironnement(env, plus = {}) {
   return creerActualites({
+    confirmationActive: plus.confirmationActive === true,
     supabaseUrl: env.VITE_SUPABASE_URL,
     serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
     turnstileSecret: env.TURNSTILE_SECRET_KEY,

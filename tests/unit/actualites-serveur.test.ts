@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   CONSENTEMENT_ACTUALITES_TEXTE,
   CONSENTEMENT_ACTUALITES_VERSION,
@@ -163,7 +163,7 @@ describe('validation serveur des abonnements aux actualités', () => {
     const serveur = await lancer(actualites);
     const reponse = await deposer(serveur.base);
     expect(reponse.status).toBe(200);
-    expect(await reponse.json()).toEqual({ ok: true });
+    expect(await reponse.json()).toEqual({ ok: true, confirmation: false });
     expect(appels).toHaveLength(2);
     expect(String(appels[0].init?.body)).toContain('secret=turnstile-secret');
     expect(String(appels[0].init?.body)).toContain('response=jeton-test');
@@ -193,7 +193,7 @@ describe('validation serveur des abonnements aux actualités', () => {
     for (let i = 0; i < 2; i++) {
       const reponse = await deposer(serveur.base);
       expect(reponse.status).toBe(200);
-      expect(await reponse.json()).toEqual({ ok: true });
+      expect(await reponse.json()).toEqual({ ok: true, confirmation: false });
     }
   });
 
@@ -246,5 +246,100 @@ describe('validation serveur des abonnements aux actualités', () => {
       body: 'x'.repeat(16_385),
     });
     expect(tropGrand.status).toBe(413);
+  });
+});
+
+describe('confirmation par e-mail des abonnements aux actualités', () => {
+  const MAINTENANT = Date.parse('2027-07-29T08:00:00Z');
+  const DESTINATAIRE = '11111111-1111-4111-8111-111111111111';
+
+  type Appel = { methode: string; url: URL };
+
+  /** Dépôt en 409 (adresse déjà en base), destinataire et dernier envoi de confirmation paramétrables. */
+  function base(destinataire: Record<string, unknown> | null, envois: Array<Record<string, unknown>>) {
+    const appels: Appel[] = [];
+    const demander = (async (entree: URL | RequestInfo, init?: RequestInit) => {
+      const url = new URL(String(entree));
+      const methode = init?.method ?? 'GET';
+      appels.push({ methode, url });
+      if (url.hostname === 'challenges.cloudflare.com') {
+        return new Response(JSON.stringify({ success: true, action: 'actualites', hostname: '127.0.0.1' }));
+      }
+      if (url.pathname === '/rest/v1/abonnements_actualites') return new Response(JSON.stringify({ code: '23505', details: 'lea@exemple.fr' }), { status: 409 });
+      if (url.pathname === '/rest/v1/destinataires_emails') return new Response(JSON.stringify(destinataire ? [destinataire] : []));
+      if (url.pathname === '/rest/v1/envois_emails' && methode === 'GET') return new Response(JSON.stringify(envois));
+      if (url.pathname === '/rest/v1/envois_emails' && methode === 'DELETE') return new Response(null, { status: 204 });
+      return new Response('{}', { status: 500 });
+    }) as typeof fetch;
+    return { appels, demander };
+  }
+
+  const suppressions = (appels: Appel[]) => appels.filter((a) => a.methode === 'DELETE');
+  const lectureEnvois = (appels: Appel[]) => appels.some((a) => a.methode === 'GET' && a.url.pathname === '/rest/v1/envois_emails');
+
+  it('annonce la confirmation seulement si l’option est vraie', async () => {
+    for (const confirmationActive of [undefined, false, true]) {
+      const serveur = await lancer(configuration(async (url) => (String(url).includes('siteverify')
+        ? new Response(JSON.stringify({ success: true, action: 'actualites', hostname: '127.0.0.1' }))
+        : new Response('', { status: 201 })), { confirmationActive }));
+      const reponse = await deposer(serveur.base);
+      expect(await reponse.json()).toEqual({ ok: true, confirmation: confirmationActive === true });
+    }
+  });
+
+  it('nouveau dépôt d’une demande en attente : supprime la confirmation de plus de 24 h pour qu’une nouvelle parte', async () => {
+    const { appels, demander } = base({ id: DESTINATAIRE, abonnement_a_confirmer: true }, [
+      { id: 'envoi-1', statut: 'envoye', cree_le: new Date(MAINTENANT - 25 * 3_600_000).toISOString() },
+    ]);
+    const serveur = await lancer(configuration(demander, { confirmationActive: true, now: () => MAINTENANT }));
+    const reponse = await deposer(serveur.base);
+    expect(reponse.status).toBe(200);
+    expect(await reponse.json()).toEqual({ ok: true, confirmation: true });
+    await vi.waitFor(() => expect(suppressions(appels)).toHaveLength(1));
+    const [suppression] = suppressions(appels);
+    expect(suppression.url.pathname).toBe('/rest/v1/envois_emails');
+    expect(suppression.url.searchParams.get('id')).toBe('eq.envoi-1');
+    const lecture = appels.find((a) => a.methode === 'GET' && a.url.pathname === '/rest/v1/envois_emails');
+    expect(lecture?.url.searchParams.get('destinataire_id')).toBe(`eq.${DESTINATAIRE}`);
+    expect(lecture?.url.searchParams.get('etape')).toBe('eq.confirmation');
+    expect(lecture?.url.searchParams.get('reel')).toBe('is.true');
+    const destinataire = appels.find((a) => a.url.pathname === '/rest/v1/destinataires_emails');
+    expect(destinataire?.url.searchParams.get('email')).toBe('eq.lea@exemple.fr');
+  });
+
+  it('au plus une confirmation par 24 h, sauf échec ou saut ; rien pour une adresse déjà confirmée', async () => {
+    const cas: Array<[Record<string, unknown> | null, Array<Record<string, unknown>>, number]> = [
+      [{ id: DESTINATAIRE, abonnement_a_confirmer: true }, [{ id: 'e', statut: 'envoye', cree_le: new Date(MAINTENANT - 2 * 3_600_000).toISOString() }], 0],
+      [{ id: DESTINATAIRE, abonnement_a_confirmer: true }, [{ id: 'e', statut: 'en_attente', cree_le: new Date(MAINTENANT - 60_000).toISOString() }], 0],
+      [{ id: DESTINATAIRE, abonnement_a_confirmer: true }, [{ id: 'e', statut: 'echec', cree_le: new Date(MAINTENANT - 2 * 3_600_000).toISOString() }], 1],
+      [{ id: DESTINATAIRE, abonnement_a_confirmer: true }, [{ id: 'e', statut: 'saute', cree_le: new Date(MAINTENANT - 60_000).toISOString() }], 1],
+      [{ id: DESTINATAIRE, abonnement_a_confirmer: true }, [], 0],
+    ];
+    for (const [destinataire, envois, attendues] of cas) {
+      const { appels, demander } = base(destinataire, envois);
+      const serveur = await lancer(configuration(demander, { confirmationActive: true, now: () => MAINTENANT }));
+      expect(await (await deposer(serveur.base)).json()).toEqual({ ok: true, confirmation: true });
+      await vi.waitFor(() => expect(lectureEnvois(appels)).toBe(true));
+      await new Promise((ok) => setTimeout(ok, 20));
+      expect(suppressions(appels)).toHaveLength(attendues);
+    }
+
+    for (const destinataire of [{ id: DESTINATAIRE, abonnement_a_confirmer: false }, null]) {
+      const { appels, demander } = base(destinataire, [{ id: 'e', statut: 'echec', cree_le: new Date(MAINTENANT).toISOString() }]);
+      const serveur = await lancer(configuration(demander, { confirmationActive: true, now: () => MAINTENANT }));
+      await deposer(serveur.base);
+      await vi.waitFor(() => expect(appels.some((a) => a.url.pathname === '/rest/v1/destinataires_emails')).toBe(true));
+      await new Promise((ok) => setTimeout(ok, 20));
+      expect(lectureEnvois(appels)).toBe(false);
+      expect(suppressions(appels)).toHaveLength(0);
+    }
+  });
+
+  it('sans confirmation active, un nouveau dépôt ne touche pas aux envois', async () => {
+    const { appels, demander } = base({ id: DESTINATAIRE, abonnement_a_confirmer: true }, [{ id: 'e', statut: 'echec', cree_le: new Date(MAINTENANT).toISOString() }]);
+    const serveur = await lancer(configuration(demander, { now: () => MAINTENANT }));
+    expect(await (await deposer(serveur.base)).json()).toEqual({ ok: true, confirmation: false });
+    await new Promise((ok) => setTimeout(ok, 20));
+    expect(appels.filter((a) => a.url.pathname.startsWith('/rest/v1/') && a.url.pathname !== '/rest/v1/abonnements_actualites')).toHaveLength(0);
   });
 });

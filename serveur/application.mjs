@@ -389,6 +389,7 @@ function repondre(fichiers, req, res) {
  *   planningNotation?: ReturnType<typeof import('./planning-notation.mjs').creerPlanningNotation>
  *   contact?: ReturnType<typeof import('./contact.mjs').creerContact>
  *   actualites?: ReturnType<typeof import('./actualites.mjs').creerActualites>
+ *   emails?: ReturnType<typeof import('./emails.mjs').creerEmails>
  *   consentementCookies?: ReturnType<typeof import('./consentement-cookies.mjs').creerConsentementCookies>
  *   etatSoiree?: ReturnType<typeof import('./instantane.mjs').creerEtatSoiree>
  *   juges?: { estRoute: (url: string | undefined) => boolean, repondre: (req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) => Promise<void> }
@@ -397,7 +398,7 @@ function repondre(fichiers, req, res) {
  *   gtm?: boolean
  * }} options
  */
-export function creerServeur({ racine, supabase, supervision, planningNotation, contact, actualites, consentementCookies, etatSoiree, juges, complements, acces, gtm = false }) {
+export function creerServeur({ racine, supabase, supervision, planningNotation, contact, actualites, emails, consentementCookies, etatSoiree, juges, complements, acces, gtm = false }) {
   const fichiers = indexer(racine, supabase, gtm);
   const barriere = acces ?? null;
   const serveur = createServer((req, res) => {
@@ -417,6 +418,14 @@ export function creerServeur({ racine, supabase, supervision, planningNotation, 
       actualites.repondre(req, res).catch((erreur) => {
         journaliserErreur('échec du dépôt d’abonnement aux actualités', erreur);
         if (!res.headersSent) texteBrut(req, res, 503, 'Formulaire indisponible\n');
+        else res.destroy();
+      });
+      return;
+    }
+    if (emails?.estRoute(req.url)) {
+      emails.repondre(req, res).catch((erreur) => {
+        journaliserErreur('échec d’une route des e-mails', erreur);
+        if (!res.headersSent) texteBrut(req, res, 503, 'Service indisponible\n');
         else res.destroy();
       });
       return;

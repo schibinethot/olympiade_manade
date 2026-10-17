@@ -16,6 +16,7 @@ import { planningNotationDepuisEnvironnement } from './planning-notation.mjs';
 import { fileNotesDepuisEnvironnement } from './file-notes.mjs';
 import { contactDepuisEnvironnement } from './contact.mjs';
 import { actualitesDepuisEnvironnement } from './actualites.mjs';
+import { emailsDepuisEnvironnement } from './emails.mjs';
 import { consentementCookiesDepuisEnvironnement } from './consentement-cookies.mjs';
 import { creerEtatSoiree, instantaneDepuisEnvironnement } from './instantane.mjs';
 import { jugesDepuisEnvironnement } from './juges.mjs';
@@ -32,10 +33,14 @@ let port;
 let fileNotes;
 /** @type {ReturnType<typeof instantaneDepuisEnvironnement>} */
 let instantane;
+/** @type {ReturnType<typeof emailsDepuisEnvironnement>} */
+let emails;
 try {
   port = portDepuis(process.env.PORT);
   fileNotes = fileNotesDepuisEnvironnement(process.env);
   instantane = instantaneDepuisEnvironnement(process.env);
+  // Planificateur et liens des e-mails : inactif (503) sans Supabase, clé service_role, origine ou clé de liens.
+  emails = emailsDepuisEnvironnement(process.env);
   const acces = accesDepuis(process.env.ACCES_TOKEN);
   journaliserAbsence(acces);
   serveur = creerServeur({
@@ -44,7 +49,8 @@ try {
     supervision: supervisionDepuisEnvironnement(process.env),
     planningNotation: planningNotationDepuisEnvironnement(process.env),
     contact: contactDepuisEnvironnement(process.env),
-    actualites: actualitesDepuisEnvironnement(process.env),
+    actualites: actualitesDepuisEnvironnement(process.env, { confirmationActive: emails.confirmationActive }),
+    emails,
     consentementCookies: consentementCookiesDepuisEnvironnement(process.env),
     gtm: !!process.env.VITE_GTM_ID?.trim(),
     etatSoiree: creerEtatSoiree({
@@ -65,6 +71,7 @@ const courriel = courrielDepuisEnvironnement(process.env);
 serveur.listen(port, () => {
   fileNotes?.demarrer();
   instantane?.demarrer();
+  void emails.demarrer();
   console.log(
     JSON.stringify({
       level: 'info',
@@ -74,6 +81,8 @@ serveur.listen(port, () => {
       fichiers: serveur.fichiers,
       courriel: courriel.mode,
       courrielPret: courriel.pret,
+      emails: emails.mode,
+      emailsActifs: emails.actif,
     }),
   );
 });
@@ -83,6 +92,7 @@ for (const signal of /** @type {const} */ (['SIGTERM', 'SIGINT'])) {
   process.on(signal, () => {
     fileNotes?.arreter();
     instantane?.arreter();
+    emails.arreter();
     serveur.close(() => process.exit(0));
     setTimeout(() => process.exit(0), 5000).unref();
   });
