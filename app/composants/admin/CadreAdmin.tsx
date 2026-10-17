@@ -11,6 +11,7 @@ export const CHAMP = 'min-h-12 w-full rounded-xl border border-trait bg-sable px
 
 const LIENS = [
   { vers: '/admin/soirees', libelle: 'Soirées' },
+  { vers: '/admin/vitrine', libelle: 'Vitrine' },
   { vers: '/admin/participants', libelle: 'Participants' },
   { vers: '/admin/juges', libelle: 'Juges' },
   { vers: '/admin/messages', libelle: 'Messages' },
