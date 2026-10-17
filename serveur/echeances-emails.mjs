@@ -87,7 +87,7 @@ import { ETAPES, lireJour } from './gabarits-emails.mjs';
 
 /**
  * @typedef {'deja_passe_a_l_inscription' | 'meme_jour_que_bienvenue' | 'date_annulee' | 'aucune_date'
- *   | 'fenetre_depassee' | 'plafond_jour'} RaisonSaut
+ *   | 'prochaines_dates_recent' | 'fenetre_depassee' | 'plafond_jour'} RaisonSaut
  */
 
 /**
@@ -114,8 +114,8 @@ const HEURE_MS = 3_600_000;
 const JOUR_MS = 24 * HEURE_MS;
 /** Une étape due part dans les 12 h qui suivent son échéance ; au-delà, elle est sautée. */
 const FENETRE_ENVOI_MS = 12 * HEURE_MS;
-/** Au plus une annonce par personne tous les 7 jours glissants. */
-const DELAI_ENTRE_ANNONCES_MS = 7 * JOUR_MS;
+/** Au plus une annonce, et un e-mail « prochaines dates », par personne tous les 7 jours glissants. */
+const DELAI_GLISSANT_MS = 7 * JOUR_MS;
 /** Jusqu'à cette heure, la nuit compte encore pour la veille (prive.jour_des_soirees). */
 const FIN_DES_SOIREES_MS = 6 * HEURE_MS;
 /** Encart « date proche » de la bienvenue : la date tombe 0 à 7 jours après la confirmation. */
@@ -258,6 +258,11 @@ const comparerDates = (/** @type {DateEnrichie} */ a, /** @type {DateEnrichie} *
  */
 /** @typedef {Rang & { envoi: EnvoiPrevu }} Candidat */
 
+/**
+ * Ce qui, chez un destinataire, décide du sort de ses étapes de date.
+ * @typedef {{ destinataire: Destinataire, jourBienvenue: string | null, prochainesRecentes: boolean }} Situation
+ */
+
 /** Palier, puis date la plus proche, puis échéance la plus tôt. */
 const comparerRangs = (/** @type {Rang} */ a, /** @type {Rang} */ b) => (
   a.palier - b.palier || comparerTextes(a.dateSoiree, b.dateSoiree) || a.instant - b.instant
@@ -317,8 +322,14 @@ const aUnEnvoi = (/** @type {Envoi[]} */ envois, /** @type {Etape} */ etape, /**
   envois.some((envoi) => envoi.etape === etape && envoi.calendrier_id === calendrierId)
 );
 
+/** Un envoi compté de cette étape, toutes dates confondues, prévu il y a moins de 7 jours. */
+const envoiRecent = (/** @type {readonly Envoi[]} */ envois, /** @type {Etape} */ etape, /** @type {number} */ maintenant) => (
+  envois.some((envoi) => envoi.etape === etape && STATUTS_COMPTES.has(envoi.statut) && maintenant - Date.parse(envoi.prevu_le) < DELAI_GLISSANT_MS)
+);
+
 /**
- * La date de l'inscription (rattachement d'origine `inscription` le plus récent) et l'encart.
+ * La date de l'inscription (rattachement d'origine `inscription` le plus récent) et l'encart. Seule
+ * une date confirmée est citée : la RPC peut renvoyer une date lointaine annulée ou prévisionnelle.
  * @param {string | null} confirmeLe
  * @param {readonly Rattachement[]} rattachements du destinataire
  * @param {Map<string, DateEnrichie>} dates
@@ -335,15 +346,17 @@ function bienvenuePour(confirmeLe, rattachements, dates) {
       creeLe = Date.parse(rattachement.cree_le);
     }
   }
-  if (!date || confirmeLe === null || date.statut !== 'confirmee' || soireeSuspendue(date)) return { date, encartDateProche: false };
+  if (!date || date.statut !== 'confirmee') return { date: null, encartDateProche: false };
+  if (confirmeLe === null || soireeSuspendue(date)) return { date, encartDateProche: false };
   const ecart = ecartJours(jourDesSoirees(Date.parse(confirmeLe)), date.date_soiree);
   return { date, encartDateProche: ecart >= 0 && ecart <= ENCART_JOURS_MAX };
 }
 
 /**
  * Date de la bienvenue d'un destinataire, pour son rendu ({{date}}, {{ville}}, encart) : la date
- * rattachée par l'inscription, si elle figure dans `donnees.dates`. `encartDateProche` vaut vrai si
- * elle est confirmée, sans soirée suspendue, et tombe 0 à 7 jours (Paris) après `confirme_le`.
+ * rattachée par l'inscription, si elle figure dans `donnees.dates` et qu'elle est confirmée ; sinon
+ * null. `encartDateProche` vaut vrai si la soirée liée n'est pas suspendue et si la date tombe 0 à
+ * 7 jours (Paris) après `confirme_le`.
  * @param {Pick<EmailsATraiter, 'dates' | 'rattachements'>} donnees
  * @param {Pick<Destinataire, 'id' | 'confirme_le'>} destinataire
  * @returns {{ date: DateEnrichie | null, encartDateProche: boolean }}
@@ -361,16 +374,17 @@ export function dateDeBienvenue(donnees, destinataire) {
  * @param {DateEnrichie} date
  * @param {Rattachement} rattachement
  * @param {number} instant échéance
- * @param {Destinataire} destinataire
- * @param {string | null} jourBienvenue
+ * @param {Situation} situation
  * @param {Contexte} ctx
  * @returns {'candidat' | 'rien' | RaisonSaut}
  */
-function issueEtape(etape, date, rattachement, instant, destinataire, jourBienvenue, ctx) {
+function issueEtape(etape, date, rattachement, instant, situation, ctx) {
   if (instant < Date.parse(rattachement.cree_le)) return 'deja_passe_a_l_inscription';
-  if (ctx.jour(instant) === jourBienvenue) return 'meme_jour_que_bienvenue';
+  if (ctx.jour(instant) === situation.jourBienvenue) return 'meme_jour_que_bienvenue';
   if (etape === 'prochaines_dates') {
-    if (!destinataire.annonces) return 'rien';
+    if (!situation.destinataire.annonces) return 'rien';
+    // Une personne rattachée à plusieurs dates ne reçoit pas deux fois les mêmes prochaines dates.
+    if (situation.prochainesRecentes) return 'prochaines_dates_recent';
     if (ctx.prochaines.length === 0) return 'aucune_date';
   } else if (date.statut === 'annulee') {
     return 'date_annulee';
@@ -398,11 +412,9 @@ function annonceDe(destinataire, rattachements, envois, ctx) {
   if (!modele || !destinataire.annonces || modele.heure_envoi === null) return null;
   const ouverture = instantParis(jourCalendaire(ctx.maintenant), modele.heure_envoi);
   if (ctx.maintenant < ouverture || ctx.maintenant > ouverture + FENETRE_ENVOI_MS) return null;
-  const annonces = envois.filter((envoi) => envoi.etape === 'annonce');
-  const recente = annonces.some((envoi) => STATUTS_COMPTES.has(envoi.statut) && ctx.maintenant - Date.parse(envoi.prevu_le) < DELAI_ENTRE_ANNONCES_MS);
-  if (recente) return null;
+  if (envoiRecent(envois, 'annonce', ctx.maintenant)) return null;
   const rattachees = new Set(rattachements.map((rattachement) => rattachement.calendrier_id));
-  const annoncees = new Set(annonces.map((envoi) => envoi.calendrier_id));
+  const annoncees = new Set(envois.filter((envoi) => envoi.etape === 'annonce').map((envoi) => envoi.calendrier_id));
   const possibles = ctx.datesTriees.filter((date) => (
     date.statut === 'confirmee' && !soireeSuspendue(date) && !rattachees.has(date.id) && !annoncees.has(date.id)
     && ctx.maintenant < ctx.debutDuJour(date)
@@ -491,7 +503,11 @@ function envoisDe(destinataire, ctx) {
     }
   }
 
-  // Règle 3 : les étapes de chaque date rattachée.
+  // Règle 3 : les étapes de chaque date rattachée. Deux « prochaines dates » ne tombent jamais dans
+  // le même passage (24 h d'écart au moins, ou le même jour, réglé par le plafond) : seul
+  // l'historique compte pour les 7 jours.
+  /** @type {Situation} */
+  const situation = { destinataire, jourBienvenue, prochainesRecentes: envoiRecent(envois, 'prochaines_dates', ctx.maintenant) };
   for (const rattachement of rattachements) {
     const date = ctx.dates.get(rattachement.calendrier_id);
     if (!date) continue;
@@ -499,7 +515,7 @@ function envoisDe(destinataire, ctx) {
       const modele = ctx.modeles.get(etape);
       const instant = modele ? ctx.echeance(modele, date) : null;
       if (instant === null || aUnEnvoi(envois, etape, date.id)) continue;
-      const issue = issueEtape(etape, date, rattachement, instant, destinataire, jourBienvenue, ctx);
+      const issue = issueEtape(etape, date, rattachement, instant, situation, ctx);
       /** @type {Rang} */
       const rang = { palier: PALIERS[etape], dateSoiree: date.date_soiree, instant, jour: ctx.jour(instant) };
       if (instant > ctx.maintenant) {

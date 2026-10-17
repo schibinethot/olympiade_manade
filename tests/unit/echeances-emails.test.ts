@@ -211,11 +211,11 @@ describe('echeance', () => {
       .toBe('2027-03-28T00:30:00.000Z');
   });
 
-  it('suit les réglages de l’admin, bornes comprises (-30 à 30 jours, 07:00 à 21:00)', () => {
-    expect(echeance({ cle: 'j_moins_7', jours_decalage: -30, heure_envoi: '07:00' }, marsillargues())?.toISOString())
-      .toBe('2027-06-30T05:00:00.000Z');
-    expect(echeance({ cle: 'lendemain', jours_decalage: 30, heure_envoi: '21:00:00' }, marsillargues())?.toISOString())
-      .toBe('2027-08-29T19:00:00.000Z');
+  it('suit les réglages de l’admin, bornes comprises (-14 à 7 jours, 07:00 à 21:00)', () => {
+    expect(echeance({ cle: 'j_moins_7', jours_decalage: -14, heure_envoi: '07:00' }, marsillargues())?.toISOString())
+      .toBe('2027-07-16T05:00:00.000Z');
+    expect(echeance({ cle: 'lendemain', jours_decalage: 7, heure_envoi: '21:00:00' }, marsillargues())?.toISOString())
+      .toBe('2027-08-06T19:00:00.000Z');
   });
 });
 
@@ -400,6 +400,13 @@ describe('calculerEnvois : annonces', () => {
     const desinscrite = consentante({ destinataires: [destinataire({ confirme_le: iso('2027-07-01 09:00'), annonces: true, desinscrit: true })] });
     expect(calculerEnvois(desinscrite, ete('2027-07-20 10:00')).aEnvoyer).toEqual([]);
   });
+
+  it('un modèle annonce inactif ou absent n’annonce rien', () => {
+    const inactif = consentante({ modeles: modeles({ annonce: { actif: false } }) });
+    expect(simuler(inactif, '2027-07-20 09:00', '2027-08-04 12:00')).toEqual([]);
+    const absent = consentante({ modeles: modeles().filter((modele) => modele.cle !== 'annonce') });
+    expect(simuler(absent, '2027-07-20 09:00', '2027-08-04 12:00')).toEqual([]);
+  });
 });
 
 describe('calculerEnvois : plafond journalier', () => {
@@ -448,6 +455,40 @@ describe('calculerEnvois : plafond journalier', () => {
       '2027-07-31 10:00 · lendemain Marsillargues · plafond_jour',
       '2027-08-01 10:00 · lendemain Sommières · part',
     ]);
+  });
+
+  it('prochaines dates : un seul e-mail pour deux dates rattachées, le second est sauté (prochaines_dates_recent)', () => {
+    const etat = inscrit(MARSILLARGUES, '2027-07-22 12:00', { annonces: true });
+    etat.rattachements.push(rattachement(SOMMIERES, '2027-07-22 12:30', { origine: 'je_viens' }));
+    etat.prochaines = [beziers({ statut: 'confirmee' })];
+    const journal = simuler(etat, '2027-07-22 12:00', '2027-08-08 12:00');
+    expect(journal.filter((ligne) => ligne.includes('prochaines_dates'))).toEqual([
+      '2027-08-06 10:00 · prochaines_dates Marsillargues · part',
+      '2027-08-07 10:00 · prochaines_dates Sommières · prochaines_dates_recent',
+    ]);
+  });
+
+  it('prochaines dates : 7 jours glissants, comptés sur les envois envoye, simule et en_attente', () => {
+    // Rattachée à Sommières seule : ses prochaines dates sont dues le 07/08 à 10:00.
+    const etat = inscrit(SOMMIERES, '2027-07-22 12:00', { annonces: true });
+    etat.prochaines = [beziers({ statut: 'confirmee' })];
+    const historique = (['bienvenue', 'j_moins_7', 'veille', 'jour_j', 'lendemain'] as const).map((etape) => (
+      envoi(etape, etape === 'bienvenue' ? null : SOMMIERES, iso('2027-07-22 12:00'))
+    ));
+    const avec = (ligne: Envoi) => ({ ...etat, envois: [...historique, ligne] });
+    const precedent = (prevuLe: string, changes: Partial<Envoi> = {}) => envoi('prochaines_dates', MARSILLARGUES, iso(prevuLe), changes);
+    const issue = (ligne: Envoi) => {
+      const { aEnvoyer, sautes } = calculerEnvois(avec(ligne), ete('2027-08-07 10:00'));
+      return [...aEnvoyer, ...sautes].map(decrireCourt);
+    };
+    expect(issue(precedent('2027-07-31 10:15'))).toEqual(['prochaines_dates Sommières prochaines_dates_recent']);
+    expect(issue(precedent('2027-07-31 10:00'))).toEqual(['prochaines_dates Sommières']);
+    for (const statut of ['simule', 'en_attente'] as const) {
+      expect(issue(precedent('2027-08-06 10:00', { statut }))).toEqual(['prochaines_dates Sommières prochaines_dates_recent']);
+    }
+    for (const statut of ['echec', 'saute'] as const) {
+      expect(issue(precedent('2027-08-06 10:00', { statut }))).toEqual(['prochaines_dates Sommières']);
+    }
   });
 
   it('une étape due attend une étape plus prioritaire prévue plus tard le même jour', () => {
@@ -619,8 +660,28 @@ describe('dateDeBienvenue', () => {
     expect(pour('2027-07-30 21:00').encartDateProche).toBe(true);
     expect(pour('2027-07-31 05:59').encartDateProche).toBe(true);
     expect(pour('2027-07-31 06:00').encartDateProche).toBe(false);
-    expect(pour('2027-07-27 20:00', { statut: 'annulee' }).encartDateProche).toBe(false);
-    expect(pour('2027-07-27 20:00', { soiree: { slug: 'm', statut: 'annulee' } }).encartDateProche).toBe(false);
+    // Une date annulée ou repassée en prévisionnelle n'est jamais citée.
+    expect(pour('2027-07-27 20:00', { statut: 'annulee' })).toEqual({ date: null, encartDateProche: false });
+    expect(pour('2027-07-27 20:00', { statut: 'previsionnelle' })).toEqual({ date: null, encartDateProche: false });
+    // Soirée suspendue : la date confirmée reste citée, sans encart.
+    expect(pour('2027-07-27 20:00', { soiree: { slug: 'm', statut: 'annulee' } }))
+      .toEqual({ date: marsillargues({ soiree: { slug: 'm', statut: 'annulee' } }), encartDateProche: false });
+  });
+
+  it('date lointaine renvoyée par la RPC pour la bienvenue (au-delà de J+17) : citée si confirmée, rien d’autre ne part', () => {
+    // Confirmée le 01/07, rattachée à Marsillargues (30/07, J+29).
+    const etat = inscrit(MARSILLARGUES, '2027-07-01 10:00');
+    etat.dates = [marsillargues()];
+    expect(calculerEnvois(etat, ete('2027-07-01 10:00'))).toEqual({
+      aEnvoyer: [{ destinataireId: CAMILLE, etape: 'bienvenue', calendrierIds: [], prevuLe: iso('2027-07-01 10:00'), encartDateProche: false }],
+      sautes: [],
+    });
+    expect(dateDeBienvenue(etat, etat.destinataires[0])).toEqual({ date: marsillargues(), encartDateProche: false });
+    for (const statut of ['annulee', 'previsionnelle'] as const) {
+      etat.dates = [marsillargues({ statut })];
+      expect(dateDeBienvenue(etat, etat.destinataires[0])).toEqual({ date: null, encartDateProche: false });
+      expect(calculerEnvois(etat, ete('2027-07-01 10:00')).aEnvoyer.map(decrireCourt)).toEqual(['bienvenue']);
+    }
   });
 
   it('sans rattachement d’inscription (« Je viens », première confirmation) : pas de date, pas d’encart', () => {
