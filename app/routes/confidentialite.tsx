@@ -3,6 +3,7 @@ import { IdentitePublique } from '../composants/IdentitePublique';
 import { CorpsLegal, LIEN_TEXTE, SectionLegale } from '../composants/TexteLegal';
 import { TitrePage } from '../composants/TitrePage';
 import type { Route } from './+types/confidentialite';
+import { useConsentementCookies } from '../composants/ConsentementCookies';
 
 export const meta: Route.MetaFunction = () => [
   { title: 'Confidentialité · Olympiade des Manades' },
@@ -16,6 +17,7 @@ const LIEN_CONTACT = (
 );
 
 export default function Confidentialite() {
+  const { afficherPreferences } = useConsentementCookies();
   return (
     <>
       <TitrePage surtitre="Vos données" titre="Confidentialité" />
@@ -31,8 +33,13 @@ export default function Confidentialite() {
               IP, date et heure, pages demandées, type de navigateur) pour assurer le fonctionnement et la sécurité du site.
               Le serveur conserve aussi des compteurs techniques agrégés (requêtes, erreurs, volume de données et temps
               de réponse), sans adresse IP ni historique individuel de navigation dans ces compteurs.
-              Nous n’utilisons aucun outil de mesure d’audience publicitaire. Base légale&nbsp;: intérêt légitime à sécuriser le service (art. 6(1)(f) RGPD).
+              Base légale&nbsp;: intérêt légitime à sécuriser le service (art. 6(1)(f) RGPD).
               Durée&nbsp;: celle fixée par chaque hébergeur pour ses journaux techniques.
+            </li>
+            <li>
+              <strong>Choix relatifs aux cookies</strong>&nbsp;: à chaque choix, nous enregistrons un identifiant
+              pseudonyme du navigateur, l’adresse IP pseudonymisée, le type de navigateur, la page et la date, ainsi que
+              les catégories acceptées. Ces données servent à prouver votre consentement (art. 7(1) et 6(1)(c) RGPD).
             </li>
             <li>
               <strong>Formulaire de contact</strong>&nbsp;: prénom, email, message et date d’envoi. Les trois champs du
@@ -86,6 +93,7 @@ export default function Confidentialite() {
             <li>Abonnement aux actualités&nbsp;: adresse et consentement conservés jusqu’à votre demande de retrait ou l’arrêt de la liste d’information.</li>
             <li>Comptes spectateurs inactifs&nbsp;: supprimés après 24 mois d’inactivité.</li>
             <li>Mesures techniques agrégées et derniers signaux d’activité&nbsp;: conservation de 30 jours.</li>
+            <li>Preuves de vos choix relatifs aux cookies&nbsp;: conservées 12 mois, puis supprimées.</li>
             <li>
               Messages de contact&nbsp;: conservés le temps nécessaire pour vous répondre, puis supprimés. La durée exacte
               sera fixée avec l’organisateur.
@@ -94,7 +102,38 @@ export default function Confidentialite() {
         </SectionLegale>
 
         <SectionLegale id="traceurs" titre="Traceurs et stockage local">
-          <p>Aucun cookie publicitaire, aucun outil de mesure d’audience. Les formulaires utilisent Cloudflare Turnstile pour la vérification anti-robot.</p>
+          <p>
+            Les formulaires utilisent Cloudflare Turnstile pour la vérification anti-robot.
+          </p>
+
+          <p>
+            <strong>Traceurs nécessaires</strong>&nbsp;: le cookie <code>cc_cookie</code> conserve votre choix de
+            consentement, au plus 13&nbsp;mois. Le cookie <code>olympiade_acces</code> ouvre l’accès à la préversion
+            du site. L’identifiant <code>cc_visitor_id</code>, conservé dans le stockage local, relie votre choix à sa
+            preuve sans vous identifier.
+          </p>
+
+          <p>
+            <strong>Mesure d’audience</strong>&nbsp;: avec votre accord, des traceurs Google Analytics
+            (<code>_ga</code>, <code>_ga_*</code>, <code>_gid</code>) mesurent la fréquentation du site.
+            Aucun cookie de mesure n’est déposé sans votre consentement explicite.
+          </p>
+
+          <p>
+            <strong>Publicité et réseaux sociaux</strong>&nbsp;: avec votre accord, des traceurs publicitaires
+            (Meta Pixel, Google Ads) permettent de mesurer l’efficacité de nos campagnes.
+            Aucun cookie publicitaire n’est déposé sans votre consentement explicite.
+          </p>
+
+          <p>
+            Vous pouvez modifier votre choix à tout moment en cliquant sur «&nbsp;
+            <button type="button" onClick={afficherPreferences} className={LIEN_TEXTE}>
+              Gérer les cookies
+            </button>
+            &nbsp;». Refuser est aussi simple qu’accepter et ne limite pas l’accès au site. À l’expiration de votre
+            choix, il vous est demandé à nouveau.
+          </p>
+
           <p>
             Lorsque vous vous inscrivez, une donnée de session est enregistrée dans votre navigateur pour vous reconnaître.
             Elle est strictement nécessaire au service, ne sert à aucun suivi et est supprimée à votre déconnexion.

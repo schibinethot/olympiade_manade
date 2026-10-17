@@ -12,6 +12,7 @@ export default [
   route('inscription/code', 'routes/inscription-code.tsx'),
   route('admin', 'routes/admin.tsx'),
   route('admin/statistiques', 'routes/admin-statistiques.tsx'),
+  route('admin/cookies', 'routes/admin-cookies.tsx'),
   route('admin/participants', 'routes/admin-participants.tsx'),
   route('admin/messages', 'routes/admin-messages.tsx'),
   route('admin/abonnes', 'routes/admin-abonnes.tsx'),

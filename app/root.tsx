@@ -11,6 +11,7 @@ import { FournisseurEtatSoiree } from './lib/contexte-etat';
 import { CoqueAndroid } from './composants/CoqueAndroid';
 import { BanniereDeblocage } from './composants/Notifications';
 import { ServiceTravailleur } from './composants/ServiceTravailleur';
+import { ConsentementCookies } from './composants/ConsentementCookies';
 
 const police = (fichier: string) =>
   ({ rel: 'preload', href: `/polices/${fichier}`, as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' }) as const;
@@ -78,6 +79,8 @@ export default function App() {
     <CoqueAndroid>
       <FournisseurEtatSoiree>
         <ServiceTravailleur />
+        {/* Monté une seule fois, inerte au pré-rendu (tout dans useEffect) */}
+        <ConsentementCookies />
         <Coque>
           <BanniereDeblocage />
           <SuiviPresence />

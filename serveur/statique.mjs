@@ -16,6 +16,7 @@ import { planningNotationDepuisEnvironnement } from './planning-notation.mjs';
 import { fileNotesDepuisEnvironnement } from './file-notes.mjs';
 import { contactDepuisEnvironnement } from './contact.mjs';
 import { actualitesDepuisEnvironnement } from './actualites.mjs';
+import { consentementCookiesDepuisEnvironnement } from './consentement-cookies.mjs';
 import { creerEtatSoiree, instantaneDepuisEnvironnement } from './instantane.mjs';
 import { jugesDepuisEnvironnement } from './juges.mjs';
 import { complementsDepuisEnvironnement } from './complements.mjs';
@@ -44,6 +45,8 @@ try {
     planningNotation: planningNotationDepuisEnvironnement(process.env),
     contact: contactDepuisEnvironnement(process.env),
     actualites: actualitesDepuisEnvironnement(process.env),
+    consentementCookies: consentementCookiesDepuisEnvironnement(process.env),
+    gtm: !!process.env.VITE_GTM_ID?.trim(),
     etatSoiree: creerEtatSoiree({
       reel: process.env.ETAT_SOIREE_REEL === 'true',
       lire: (slug) => (instantane ? instantane.lire(slug) : Promise.resolve(null)),

@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { Logo } from './Logo';
 import { SignatureTpmge } from './SignatureTpmge';
+import { useConsentementCookies } from './ConsentementCookies';
 
 // Liens hors landmark <nav> : la navigation principale reste la seule
 // région « navigation » de la page.
@@ -19,7 +20,11 @@ const SURTITRE = 'text-[9.5px] leading-none font-bold tracking-[0.2em] text-or-c
  * Pied de page du site (maquette : bloc .pf, fond nuit). Ordre imposé par la charte, section 8 :
  * partenaire officiel Atch Élevage, mention de collaboration, liens, puis signature TPMGE.
  */
+const STYLE_LIEN =
+  'inline-flex min-h-12 items-center underline-offset-4 transition-colors hover:text-nuit-txt hover:underline';
+
 export function PiedDePage() {
+  const { afficherPreferences } = useConsentementCookies();
   return (
     <footer className="mt-12 grid gap-6 bg-nuit px-4 pt-9 pb-[calc(28px+env(safe-area-inset-bottom))] text-nuit-txt tablette:grid-cols-[1.2fr_1fr] tablette:px-7 tablette:pt-11 paysage:grid-cols-[1.3fr_1fr_1fr] paysage:px-10 paysage:pt-14 paysage:pb-8 bureau:px-14">
       <div className="tablette:col-span-full paysage:col-span-1">
@@ -58,21 +63,27 @@ export function PiedDePage() {
         <ul className="flex flex-wrap gap-x-[18px] text-[13.5px] text-nuit-mute">
           {LIENS.map((lien) => (
             <li key={lien.vers}>
-              <Link
-                to={lien.vers}
-                className="inline-flex min-h-12 items-center underline-offset-4 transition-colors hover:text-nuit-txt hover:underline"
-              >
+              <Link to={lien.vers} className={STYLE_LIEN}>
                 {lien.libelle}
               </Link>
             </li>
           ))}
+          <li>
+            <button
+              type="button"
+              onClick={afficherPreferences}
+              className={STYLE_LIEN}
+            >
+              Gérer les cookies
+            </button>
+          </li>
         </ul>
         <SignatureTpmge />
       </div>
 
       <p className="-mt-3 flex flex-wrap justify-between gap-x-4 gap-y-1 text-[11.5px] text-nuit-mute tablette:col-span-full">
         <span>© {__ANNEE_PUBLICATION__} Olympiade des Manades</span>
-        <span>Aucun traceur publicitaire</span>
+        <span>Traceurs seulement avec votre accord</span>
       </p>
     </footer>
   );
