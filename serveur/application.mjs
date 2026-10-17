@@ -64,6 +64,8 @@ const TYPES = /** @type {Record<string, string>} */ ({
   '.jpeg': 'image/jpeg',
   '.webp': 'image/webp',
   '.avif': 'image/avif',
+  // Vidéo de l'aide cookies : avec nosniff, un type générique peut en empêcher la lecture.
+  '.mp4': 'video/mp4',
   '.ico': 'image/x-icon',
   '.woff2': 'font/woff2',
 });

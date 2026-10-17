@@ -26,6 +26,7 @@ function build(): string {
     '__spa-fallback.html': PAGE.replace('page', 'repli'),
     'classements/index.html': PAGE.replace('page', 'classements'),
     'assets/app-abc123.js': 'console.log(1);'.repeat(200),
+    'aide/cookies/parcours.mp4': 'mp4'.repeat(600),
   };
   for (const [chemin, contenu] of Object.entries(fichiers)) {
     mkdirSync(dirname(join(racine, chemin)), { recursive: true });
@@ -128,6 +129,13 @@ describe('creerServeur', () => {
       expect(reponse.headers.get('content-type'), chemin).toContain('text/plain');
     }
     expect((await fetch(`${base}/assets/app-abc123.js`)).status).toBe(200);
+  });
+
+  it('sert la vidéo de l’aide en video/mp4, sans compression', async () => {
+    const reponse = await fetch(`${base}/aide/cookies/parcours.mp4`, { headers: { 'accept-encoding': 'br, gzip' } });
+    expect(reponse.status).toBe(200);
+    expect(reponse.headers.get('content-type')).toBe('video/mp4');
+    expect(reponse.headers.get('content-encoding')).toBeNull();
   });
 
   it('autorise dans la CSP l’hôte Supabase donné', async () => {
