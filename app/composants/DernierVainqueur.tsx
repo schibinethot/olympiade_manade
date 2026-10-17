@@ -34,9 +34,9 @@ export function DernierVainqueur({ palmares }: Props) {
             aria-hidden="true"
             src={marque}
             alt=""
-            width={280}
-            height={280}
-            className="pointer-events-none absolute -top-10 -right-2.5 size-[280px] object-contain opacity-[.07] invert mix-blend-screen"
+            width={320}
+            height={320}
+            className="pointer-events-none absolute -top-10 -right-2.5 size-[320px] object-contain opacity-[.12] invert mix-blend-screen"
           />
         ) : (
           <span

@@ -45,9 +45,9 @@ export function CarteResultat({ resultat, niveau = 3, aLaUne = false }: Props) {
       <div className={`grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 ${classement ? 'items-center paysage:gap-x-6' : 'items-start'}`}>
         {lienVainqueur ? (
           <Link to={lienVainqueur} aria-label={`Découvrir la manade ${vainqueur}`} className="self-start rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-encre">
-            <Fer manade={vainqueur} className={classement ? 'paysage:size-[62px] paysage:text-[34px]' : 'mt-0.5'} />
+            <Fer manade={vainqueur} className={classement ? 'paysage:size-[76px] paysage:text-[34px]' : 'mt-0.5'} />
           </Link>
-        ) : <Fer manade={vainqueur} className={classement ? 'paysage:size-[62px] paysage:text-[34px]' : 'mt-0.5'} />}
+        ) : <Fer manade={vainqueur} className={classement ? 'paysage:size-[76px] paysage:text-[34px]' : 'mt-0.5'} />}
         <div className="min-w-0">
           <p className="text-[10.5px] leading-[1.25] font-bold tracking-[0.2em] text-or-ink uppercase">
             {resultat.ville} · <time dateTime={resultat.date_soiree ?? String(resultat.annee)}>{dateResultat(resultat)}</time>

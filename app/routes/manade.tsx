@@ -119,7 +119,7 @@ export default function Manade({ loaderData }: Route.ComponentProps) {
       </TitrePage>
       <article className="px-4 pt-5 tablette:px-7 paysage:px-10 bureau:px-14">
         <section className="relative grid gap-5 overflow-hidden rounded-[26px] border border-trait bg-creme p-5 tablette:p-7 paysage:grid-cols-[auto_minmax(0,1fr)] paysage:items-start" aria-labelledby="presentation-manade">
-          <Fer manade={fiche.nom} className="size-28 text-[58px] tablette:size-36 tablette:text-[72px]" />
+          <Fer manade={fiche.nom} className="size-32 text-[58px] tablette:size-40 tablette:text-[72px]" />
           <div className="relative max-w-[66ch]">
             <h2 id="presentation-manade" className="font-display text-[26px] leading-tight font-bold">Qui sont-ils&nbsp;?</h2>
             <div className="mt-3 grid gap-3 text-[15px] leading-relaxed text-encre-2">

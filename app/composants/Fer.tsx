@@ -32,7 +32,7 @@ export function Fer({ manade, taille = 'normal', clair = false, className = '' }
     <span
       aria-hidden="true"
       className={`inline-grid flex-none place-items-center leading-none ${
-        taille === 'petit' ? 'size-8 text-[17px]' : 'size-11 text-[24px]'
+        taille === 'petit' ? 'size-10 text-[17px]' : 'size-14 text-[24px]'
       } ${
         marque
           ? `overflow-hidden ${clair ? 'mix-blend-screen' : 'mix-blend-multiply'}`
@@ -45,7 +45,7 @@ export function Fer({ manade, taille = 'normal', clair = false, className = '' }
           alt=""
           width={237}
           height={237}
-          className={`size-full object-contain ${clair ? 'invert' : ''}`}
+          className={`size-full object-contain contrast-125 ${clair ? 'invert' : ''}`}
         />
       ) : (
         initiale

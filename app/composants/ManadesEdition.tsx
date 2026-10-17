@@ -24,7 +24,7 @@ export function ManadesEdition() {
           return (
           <li
             key={manade}
-            className="flex min-w-0 flex-col items-center gap-[9px] text-[11px] leading-[1.15] font-extrabold tracking-[0.1em] text-encre uppercase tablette:border-l tablette:border-trait tablette:px-5 tablette:first:border-l-0 paysage:px-[34px] paysage:text-[12.5px]"
+            className="flex min-w-0 flex-col items-center gap-[9px] text-[10px] leading-[1.15] font-extrabold tracking-[.02em] text-encre uppercase min-[360px]:text-[11px] min-[360px]:tracking-[.1em] tablette:border-l tablette:border-trait tablette:px-5 tablette:first:border-l-0 paysage:px-[34px] paysage:text-[12.5px]"
           >
             {lien ? <Link to={lien} className="flex min-h-20 flex-col items-center gap-[9px] rounded-lg hover:text-rouge focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-encre">{contenu}</Link> : contenu}
           </li>

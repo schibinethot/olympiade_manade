@@ -23,7 +23,7 @@ export default function Manades() {
             to={`/manades/${fiche.slug}`}
             className="group grid min-h-52 content-between rounded-[22px] border border-trait bg-creme p-5 transition-colors hover:bg-lin focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-encre"
           >
-            <Fer manade={fiche.nom} className="size-[72px] text-[38px] transition-transform group-hover:scale-105" />
+            <Fer manade={fiche.nom} className="size-[88px] text-[38px] transition-transform group-hover:scale-105" />
             <div>
               <p className="text-[10.5px] font-bold tracking-[.2em] text-or-ink uppercase group-hover:text-encre-2">{fiche.localisation}</p>
               <h2 className="mt-1 font-display text-[27px] leading-[1.08] font-bold">Manade {fiche.nom}</h2>
