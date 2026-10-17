@@ -31,28 +31,43 @@ function signature(cle, corps) {
  * @returns {string}
  */
 export function signerLien(cle, charge) {
-  if (!cle) throw new Error('Clé de liens absente.');
+  if (!cleLiensValide(cle)) throw new Error('Clé de liens invalide (64 caractères hexadécimaux attendus).');
   const corps = Buffer.from(JSON.stringify(charge), 'utf8').toString('base64url');
   return `${corps}.${signature(cle, corps).toString('base64url')}`;
 }
 
 /**
+ * Clé de liens exploitable : 64 caractères hexadécimaux. La tâche 5 répond 503 sinon.
+ * @param {unknown} cle
+ * @returns {cle is string}
+ */
+export function cleLiensValide(cle) {
+  return typeof cle === 'string' && /^[0-9a-f]{64}$/i.test(cle);
+}
+
+const TYPES = Object.freeze({ confirmation: true, desinscription: true, je_viens: true });
+const FORME_JETON = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/;
+
+/**
  * @param {string | undefined} cle
  * @param {string | undefined} jeton
  * @param {number} [maintenant]
+ * @param {ChargeLien['t']} [typeAttendu] type exigé ; la tâche 5 le passe toujours
  * @returns {ChargeLien | null}
  */
-export function verifierLien(cle, jeton, maintenant = Date.now()) {
-  if (!cle || typeof jeton !== 'string') return null;
-  const morceaux = jeton.split('.');
-  if (morceaux.length !== 2 || !morceaux[0] || !morceaux[1]) return null;
-  const [corps, recue] = morceaux;
-  const attendue = signature(cle, corps);
-  const fournie = Buffer.from(recue, 'base64url');
+export function verifierLien(cle, jeton, maintenant = Date.now(), typeAttendu) {
+  if (!cleLiensValide(cle) || typeof jeton !== 'string' || !FORME_JETON.test(jeton)) return null;
+  const [corps, recue] = jeton.split('.');
+  // Comparaison en texte base64url canonique : refuse toute variante du dernier caractère.
+  const attendue = Buffer.from(signature(cle, corps).toString('base64url'), 'utf8');
+  const fournie = Buffer.from(recue, 'utf8');
   if (fournie.length !== attendue.length || !timingSafeEqual(fournie, attendue)) return null;
   try {
     const charge = JSON.parse(Buffer.from(corps, 'base64url').toString('utf8'));
-    if (!charge || typeof charge !== 'object' || typeof charge.t !== 'string' || typeof charge.d !== 'string') return null;
+    if (!charge || typeof charge !== 'object' || typeof charge.d !== 'string') return null;
+    if (typeof charge.t !== 'string' || !Object.hasOwn(TYPES, charge.t)) return null;
+    if (typeAttendu !== undefined && charge.t !== typeAttendu) return null;
+    if (charge.t === 'je_viens' && (typeof charge.c !== 'string' || typeof charge.e !== 'number')) return null;
     if (charge.e !== undefined && (typeof charge.e !== 'number' || !(maintenant <= charge.e))) return null;
     return charge;
   } catch {
@@ -83,9 +98,12 @@ function instantParis(annee, mois, jour, heures, minutes) {
  * Dernière milliseconde du jour (heure de Paris) de « AAAA-MM-JJ ».
  * @param {string} dateIso
  */
-function finDeJourParis(dateIso) {
+export function finDeJourParis(dateIso) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateIso);
-  if (!m) throw new RangeError(`Date invalide : ${dateIso}`);
+  const jour = m ? new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]))) : null;
+  if (!m || !jour || jour.getUTCFullYear() !== Number(m[1]) || jour.getUTCMonth() !== Number(m[2]) - 1 || jour.getUTCDate() !== Number(m[3])) {
+    throw new RangeError(`Date invalide : ${dateIso}`);
+  }
   const lendemain = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + 1));
   return instantParis(lendemain.getUTCFullYear(), lendemain.getUTCMonth() + 1, lendemain.getUTCDate(), 0, 0) - 1;
 }

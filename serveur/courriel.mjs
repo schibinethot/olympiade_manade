@@ -55,13 +55,13 @@ function base64Mime(/** @type {string} */ valeur) {
   return (brut.match(/.{1,76}/g) ?? ['']).join(CRLF);
 }
 
-/** Mots encodés RFC 2047 (UTF-8, B), au plus 75 caractères chacun, découpés entre deux caractères. */
+/** Mots encodés RFC 2047 (UTF-8, B) : 30 octets au plus par mot (52 caractères encodés), pour garder chaque ligne sous 76. */
 function motsEncodes(/** @type {string} */ valeur) {
   /** @type {string[]} */
   const mots = [];
   let courant = '';
   for (const caractere of valeur) {
-    if (Buffer.byteLength(courant + caractere, 'utf8') > 45) {
+    if (Buffer.byteLength(courant + caractere, 'utf8') > 30) {
       mots.push(courant);
       courant = '';
     }
@@ -77,14 +77,27 @@ function adresseAvecNom(/** @type {string} */ adresse) {
   if (!m) return adresse;
   const nom = m[1].replace(/^"(.*)"$/, '$1');
   if (!nom) return `<${m[2]}>`;
-  return `${motsEncodes(nom)} <${m[2]}>`;
+  // L’adresse sur sa propre ligne repliée : la ligne ne dépasse jamais 76 caractères.
+  return `${motsEncodes(nom)}${CRLF} <${m[2]}>`;
 }
 
-/** Adresse nue d’un « Nom <a@b.fr> » (enveloppe SMTP). */
+/** Adresse nue d’un « Nom <a@b.fr> » (domaine du Message-ID, sans contrôle). */
 function adresseNue(/** @type {string} */ adresse) {
   const m = /<([^<>]+)>/.exec(adresse);
   return (m ? m[1] : adresse).trim();
 }
+
+/** Adresse d’enveloppe SMTP : « a@b.fr » ou « Nom <a@b.fr> » seulement, sans CR, LF, chevron ni espace dans l’adresse. */
+function adresseEnveloppe(/** @type {string} */ adresse, /** @type {string} */ role, /** @type {boolean} */ avecNom) {
+  const brut = String(adresse).trim();
+  const m = avecNom ? /^[^<>]*<([^<>]*)>$/.exec(brut) : null;
+  const nue = m ? m[1] : brut;
+  if (/[\r\n]/.test(brut) || !nue || /[\r\n<>\s]/.test(nue)) throw new Error(`Adresse ${role} invalide.`);
+  return nue;
+}
+
+const ENTETES_RESERVES = /^(from|to|cc|bcc|subject|date|message-id|mime-version|reply-to|content-.*)$/i;
+const DESTINATAIRE_VALIDE = /^[^\s@<>,;:"()[\]\\]+@[^\s@<>,;:"()[\]\\]+\.[^\s@<>,;:"()[\]\\]+$/;
 
 /**
  * Message RFC 5322 complet : texte seul, ou multipart/alternative si `html` est présent.
@@ -98,8 +111,9 @@ export function construireMessage({ from, to, subject, text, html, replyTo, head
   sansSautDeLigne(subject, 'Subject');
   if (replyTo) sansSautDeLigne(replyTo, 'Reply-To');
   const supplementaires = Object.entries(headers ?? {}).map(([nom, valeur]) => {
-    if (!/^[A-Za-z0-9-]+$/.test(nom)) throw new Error(`Nom d’en-tête invalide : ${nom}`);
-    return `${nom}: ${sansSautDeLigne(String(valeur), nom)}`;
+    if (!/^[A-Za-z0-9-]+$/.test(nom) || ENTETES_RESERVES.test(nom)) throw new Error(`Nom d’en-tête invalide ou réservé : ${nom}`);
+    if (/[^\x20-\x7e\t]/.test(String(valeur))) throw new Error(`En-tête invalide (caractère non ASCII ou de contrôle) : ${nom}`);
+    return `${nom}: ${String(valeur)}`;
   });
   const domaine = /@([^@<>\s]+)>?\s*$/.exec(adresseNue(from))?.[1] ?? 'localhost';
   const enTetes = [
@@ -122,7 +136,7 @@ export function construireMessage({ from, to, subject, text, html, replyTo, head
       '',
     ].join(CRLF);
   }
-  const frontiere = `=_manades_${randomUUID().replaceAll('-', '')}`;
+  const frontiere = `=_m_${randomUUID().replaceAll('-', '').slice(0, 16)}`;
   return [
     ...enTetes,
     `Content-Type: multipart/alternative; boundary="${frontiere}"`,
@@ -157,11 +171,20 @@ export function masquerEmail(email) {
  * @param {{ from: string, to: string, subject: string, text: string, html?: string, replyTo?: string, headers?: Record<string, string> }} message
  */
 export function envoyerSmtp(smtp, message) {
+  // Contrôle avant toute connexion et quel que soit le chemin de composition.
+  /** @type {string} */
+  let expediteur;
+  /** @type {string} */
+  let destinataire;
+  try {
+    expediteur = adresseEnveloppe(message.from, 'expéditeur', true);
+    destinataire = adresseEnveloppe(message.to, 'destinataire', false);
+  } catch (erreur) {
+    return Promise.reject(erreur);
+  }
   const timeoutMs = smtp.timeoutMs ?? 10_000;
   // Le contact reste en texte 8bit inchangé ; les e-mails de séquence (html, en-têtes) passent en multipart.
   const contenu = message.html !== undefined || message.headers ? construireMessage(message) : composerCourriel(message);
-  const expediteur = adresseNue(message.from);
-  const destinataire = adresseNue(message.to);
   return new Promise((resolve, reject) => {
     const echec = (/** @type {Error} */ erreur) => {
       socket.destroy();
@@ -330,10 +353,17 @@ export function emailsDepuisEnvironnement(env, deps = {}) {
         journal({ level: 'info', message: 'email journalisé', to: masquerEmail(email.to), subject: email.subject });
         return { mode, envoye: false, echec: false };
       }
-      if (!pret) return { mode, envoye: false, echec: true };
+      if (!pret) {
+        journal({ level: 'error', message: 'smtp non configuré' });
+        return { mode, envoye: false, echec: true };
+      }
+      if (typeof email.to !== 'string' || !DESTINATAIRE_VALIDE.test(email.to)) {
+        journal({ level: 'error', message: 'destinataire invalide', to: masquerEmail(String(email.to).split(/[\r\n]/)[0]) });
+        return { mode, envoye: false, echec: true };
+      }
       try {
         await transport({ host, port, user, pass }, {
-          from, to: email.to, subject: email.subject, text: email.text, html: email.html, headers: email.headers,
+          from, to: email.to, subject: email.subject, text: email.text, html: email.html, headers: email.headers ?? {},
         });
         return { mode, envoye: true, echec: false };
       } catch (erreur) {
