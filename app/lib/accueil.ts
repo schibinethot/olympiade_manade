@@ -1,5 +1,12 @@
 // Logique de la page d'accueil, sans React : tout ce qui se déduit du calendrier et du palmarès.
-import { formaterDateLongue, formaterHeure, jourParis, premierDuMois, prochaineSoiree } from './dates';
+import {
+  derniereSoireePassee,
+  formaterDateLongue,
+  formaterHeure,
+  jourParis,
+  premierDuMois,
+  prochaineSoiree,
+} from './dates';
 import type { Calendrier, Palmares } from './donnees';
 
 const FUSEAU = 'Europe/Paris';
@@ -91,6 +98,25 @@ export function soireeAfficheAccueil(calendrier: Calendrier[], villeAffiche: str
   const surAffiche = prochaineSoireeA(calendrier, villeAffiche, maintenant);
   if (!prochaine || !surAffiche || prochaine.id !== surAffiche.id) return null;
   return surAffiche;
+}
+
+export type PresentationAfficheAccueil =
+  | { mode: 'officielle'; soiree: Calendrier | null }
+  | { mode: 'prochaine'; soiree: Calendrier };
+
+/**
+ * En-tête et date de l'affiche : l'affiche officielle de Nîmes tant qu'aucune soirée n'est passée ;
+ * ensuite « Prochaine soirée » avec la prochaine du calendrier (lieu et date).
+ */
+export function presentationAfficheAccueil(
+  calendrier: Calendrier[],
+  villeAffiche: string,
+  maintenant: Date,
+): PresentationAfficheAccueil {
+  const prochaine = prochaineSoiree(calendrier, maintenant);
+  const apresUneSoiree = derniereSoireePassee(calendrier, maintenant) !== null;
+  if (apresUneSoiree && prochaine) return { mode: 'prochaine', soiree: prochaine };
+  return { mode: 'officielle', soiree: soireeAfficheAccueil(calendrier, villeAffiche, maintenant) };
 }
 
 /**

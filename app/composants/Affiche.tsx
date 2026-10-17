@@ -2,11 +2,11 @@ import { EDITION_MANADES, VILLE_AFFICHE } from '../donnees/affiche';
 import { AFFICHE, PHOTOS_ACCUEIL } from '../donnees/photos-accueil';
 import { formaterJourMois } from '../lib/accueil';
 import { formaterHeure } from '../lib/dates';
+import type { PresentationAfficheAccueil } from '../lib/accueil';
 import type { Calendrier } from '../lib/donnees';
 
 type Props = {
-  /** Prochaine soirée du calendrier quand elle est aussi celle de l'affiche (Nîmes) ; sinon pas de date. */
-  soiree: Calendrier | null;
+  presentation: PresentationAfficheAccueil | null;
 };
 
 const ID_CREDIT = 'credit-photo-affiche';
@@ -20,7 +20,12 @@ const ID_CREDIT = 'credit-photo-affiche';
  * c'est l'élément le plus grand du premier écran (LCP), chargé en priorité haute. Le duotone est
  * celui de .duo-calques (app/app.css).
  */
-export function Affiche({ soiree }: Props) {
+export function Affiche({ presentation }: Props) {
+  const soiree: Calendrier | null = presentation?.soiree ?? null;
+  const enTete =
+    presentation?.mode === 'prochaine'
+      ? { sousTitre: 'Prochaine soirée', titre: presentation.soiree.ville }
+      : { sousTitre: 'Arènes de', titre: VILLE_AFFICHE };
   const heure = soiree ? formaterHeure(soiree.heure) : null;
   return (
     <div className="relative isolate flex min-h-[470px] flex-col justify-between overflow-hidden rounded-[26px] px-5 pt-[22px] pb-[26px] text-white tablette:min-h-[560px] paysage:min-h-[600px] paysage:px-9 paysage:py-[34px] bureau:min-h-[640px]">
@@ -62,11 +67,15 @@ export function Affiche({ soiree }: Props) {
 
       <div className="relative z-10 flex items-start justify-between gap-3 [text-shadow:0_0_2px_rgba(60,15,5,.7),0_1px_3px_rgba(60,15,5,.5),0_2px_16px_rgba(90,20,5,.55)]">
         <p className="font-display uppercase">
-          <span className="mb-2 block pl-[3px] text-[10.5px] leading-none font-semibold tracking-[0.32em] paysage:mb-3 paysage:text-[13px]">
-            Arènes de
+          <span
+            className={`mb-2 block pl-[3px] text-[10.5px] leading-none font-semibold paysage:mb-3 paysage:text-[13px] ${
+              presentation?.mode === 'prochaine' ? 'tracking-[0.18em]' : 'tracking-[0.32em]'
+            }`}
+          >
+            {enTete.sousTitre}
           </span>{' '}
           <span className="block text-[46px] leading-[.92] font-extrabold tracking-[0.02em] [text-shadow:0_6px_26px_rgba(90,20,5,.35)] paysage:text-[74px]">
-            {VILLE_AFFICHE}
+            {enTete.titre}
           </span>
         </p>
         {soiree ? (

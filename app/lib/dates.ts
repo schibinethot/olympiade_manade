@@ -18,6 +18,15 @@ export function prochaineSoiree<T extends DateCalendrier>(dates: T[], maintenant
   return aVenir[0] ?? null;
 }
 
+/** Dernière soirée non annulée dont la date est passée (strictement avant aujourd'hui à Paris). */
+export function derniereSoireePassee<T extends DateCalendrier>(dates: T[], maintenant: Date): T | null {
+  const aujourdhui = jourParis(maintenant);
+  const passees = dates
+    .filter((x) => x.statut !== 'annulee' && x.date_soiree < aujourdhui)
+    .sort((a, b) => b.date_soiree.localeCompare(a.date_soiree));
+  return passees[0] ?? null;
+}
+
 export function compteARebours(cible: Date, maintenant: Date): { jours: number; heures: number; minutes: number } | null {
   const ms = cible.getTime() - maintenant.getTime();
   if (ms <= 0) return null;

@@ -8,7 +8,7 @@ import { InscriptionActualites } from '../composants/InscriptionActualites';
 import { ManadesEdition } from '../composants/ManadesEdition';
 import { SaisonAccueil } from '../composants/SaisonAccueil';
 import { VILLE_AFFICHE } from '../donnees/affiche';
-import { soireeAfficheAccueil, soireeDeReference } from '../lib/accueil';
+import { presentationAfficheAccueil, soireeDeReference } from '../lib/accueil';
 import { useInstantanePublic } from '../lib/contexte-etat';
 import { lireDonneesVitrine, lireDonneesVitrineNavigateur, type DonneesVitrine } from '../lib/donnees-vitrine';
 import { useRelectureApresInteraction } from '../lib/relecture';
@@ -46,7 +46,7 @@ export default function Accueil({ loaderData }: Route.ComponentProps) {
   useRelectureApresInteraction(loaderData);
   // Carte et pastille : la prochaine soirée du calendrier. L'affiche Nîmes n'affiche une date que si c'est la même.
   const soiree = calendrier ? soireeDeReference(calendrier, maintenant) : null;
-  const soireeAffiche = calendrier ? soireeAfficheAccueil(calendrier, VILLE_AFFICHE, maintenant) : null;
+  const affiche = calendrier ? presentationAfficheAccueil(calendrier, VILLE_AFFICHE, maintenant) : null;
 
   return (
     <>
@@ -55,7 +55,7 @@ export default function Accueil({ loaderData }: Route.ComponentProps) {
         aria-label="À l’affiche"
         className="grid gap-x-[18px] gap-y-3.5 px-4 pt-3.5 tablette:grid-cols-[1.12fr_1fr] tablette:px-7 tablette:pt-[22px] paysage:grid-cols-[1.5fr_1fr] paysage:gap-x-[22px] paysage:px-10 paysage:pt-[26px] bureau:px-14 bureau:pt-[30px]"
       >
-        <Affiche soiree={soireeAffiche} />
+        <Affiche presentation={affiche} />
         <BlocNoter
           etat={instantane.etat}
           soiree={soiree}
