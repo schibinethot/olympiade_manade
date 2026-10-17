@@ -9,6 +9,7 @@ import {
   consentementCookiesDepuisEnvironnement,
   creerConsentementCookies,
   hacherIp,
+  ipClientConsentement,
   normaliserUrl,
   validerCorpsLog,
 } from '../../serveur/consentement-cookies.mjs';
@@ -46,6 +47,7 @@ function configuration(fetchFn: typeof fetch, plus: Partial<Parameters<typeof cr
   return creerConsentementCookies({
     supabaseUrl: 'http://127.0.0.1:54321',
     serviceRoleKey: 'service-secret',
+    cleIp: 'cle-ip-dediee',
     publicOrigin: ORIGINE,
     fetchFn,
     ...plus,
@@ -70,11 +72,18 @@ describe('validation du corps du journal', () => {
     expect(validerCorpsLog({ ...CORPS_VALIDE, visiteurId: '' }).valide).toBe(false);
   });
 
-  it('normalise les URL en retirant query et hash et bornant la longueur', () => {
+  it('normalise les URL http(s) en retirant query et hash et refuse tout autre schéma', () => {
     expect(normaliserUrl('https://olympiadedesmanades.fr/noter?x=1#top')).toBe('https://olympiadedesmanades.fr/noter');
+    expect(normaliserUrl('http://exemple.fr/a?b=1')).toBe('http://exemple.fr/a');
     expect(normaliserUrl(' ')).toBeNull();
     expect(normaliserUrl(null)).toBeNull();
-    expect(normaliserUrl('/' + 'a'.repeat(600))?.length).toBe(500);
+    // Schémas dangereux ou URL relatives : jamais stockés.
+    expect(normaliserUrl('javascript:alert(1)')).toBeNull();
+    expect(normaliserUrl('data:text/html,<script>alert(1)</script>')).toBeNull();
+    expect(normaliserUrl('file:///etc/passwd')).toBeNull();
+    expect(normaliserUrl('/noter')).toBeNull();
+    expect(normaliserUrl('//evil.example/x')).toBeNull();
+    expect(normaliserUrl('https://x.fr/' + 'a'.repeat(600))?.length).toBe(500);
     const valide = validerCorpsLog({ ...CORPS_VALIDE, urlPage: 'https://exemple.fr/x?y=1#z' });
     expect(valide.valide && valide.urlPage).toBe('https://exemple.fr/x');
   });
@@ -237,6 +246,27 @@ describe('POST /api/cookie-consent/log', () => {
     expect(corps.ip_hachee).toMatch(/^[0-9a-f]{16}$/);
     const serialise = JSON.stringify(corps);
     expect(serialise).not.toContain('127.0.0.1');
+    // Le haché provient de la clé dédiée, pas de la service_role.
+    expect(corps.ip_hachee).toBe(hacherIp('127.0.0.1', 'cle-ip-dediee'));
+    expect(corps.ip_hachee).not.toBe(hacherIp('127.0.0.1', 'service-secret'));
+  });
+
+  it('sans CONSENTEMENT_COOKIES_CLE_IP, le dépôt réussit avec ip_hachee à null', async () => {
+    const appels: Array<{ url: string; init?: RequestInit }> = [];
+    const module = creerConsentementCookies({
+      supabaseUrl: 'http://127.0.0.1:54321',
+      serviceRoleKey: 'service-secret',
+      publicOrigin: ORIGINE,
+      fetchFn: async (url, init) => {
+        appels.push({ url: String(url), init });
+        return new Response('', { status: 201 });
+      },
+    });
+    const serveur = await lancer(module);
+    const reponse = await deposer(serveur.base);
+    expect(reponse.status).toBe(200);
+    const corps = JSON.parse(String(appels[0].init?.body));
+    expect(corps.ip_hachee).toBeNull();
   });
 
   it('journalise 502 quand Supabase refuse et 429 si Supabase renvoie 429', async () => {
@@ -254,10 +284,42 @@ describe('POST /api/cookie-consent/log', () => {
       SUPABASE_SERVICE_ROLE_KEY: 'service-secret',
       CONTACT_ORIGIN: ORIGINE,
       CONTACT_TRUST_PROXY: 'true',
+      CONSENTEMENT_COOKIES_CLE_IP: 'cle-dediee',
     });
     expect(module.configure).toBe(true);
     const absent = consentementCookiesDepuisEnvironnement({});
     expect(absent.configure).toBe(false);
+  });
+});
+
+describe('GET /api/cookie-consent/settings : limite par IP', () => {
+  it('refuse 429 au-delà de la limite de lectures par IP', async () => {
+    const module = configuration(async () => new Response(JSON.stringify([]), { status: 200 }), {
+      lectureIpLimit: 2,
+    });
+    const serveur = await lancer(module);
+    expect((await fetch(`${serveur.base}/api/cookie-consent/settings`)).status).toBe(200);
+    expect((await fetch(`${serveur.base}/api/cookie-consent/settings`)).status).toBe(200);
+    const limite = await fetch(`${serveur.base}/api/cookie-consent/settings`);
+    expect(limite.status).toBe(429);
+    expect(limite.headers.get('retry-after')).toBeTruthy();
+  });
+});
+
+describe('IP client : X-Real-IP opt-in', () => {
+  it('n’utilise X-Real-IP que si la confiance proxy Railway est activée', () => {
+    const req = {
+      headers: { 'x-real-ip': '203.0.113.8', 'x-forwarded-for': '198.51.100.1' },
+      socket: { remoteAddress: '192.0.2.1' },
+    } as never;
+    expect(ipClientConsentement(req, false)).toBe('192.0.2.1');
+    expect(ipClientConsentement(req, true)).toBe('203.0.113.8');
+
+    const invalide = {
+      headers: { 'x-real-ip': '203.0.113.8, 198.51.100.1' },
+      socket: { remoteAddress: '192.0.2.1' },
+    } as never;
+    expect(ipClientConsentement(invalide, true)).toBe('192.0.2.1');
   });
 });
 

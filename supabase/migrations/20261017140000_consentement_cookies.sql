@@ -77,9 +77,38 @@ revoke all on public.parametres_cookies from public, anon, authenticated, servic
 revoke all on public.consentements_cookies from public, anon, authenticated, service_role;
 
 -- parametres_cookies : lecture et mise à jour réservées à un admin (AAL2 via prive.est_admin()).
--- Le serveur public lit la configuration en service_role (politique séparée).
-grant select, update on public.parametres_cookies to authenticated;
+-- Les colonnes d'horodatage et d'auteur sont forcées par trigger, pas par le client : ne pas
+-- accorder UPDATE dessus évite qu'un admin falsifie modifie_le ou modifie_par depuis l'interface
+-- d'administration. Le serveur public lit la configuration en service_role (politique séparée).
+grant select on public.parametres_cookies to authenticated;
+grant update (
+  titre, description,
+  texte_tout_accepter, texte_refuser, texte_personnaliser, texte_enregistrer,
+  url_confidentialite,
+  mesure_active, mesure_titre, mesure_description,
+  publicite_active, publicite_titre, publicite_description,
+  duree_consentement_jours
+) on public.parametres_cookies to authenticated;
 grant select on public.parametres_cookies to service_role;
+
+-- Horodatage et auteur forcés par le serveur, jamais lus depuis la requête : un admin ne peut
+-- pas marquer la mise à jour comme venant d'un autre utilisateur ni figer modifie_le.
+create function prive.marquer_parametres_cookies() returns trigger
+language plpgsql set search_path = ''
+as $$
+begin
+  new.id := 1;
+  new.modifie_le := now();
+  new.modifie_par := auth.uid();
+  return new;
+end
+$$;
+
+revoke execute on function prive.marquer_parametres_cookies() from public, anon, authenticated;
+
+create trigger parametres_cookies_marquer_maj
+  before update on public.parametres_cookies
+  for each row execute function prive.marquer_parametres_cookies();
 
 create policy parametres_cookies_lecture_admin
   on public.parametres_cookies for select to authenticated

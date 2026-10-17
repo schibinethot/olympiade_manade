@@ -90,7 +90,7 @@ const DROITS_ATTENDUS = [
   { role: 'authenticated', table: 'notes_public', droits: VOTE },
   { role: 'authenticated', table: 'palmares', droits: ADMIN },
   { role: 'authenticated', table: 'parametres', droits: LECTURE },
-  { role: 'authenticated', table: 'parametres_cookies', droits: 'SELECT, UPDATE' },
+  { role: 'authenticated', table: 'parametres_cookies', droits: LECTURE },
   { role: 'authenticated', table: 'passages', droits: ADMIN },
   { role: 'authenticated', table: 'photos_vitrine', droits: ADMIN },
   { role: 'authenticated', table: 'profils', droits: LECTURE },
@@ -133,9 +133,31 @@ describe('catalogue : tables et droits', () => {
            and (d.grantee = 0 or r.rolname in ('anon', 'authenticated'))
          order by 1, 2, 3, 4`,
       );
+      const COLONNES_PARAMETRES_COOKIES = [
+        'description',
+        'duree_consentement_jours',
+        'mesure_active',
+        'mesure_description',
+        'mesure_titre',
+        'publicite_active',
+        'publicite_description',
+        'publicite_titre',
+        'texte_enregistrer',
+        'texte_personnaliser',
+        'texte_refuser',
+        'texte_tout_accepter',
+        'titre',
+        'url_confidentialite',
+      ];
       expect(rows).toEqual([
         { table: 'messages_contact', colonne: 'traite', role: 'authenticated', droit: 'UPDATE' },
         { table: 'parametres', colonne: 'app_ouverte_au_public', role: 'authenticated', droit: 'UPDATE' },
+        ...COLONNES_PARAMETRES_COOKIES.map((colonne) => ({
+          table: 'parametres_cookies',
+          colonne,
+          role: 'authenticated',
+          droit: 'UPDATE',
+        })),
         { table: 'profils', colonne: 'prenom', role: 'authenticated', droit: 'UPDATE' },
       ]);
     }));

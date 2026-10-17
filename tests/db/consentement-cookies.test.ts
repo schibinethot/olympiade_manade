@@ -78,23 +78,50 @@ describe('consentement cookies : paramètres', () => {
       ).toBe(0);
 
       await commeUtilisateur(db, IDS.admin, 'aal2');
-      const avant = await db.query('select titre, duree_consentement_jours from public.parametres_cookies');
-      expect(avant.rows[0]).toEqual({ titre: 'Confidentialité', duree_consentement_jours: 365 });
+      const avant = await db.query(
+        'select titre, duree_consentement_jours, modifie_le from public.parametres_cookies',
+      );
+      expect(avant.rows[0].titre).toBe('Confidentialité');
+      expect(avant.rows[0].duree_consentement_jours).toBe(365);
+      // Attend 10 ms pour que now() avance franchement entre le premier insert et l'update.
+      await new Promise((ok) => setTimeout(ok, 10));
       const maj = await db.query(
         `update public.parametres_cookies
-           set titre = $1, duree_consentement_jours = $2, modifie_par = $3, modifie_le = now()
+           set titre = $1, duree_consentement_jours = $2
          where id = 1`,
-        ['Vos préférences', 180, IDS.admin],
+        ['Vos préférences', 180],
       );
       expect(maj.rowCount).toBe(1);
       const apres = await db.query(
-        'select titre, duree_consentement_jours, modifie_par from public.parametres_cookies',
+        'select titre, duree_consentement_jours, modifie_par, modifie_le from public.parametres_cookies',
       );
-      expect(apres.rows[0]).toEqual({
-        titre: 'Vos préférences',
-        duree_consentement_jours: 180,
-        modifie_par: IDS.admin,
-      });
+      // Le trigger force modifie_par = auth.uid() et avance modifie_le.
+      expect(apres.rows[0].titre).toBe('Vos préférences');
+      expect(apres.rows[0].duree_consentement_jours).toBe(180);
+      expect(apres.rows[0].modifie_par).toBe(IDS.admin);
+      expect(apres.rows[0].modifie_le.getTime()).toBeGreaterThan(avant.rows[0].modifie_le.getTime());
+    }));
+
+  it('un admin AAL2 ne peut pas modifier id, modifie_le ou modifie_par (grants par colonne)', () =>
+    dansUneTransaction(async (db) => {
+      await semerSoiree(db);
+      await commeUtilisateur(db, IDS.admin, 'aal2');
+      expect(
+        await doitEtreRefuse(db, 'update public.parametres_cookies set id = 2 where id = 1'),
+      ).toBe('42501');
+      expect(
+        await doitEtreRefuse(
+          db,
+          'update public.parametres_cookies set modifie_par = $1 where id = 1',
+          [IDS.spectateur],
+        ),
+      ).toBe('42501');
+      expect(
+        await doitEtreRefuse(
+          db,
+          `update public.parametres_cookies set modifie_le = '2020-01-01' where id = 1`,
+        ),
+      ).toBe('42501');
     }));
 
   it('service_role lit la configuration mais ne peut pas la modifier', () =>

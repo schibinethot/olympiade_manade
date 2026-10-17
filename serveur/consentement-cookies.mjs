@@ -4,11 +4,13 @@
 // user-agent sont normalisés (HMAC puis troncature) avant toute écriture dans Supabase.
 
 import { createHmac } from 'node:crypto';
+import { isIP } from 'node:net';
 import {
   FENETRE_MS,
   avecDelai,
   creerLimiteurFormulaire,
   creerLimiteurGlobalFormulaire,
+  demanderJsonBorne,
   entierBorne,
   ipClient,
   lireJson,
@@ -21,7 +23,8 @@ import {
 const CHEMIN_PARAMETRES = '/api/cookie-consent/settings';
 const CHEMIN_LOG = '/api/cookie-consent/log';
 const CACHE_PARAMETRES_MS = 60_000;
-const IP_LIMITE_DEFAUT = 30;
+const IP_LIMITE_LOG_DEFAUT = 30;
+const IP_LIMITE_LECTURE_DEFAUT = 300;
 const GLOBAL_LIMITE_DEFAUT = 10_000;
 const ADRESSES_MAX_DEFAUT = 10_000;
 const LONGUEUR_MAX_URL = 500;
@@ -92,18 +95,23 @@ function convertirParametres(ligne) {
   };
 }
 
-/** Retire la query et le fragment, puis borne la longueur. @param {unknown} valeur */
+/** N'accepte que les URL absolues http(s), retire la query et le fragment, borne la longueur.
+ * Toute autre valeur (javascript:, data:, URL relative, chaîne vide, non-string) est rejetée.
+ * @param {unknown} valeur */
 export function normaliserUrl(valeur) {
   if (typeof valeur !== 'string') return null;
   const brut = valeur.trim();
   if (!brut) return null;
-  let nettoyee = brut;
-  const positionQuery = nettoyee.indexOf('?');
-  if (positionQuery !== -1) nettoyee = nettoyee.slice(0, positionQuery);
-  const positionHash = nettoyee.indexOf('#');
-  if (positionHash !== -1) nettoyee = nettoyee.slice(0, positionHash);
-  if (!nettoyee) return null;
-  return nettoyee.slice(0, LONGUEUR_MAX_URL);
+  let url;
+  try {
+    url = new URL(brut);
+  } catch {
+    return null;
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+  url.search = '';
+  url.hash = '';
+  return url.toString().slice(0, LONGUEUR_MAX_URL);
 }
 
 /** @param {unknown} corps */
@@ -159,16 +167,33 @@ export function validerCorpsLog(corps) {
   };
 }
 
-/** HMAC-SHA256 tronqué à 16 caractères hex : clé = service_role, l'IP n'est jamais stockée en clair.
+/** HMAC-SHA256 tronqué à 16 caractères hex : clé dédiée distincte de la service_role.
+ * L'IP n'est jamais stockée ni retransmise en clair.
  * @param {string} ip @param {string} cle */
 export function hacherIp(ip, cle) {
   return createHmac('sha256', cle).update(ip).digest('hex').slice(0, 16);
 }
 
+/** Même convention que serveur/actualites.mjs : X-Real-IP seulement si l'ingress Railway est
+ * explicitement de confiance, sinon on retombe sur l'adresse socket.
+ * @param {import('node:http').IncomingMessage} req
+ * @param {boolean} trustRailwayProxy
+ */
+export function ipClientConsentement(req, trustRailwayProxy) {
+  if (trustRailwayProxy) {
+    const valeur = req.headers['x-real-ip'];
+    if (typeof valeur === 'string') {
+      const ip = valeur.trim().replace(/^\[(.*)\]$/, '$1');
+      if (isIP(ip)) return ip.toLowerCase();
+    }
+  }
+  return ipClient(req, false);
+}
+
 /**
  * @typedef {{ supabaseUrl?: string | null, serviceRoleKey?: string | null,
- *   publicOrigin?: string | null, trustProxy?: boolean,
- *   ipLimit?: number, globalLimit?: number, maxIpEntries?: number,
+ *   publicOrigin?: string | null, trustRailwayProxy?: boolean, cleIp?: string | null,
+ *   ipLimit?: number, lectureIpLimit?: number, globalLimit?: number, maxIpEntries?: number,
  *   fetchFn?: typeof fetch, now?: () => number, cacheMs?: number }} OptionsConsentementCookies
  */
 
@@ -178,15 +203,22 @@ export function creerConsentementCookies(options = {}) {
   const publicOrigin = originePublique(options.publicOrigin);
   const serviceRoleKey =
     typeof options.serviceRoleKey === 'string' && options.serviceRoleKey.trim() ? options.serviceRoleKey : null;
-  const trustProxy = options.trustProxy === true;
+  const cleIp = typeof options.cleIp === 'string' && options.cleIp.trim() ? options.cleIp : null;
+  const trustRailwayProxy = options.trustRailwayProxy === true;
   const demander = options.fetchFn ?? fetch;
   const maintenant = options.now ?? Date.now;
   const cacheMs = typeof options.cacheMs === 'number' && options.cacheMs >= 0 ? options.cacheMs : CACHE_PARAMETRES_MS;
 
   const limiterTentatives = creerLimiteurFormulaire({
     maintenant,
-    parIp: entierBorne(options.ipLimit, IP_LIMITE_DEFAUT, 1, 1_000),
+    parIp: entierBorne(options.ipLimit, IP_LIMITE_LOG_DEFAUT, 1, 10_000),
     global: 1_000_000,
+    maxAdresses: entierBorne(options.maxIpEntries, ADRESSES_MAX_DEFAUT, 100, 100_000),
+  });
+  const limiterLectures = creerLimiteurFormulaire({
+    maintenant,
+    parIp: entierBorne(options.lectureIpLimit, IP_LIMITE_LECTURE_DEFAUT, 1, 100_000),
+    global: 10_000_000,
     maxAdresses: entierBorne(options.maxIpEntries, ADRESSES_MAX_DEFAUT, 100, 100_000),
   });
   const limiterGlobal = creerLimiteurGlobalFormulaire({
@@ -208,7 +240,7 @@ export function creerConsentementCookies(options = {}) {
       return defaut;
     }
     try {
-      const reponse = await avecDelai(
+      const { reponse, corps } = await demanderJsonBorne(
         demander,
         `${supabaseUrl}/rest/v1/parametres_cookies?select=*&id=eq.1&limit=1`,
         {
@@ -221,7 +253,6 @@ export function creerConsentementCookies(options = {}) {
         },
       );
       if (!reponse.ok) throw new Error(`statut ${reponse.status}`);
-      const corps = /** @type {unknown} */ (await reponse.json());
       const premier = Array.isArray(corps) ? corps[0] : null;
       const valeur = convertirParametres(premier);
       cache = { ts: temps, valeur };
@@ -246,6 +277,16 @@ export function creerConsentementCookies(options = {}) {
   async function repondreParametres(req, res) {
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       return repondreJson(req, res, 405, { error: 'Méthode non autorisée.' }, { Allow: 'GET' });
+    }
+    const ip = ipClientConsentement(req, trustRailwayProxy);
+    if (!limiterLectures.accepter(ip)) {
+      return repondreJson(
+        req,
+        res,
+        429,
+        { error: 'Trop de demandes. Réessayez plus tard.' },
+        { 'Retry-After': String(Math.ceil(FENETRE_MS / 1000)) },
+      );
     }
     const parametres = await chargerParametres();
     return repondreJson(req, res, 200, /** @type {Record<string, unknown>} */ (parametres), {
@@ -274,7 +315,7 @@ export function creerConsentementCookies(options = {}) {
     const valide = validerCorpsLog(brut);
     if (!valide.valide) return repondreJson(req, res, 400, { error: valide.erreur });
 
-    const ip = ipClient(req, trustProxy);
+    const ip = ipClientConsentement(req, trustRailwayProxy);
     if (!limiterTentatives.accepter(ip)) {
       return repondreJson(
         req,
@@ -294,7 +335,10 @@ export function creerConsentementCookies(options = {}) {
       );
     }
 
-    const ipHachee = ip && ip !== 'inconnue' ? hacherIp(ip, /** @type {string} */ (serviceRoleKey)) : null;
+    // Sans clé HMAC dédiée, l'IP n'est pas hachée mais le dépôt continue : la journalisation reste
+    // conforme (ip_hachee null, visiteur_id et choix bruts). Jamais la service_role en secours :
+    // ce serait un secret qui chiffrerait l'IP et ouvrirait un canal latéral si la clé fuite.
+    const ipHachee = cleIp && ip && ip !== 'inconnue' ? hacherIp(ip, cleIp) : null;
     const agentBrut = req.headers['user-agent'];
     const agent = typeof agentBrut === 'string' && agentBrut ? agentBrut.slice(0, LONGUEUR_MAX_AGENT) : null;
 
@@ -352,6 +396,7 @@ export function creerConsentementCookies(options = {}) {
     configure,
     chargerParametres,
     limiter: limiterTentatives,
+    limiterLectures,
     limiterGlobal,
   };
 }
@@ -371,6 +416,7 @@ export function consentementCookiesDepuisEnvironnement(env) {
     supabaseUrl: env.VITE_SUPABASE_URL,
     serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
     publicOrigin: env.CONTACT_ORIGIN,
-    trustProxy: env.CONTACT_TRUST_PROXY === 'true',
+    trustRailwayProxy: env.CONTACT_TRUST_PROXY === 'true',
+    cleIp: env.CONSENTEMENT_COOKIES_CLE_IP,
   });
 }
