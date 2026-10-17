@@ -56,15 +56,15 @@ export default function MentionsLegales() {
         </SectionLegale>
 
         <SectionLegale id="credits" titre="Crédits photos">
-          <p>Photographies sous licence libre, retouchées pour le site&nbsp;:</p>
+          <p>Les photographies sont créditées selon leur source et leur régime de droits&nbsp;:</p>
           <CreditsPhotos />
-          <p>Les versions retouchées de ces photographies sont mises à disposition sous la même licence que l’original.</p>
+          <p>Les versions retouchées des photos d’ambiance sont mises à disposition sous la même licence que l’original.</p>
         </SectionLegale>
 
         <SectionLegale id="propriete" titre="Propriété intellectuelle">
           <p>
             Les textes, logos et éléments graphiques du site sont protégés (CPI L.111-1 et L.335-2). Toute reproduction sans
-            autorisation est interdite, à l’exception des photographies sous licence libre mentionnées ci-dessus. L’usage du
+            autorisation est interdite, à l’exception des photos d’ambiance sous licence libre mentionnées ci-dessus. L’usage du
             nom et du logo de l’Olympiade des Manades et de ceux d’Atch Élevage reste soumis à l’accord de leurs titulaires.
           </p>
         </SectionLegale>

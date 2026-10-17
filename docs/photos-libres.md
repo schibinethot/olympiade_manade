@@ -1,8 +1,26 @@
-# Photos libres de droits pour le site vitrine
+# Photographies du site : sources et crédits
 
-Fiches Wikimedia Commons lues et vérifiées le 10/10/2026 (auteur, licence, adresse du fichier). Aucune photo libre des Olympiades elles-mêmes n'existe sur Commons : les photos d'épreuves (sauts, attente au fer) devront venir de l'organisateur ou des manades, avec l'accord écrit du photographe.
+Fiches Wikimedia Commons lues et vérifiées le 10/10/2026 (auteur, licence, adresse du fichier). La recherche n'avait pas permis de trouver des photos libres représentant précisément les quatre épreuves. Une sélection de photographies d'action a été intégrée le 17/10/2026 à la demande explicite de l'utilisateur, après présentation des sources et de leur statut de droits.
 
-## Règles d'usage
+## Photos des quatre épreuves
+
+Les quatre fichiers JPEG sont servis depuis `public/photos/epreuves/`, à l'identique des sources, sans retouche ni suppression des signatures. Leur affichage conserve le cadre entier ; les numéros des épreuves ne recouvrent pas les photos. Le total des quatre fichiers est de 296 623 octets, chargé à l'approche de la section.
+
+| Épreuve | Fichier local | Dimensions | Crédit affiché | Source du fichier |
+|---|---|---|---|---|
+| Ferrade en piste | `ferrade-en-piste.jpg` | 550 × 367 | Éric Blanc / Salluvii | [IMG_4958.jpg](https://www.salluvii.fr/IMG/jpg/IMG_4958.jpg) |
+| Saut de cheval à cheval | `saut-cheval-a-cheval.jpg` | 800 × 533 | Voir Plus | [282A5641_Restored-1-1.jpg](https://voir-plus.com/wp-content/uploads/2026/08/282A5641_Restored-1-1.jpg) |
+| Saut de cheval à taureau | `saut-cheval-a-taureau.jpg` | 800 × 571 | Voir Plus | [282A5719_Restored.jpg](https://voir-plus.com/wp-content/uploads/2026/08/282A5719_Restored.jpg) |
+| Attente au fer | `attente-au-fer.jpg` | 550 × 367 | Éric Blanc / Salluvii | [IMG_4897.jpg](https://www.salluvii.fr/IMG/jpg/IMG_4897.jpg) |
+
+Reportages d'origine, liés depuis les crédits des cartes :
+
+- [Salluvii, Olympiades camarguaises 2008](https://www.salluvii.fr/Olympiades-Camarguaises-2008), signé Éric et Magali Blanc ; les fichiers sélectionnés portent la signature photographique Éric Blanc.
+- [Voir Plus, fête votive de Beauvoisin, 19 août 2026](https://voir-plus.com/2026/08/19/la-fete-votive-de-beauvoisin-incontournable-et-festive/). Le crédit reste « Voir Plus » : le nom du photographe de ces deux clichés n'est pas confirmé par la page.
+
+Ces photographies sont à droits réservés, pas sous licence Creative Commons. L'instruction d'intégration de l'utilisateur n'est pas une preuve d'autorisation des titulaires ; aucune autorisation de réutilisation n'est archivée dans le dépôt. [Voir Plus demande une autorisation écrite préalable](https://voir-plus.com/mentions-legales/). Les mentions légales du site distinguent ces quatre crédits des photos Wikimedia Commons ci-dessous.
+
+## Règles d'usage des photos Wikimedia Commons
 
 - **Crédit obligatoire** sous chaque photo : « Auteur, Licence, via Wikimedia Commons », avec un lien vers la fiche et vers la licence. Pour les photos 1 et 12, l'auteur demande « Benjamin Smith / Wikimedia Commons »
 - **Licences BY-SA** : une photo recadrée ou retouchée reste sous la même licence, avec mention de la modification

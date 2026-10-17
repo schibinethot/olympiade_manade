@@ -1,19 +1,15 @@
-import { Fragment } from 'react';
 import { Link } from 'react-router';
 import { EPREUVES } from '../donnees/epreuves';
-import { PHOTOS_ACCUEIL, RETOUCHE, type PhotoAccueil } from '../donnees/photos-accueil';
+import { PHOTOS_EPREUVES, type PhotoEpreuve } from '../donnees/photos-epreuves';
 import { useProche } from '../lib/useProche';
 import { Icone } from './Icone';
 
 const LIEN = 'underline underline-offset-2 hover:text-encre';
 
-/** Photo d'une carte : AVIF si le navigateur le lit, sinon WebP. */
-function PhotoCarte({ photo, cadrage }: { photo: PhotoAccueil; cadrage: string }) {
+/** Photo originale d'une carte, maintenue entière pour conserver l'action et les filigranes. */
+function PhotoCarte({ photo }: { photo: PhotoEpreuve }) {
   return (
-    <picture>
-      <source type="image/avif" srcSet={photo.avif} width={photo.largeur} height={photo.hauteur} />
-      <img src={photo.fichier} alt="" width={photo.largeur} height={photo.hauteur} decoding="async" className={cadrage} />
-    </picture>
+    <img src={photo.fichier} alt={photo.alt} width={photo.largeur} height={photo.hauteur} decoding="async" className="size-full object-contain" />
   );
 }
 
@@ -27,7 +23,6 @@ function PhotoCarte({ photo, cadrage }: { photo: PhotoAccueil; cadrage: string }
  * l'horizontale sont déjà prêtes. Sans JavaScript, le <noscript> les affiche directement.
  */
 export function Epreuves() {
-  const photos = [...new Set(EPREUVES.map((e) => e.photo))].map((id) => PHOTOS_ACCUEIL[id]);
   const [liste, photosProches] = useProche<HTMLUListElement>();
   return (
     <section aria-labelledby="titre-epreuves" className="px-4 pt-9 pb-1 tablette:px-7 tablette:pt-11 paysage:px-10 paysage:pt-14 bureau:px-14">
@@ -57,33 +52,34 @@ export function Epreuves() {
         className="relative -mx-4 grid snap-x snap-mandatory scroll-px-4 auto-cols-[80%] grid-flow-col gap-3 overflow-x-auto rounded-[22px] px-4 pb-1 [scrollbar-width:none] tablette:mx-0 tablette:grid-flow-row tablette:grid-cols-2 tablette:overflow-visible tablette:px-0 paysage:grid-cols-4 paysage:gap-4 [&::-webkit-scrollbar]:hidden"
       >
         {EPREUVES.map((epreuve) => {
-          const photo = PHOTOS_ACCUEIL[epreuve.photo];
+          const photo = PHOTOS_EPREUVES[epreuve.photo];
           return (
             <li
               key={epreuve.numero}
               className="relative flex snap-start flex-col overflow-hidden rounded-[22px] border border-trait bg-creme"
             >
-              <div className="duo-calques aspect-[16/11] overflow-hidden text-white">
+              <div className="aspect-[16/11] overflow-hidden bg-nuit">
                 {photosProches ? (
-                  <PhotoCarte photo={photo} cadrage={epreuve.cadrage} />
+                  <PhotoCarte photo={photo} />
                 ) : (
                   <noscript>
-                    <img src={photo.fichier} alt="" width={photo.largeur} height={photo.hauteur} className={epreuve.cadrage} />
+                    <img src={photo.fichier} alt={photo.alt} width={photo.largeur} height={photo.hauteur} className="size-full object-contain" />
                   </noscript>
                 )}
-                <span
-                  aria-hidden="true"
-                  className="absolute -bottom-0.5 left-3.5 z-10 font-display text-[74px] leading-none font-bold italic [text-shadow:0_4px_22px_rgba(70,15,0,.4)]"
-                >
-                  {epreuve.numero}
-                </span>
               </div>
               <div className="flex flex-1 flex-col gap-1.5 px-4 pt-3.5 pb-4">
-                <h3 className="font-display text-[19px] leading-[1.15] font-bold">
+                <h3 className="flex items-baseline gap-2 font-display text-[19px] leading-[1.15] font-bold">
+                  <span aria-hidden="true" className="text-[24px] leading-none text-or-ink italic">{epreuve.numero}</span>
                   <span className="sr-only">Épreuve {epreuve.numero}&nbsp;: </span>
                   {epreuve.nom}
                 </h3>
                 <p className="text-[13.5px] leading-[1.45] text-encre-2">{epreuve.description}</p>
+                <p className="text-[11px] leading-snug text-encre-2">
+                  Photo&nbsp;:{' '}
+                  <a href={photo.fiche} className={LIEN}>
+                    {photo.auteur}
+                  </a>
+                </p>
                 <p className="mt-auto pt-2.5 text-[10.5px] leading-[1.2] font-bold tracking-[0.1em] text-encre-2 uppercase">
                   {epreuve.format}
                 </p>
@@ -92,23 +88,7 @@ export function Epreuves() {
           );
         })}
       </ul>
-
       <p className="mt-3 text-[11.5px] leading-snug text-encre-2">
-        Photos d’ambiance&nbsp;:{' '}
-        {photos.map((photo, i) => (
-          <Fragment key={photo.id}>
-            {i > 0 ? ', ' : ''}
-            <a href={photo.fiche} className={LIEN}>
-              {photo.auteur}
-            </a>{' '}
-            (
-            <a href={photo.lienLicence} rel="license" className={LIEN}>
-              {photo.licence}
-            </a>
-            )
-          </Fragment>
-        ))}
-        , via Wikimedia Commons, {RETOUCHE.replace('retouchée', 'retouchées')}.{' '}
         <Link to="/mentions-legales#credits" className={LIEN}>
           Crédits photos
         </Link>

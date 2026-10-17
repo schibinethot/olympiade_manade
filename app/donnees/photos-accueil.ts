@@ -1,7 +1,7 @@
 // Photos de la maquette reprises sur l'accueil (README de docs/maquette et plan, règle 4).
 // Fichiers en niveaux de gris dans public/photos/, passés en duotone par le CSS (charte, section 5).
-// Pas de galerie à part (Task 7) : ces quatre photos sont toutes celles du site, et leurs crédits
-// complets, affichés sous l'affiche et sous les épreuves, sont repris par les mentions légales.
+// Les photos d'ambiance encore utilisées (affiche et fond des arènes) sont créditées dans les
+// mentions légales ; les quatre photos originales des épreuves sont dans photos-epreuves.ts.
 //
 // Chaque photo existe en WebP (tous navigateurs) et en AVIF monochrome, environ moitié moins lourd
 // (avifenc -q 45 --yuv 400, depuis les fichiers de docs/maquette/img).

@@ -96,20 +96,23 @@ test('les mentions légales signalent les informations éditeur à compléter', 
 
 test('les mentions légales listent les crédits photos issus des données', async ({ page }) => {
   await page.goto('/mentions-legales');
-  const credits = page.getByRole('list', { name: 'Crédits photos' });
-  await expect(credits.getByRole('listitem')).toHaveCount(4);
-  await expect(credits.getByText('afroboof')).toBeVisible();
-  await expect(credits.getByText('CC BY-SA 2.0')).toBeVisible();
-  await expect(credits.getByText('Christian Ferrer')).toBeVisible();
-  await expect(credits.getByText('Krzysztof Golik')).toBeVisible();
-  await expect(credits.getByText('Benjamin Smith')).toBeVisible();
-  await expect(credits.getByText(/retouchée/).first()).toBeVisible();
+  const epreuves = page.getByRole('list', { name: 'Photos des épreuves' });
+  const ambiance = page.getByRole('list', { name: 'Photos d’ambiance' });
+  await expect(epreuves.getByRole('listitem')).toHaveCount(4);
+  await expect(ambiance.getByRole('listitem')).toHaveCount(2);
+  await expect(epreuves.getByText('Éric Blanc / Salluvii').first()).toBeVisible();
+  await expect(epreuves.getByText('Voir Plus').first()).toBeVisible();
+  await expect(epreuves.getByText('Tous droits réservés').first()).toBeVisible();
+  await expect(ambiance.getByText('afroboof')).toBeVisible();
+  await expect(ambiance.getByText('CC BY-SA 2.0')).toBeVisible();
+  await expect(ambiance.getByText('Krzysztof Golik')).toBeVisible();
+  await expect(ambiance.getByText(/retouchée/).first()).toBeVisible();
   // La photo de l'affiche est recadrée sur téléphone (fichier hero-telephone) : le crédit le dit.
-  // Les trois autres fichiers gardent le cadre de l'original.
-  const affiche = credits.getByRole('listitem').filter({ hasText: 'Affiche de l’accueil' });
+  // La photo d'ambiance des arènes garde le cadre de l'original.
+  const affiche = ambiance.getByRole('listitem').filter({ hasText: 'Affiche de l’accueil' });
   await expect(affiche).toContainText('recadrée et retouchée (niveaux de gris, duotone).');
-  await expect(credits.getByRole('listitem').filter({ hasText: 'recadrée' })).toHaveCount(1);
-  await expect(credits.getByRole('listitem').filter({ hasText: 'retouchée (niveaux de gris, duotone).' })).toHaveCount(4);
+  await expect(ambiance.getByRole('listitem').filter({ hasText: 'recadrée' })).toHaveCount(1);
+  await expect(ambiance.getByRole('listitem').filter({ hasText: 'retouchée (niveaux de gris, duotone).' })).toHaveCount(2);
 });
 
 test('le crédit sous l’affiche de l’accueil annonce le recadrage', async ({ page }) => {
