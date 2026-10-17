@@ -1,0 +1,253 @@
+import { describe, expect, it } from 'vitest';
+import { MODELES_DEFAUT, rendreEmail } from '../../serveur/gabarits-emails.mjs';
+import type { DateCalendrier, LigneBilan } from '../../app/composants/admin/emails/donnees';
+import {
+  heureSaisie,
+  heureValide,
+  insererBouton,
+  insererGras,
+  insererLien,
+  insererListe,
+  insererVariable,
+  instantEnClair,
+  joursValides,
+  libelleChoixJours,
+  libelleOptionDate,
+  messageAEcrire,
+  preparerApercu,
+  prochainEnvoiEnClair,
+  quandEnClair,
+  regrouperBilan,
+  soireesSuspendues,
+} from '../../app/composants/admin/emails/outils';
+
+const SOMMIERES: DateCalendrier = {
+  id: 'sommieres', nom: 'Olympiade des Manades', ville: 'Sommières', arenes: 'Arènes Gilles Arnaud',
+  date_soiree: '2027-07-31', heure: '21:30:00', statut: 'confirmee', lien_billetterie: null,
+  infos_pratiques: null, soiree_id: null, soiree: null,
+};
+const BEZOUCE: DateCalendrier = {
+  ...SOMMIERES, id: 'bezouce', ville: 'Bezouce', arenes: null, date_soiree: '2027-08-05', heure: null,
+};
+const LE_CRES: DateCalendrier = {
+  ...SOMMIERES, id: 'le-cres', ville: 'Le Crès', arenes: null, date_soiree: '2027-08-16', heure: null,
+};
+const MAINTENANT = new Date('2026-10-17T08:00:00Z');
+const ORIGINE = 'https://olympiadedesmanades.fr';
+
+describe('quand en clair', () => {
+  it('dit les échéances par défaut comme l’organisateur les dirait', () => {
+    const quand = (cle: keyof typeof MODELES_DEFAUT) => quandEnClair(cle, MODELES_DEFAUT[cle].jours_decalage, MODELES_DEFAUT[cle].heure_envoi);
+    expect(quand('j_moins_7')).toBe('7 jours avant, à 10 h');
+    expect(quand('veille')).toBe('La veille, à 18 h');
+    expect(quand('jour_j')).toBe('Le jour même, à 10 h');
+    expect(quand('lendemain')).toBe('Le lendemain, à 10 h');
+    expect(quand('prochaines_dates')).toBe('7 jours après, à 10 h');
+    expect(quand('annonce')).toBe('10 jours avant chaque autre date, à 10 h');
+    expect(quand('confirmation')).toMatch(/^Dès le dépôt/);
+    expect(quand('message')).toMatch(/onglet Dates/);
+  });
+
+  it('libelle les choix du jour d’envoi sans tournure bancale', () => {
+    expect(libelleChoixJours(-7, false)).toBe('7 jours avant la date');
+    expect(libelleChoixJours(-1, false)).toBe('La veille de la date');
+    expect(libelleChoixJours(0, false)).toBe('Le jour même');
+    expect(libelleChoixJours(1, false)).toBe('Le lendemain de la date');
+    expect(libelleChoixJours(7, false)).toBe('7 jours après la date');
+    expect(libelleChoixJours(-10, true)).toBe('10 jours avant chaque autre date');
+    expect(libelleChoixJours(0, true)).toBe('Le jour même de chaque autre date');
+    expect(quandEnClair('annonce', -1, '09:00')).toBe('La veille de chaque autre date, à 9 h');
+  });
+
+  it('lit les heures de la base, avec ou sans secondes', () => {
+    expect(quandEnClair('veille', -1, '18:30:00')).toBe('La veille, à 18 h 30');
+    expect(quandEnClair('j_moins_7', -2, '07:05')).toBe('2 jours avant, à 7 h 05');
+    expect(heureSaisie('18:30:00')).toBe('18:30');
+    expect(heureSaisie(null)).toBe('');
+  });
+
+  it('borne les réglages comme la base', () => {
+    expect(joursValides(-14)).toBe(true);
+    expect(joursValides(7)).toBe(true);
+    expect(joursValides(-15)).toBe(false);
+    expect(joursValides(8)).toBe(false);
+    expect(joursValides(1.5)).toBe(false);
+    expect(heureValide('07:00')).toBe(true);
+    expect(heureValide('21:00')).toBe(true);
+    expect(heureValide('06:59')).toBe(false);
+    expect(heureValide('21:01')).toBe(false);
+    expect(heureValide('')).toBe(false);
+  });
+});
+
+describe('estimations et dates', () => {
+  it('écrit un instant à l’heure de Paris, été comme hiver', () => {
+    expect(instantEnClair('2027-07-24T08:00:00Z')).toBe('sam. 24/07 à 10 h');
+    expect(instantEnClair('2027-11-06T16:30:00Z')).toBe('sam. 06/11 à 17 h 30');
+  });
+
+  it('dit le prochain envoi comme une estimation', () => {
+    expect(prochainEnvoiEnClair({ etape: 'j_moins_7', calendrierId: 'x', prevuLe: '2027-07-24T08:00:00Z', destinataires: 132 }))
+      .toBe('environ 132 destinataires, sam. 24/07 à 10 h');
+    expect(prochainEnvoiEnClair({ etape: 'veille', calendrierId: 'x', prevuLe: '2027-07-30T16:00:00Z', destinataires: 1 }))
+      .toBe('environ 1 destinataire, ven. 30/07 à 18 h');
+    expect(prochainEnvoiEnClair({ etape: 'veille', calendrierId: 'x', prevuLe: '2027-07-30T16:00:00Z', destinataires: 0 }))
+      .toBe('ven. 30/07 à 18 h, aucun inscrit pour l’instant');
+    expect(prochainEnvoiEnClair(undefined)).toBeNull();
+  });
+
+  it('libelle une date du calendrier avec son statut', () => {
+    expect(libelleOptionDate(SOMMIERES)).toBe('sam. 31/07/2027 · Sommières');
+    expect(libelleOptionDate({ ...BEZOUCE, statut: 'previsionnelle' })).toBe('jeu. 05/08/2027 · Bezouce (prévisionnelle)');
+  });
+
+  it('repère une soirée liée annulée ou reportée sous une date confirmée', () => {
+    const reportee = { ...SOMMIERES, soiree: { slug: 's', statut: 'reportee' as const } };
+    const annulee = { ...BEZOUCE, statut: 'annulee' as const, soiree: { slug: 'b', statut: 'annulee' as const } };
+    expect(soireesSuspendues([reportee, annulee, BEZOUCE], '2027-07-01').map((date) => date.id)).toEqual(['sommieres']);
+    expect(soireesSuspendues([reportee], '2027-08-01')).toEqual([]);
+  });
+
+  it('regroupe le bilan par étape et par date', () => {
+    const bilan: LigneBilan[] = [
+      { etape: 'veille', calendrier_id: 'a', reel: true, statut: 'envoye', nombre: 10, dernier_envoi: '2027-07-30T16:00:00Z' },
+      { etape: 'veille', calendrier_id: 'a', reel: false, statut: 'simule', nombre: 3, dernier_envoi: '2027-07-29T16:00:00Z' },
+      { etape: 'veille', calendrier_id: 'a', reel: true, statut: 'saute', nombre: 2, dernier_envoi: null },
+      { etape: 'confirmation', calendrier_id: null, reel: true, statut: 'echec', nombre: 1, dernier_envoi: null },
+    ];
+    expect(regrouperBilan(bilan)).toEqual([
+      { etape: 'confirmation', calendrierId: null, envoye: 0, simule: 0, echec: 1, saute: 0, en_attente: 0, dernierEnvoi: null },
+      { etape: 'veille', calendrierId: 'a', envoye: 10, simule: 3, echec: 0, saute: 2, en_attente: 0, dernierEnvoi: '2027-07-30T16:00:00Z' },
+    ]);
+  });
+});
+
+describe('insertion de la syntaxe', () => {
+  it('insère une variable au curseur, ou à la place de la sélection', () => {
+    expect(insererVariable('Bonjour ,', 8, 8, 'prenom')).toEqual({ valeur: 'Bonjour {{prenom}},', debut: 18, fin: 18 });
+    expect(insererVariable('Le X', 3, 4, 'date')).toEqual({ valeur: 'Le {{date}}', debut: 11, fin: 11 });
+  });
+
+  it('met en gras la sélection, ou un texte à remplacer', () => {
+    expect(insererGras('un mot ici', 3, 6)).toEqual({ valeur: 'un **mot** ici', debut: 5, fin: 8 });
+    const vide = insererGras('', 0, 0);
+    expect(vide.valeur).toBe('**texte en gras**');
+    expect(vide.valeur.slice(vide.debut, vide.fin)).toBe('texte en gras');
+  });
+
+  it('fait un lien de la sélection et sélectionne l’adresse à compléter', () => {
+    const lien = insererLien('Voir le site', 5, 12);
+    expect(lien.valeur).toBe('Voir [le site](https://)');
+    expect(lien.valeur.slice(lien.debut, lien.fin)).toBe('https://');
+    const vide = insererLien('', 0, 0);
+    expect(vide.valeur).toBe('[texte du lien](https://)');
+    expect(vide.valeur.slice(vide.debut, vide.fin)).toBe('texte du lien');
+  });
+
+  it('met en liste la ligne courante ou les lignes sélectionnées', () => {
+    expect(insererListe('Intro\nHeure', 8, 8).valeur).toBe('Intro\n- Heure');
+    expect(insererListe('A\nB\n- C', 0, 7).valeur).toBe('- A\n- B\n- C');
+    expect(insererListe('', 0, 0)).toEqual({ valeur: '- ', debut: 2, fin: 2 });
+  });
+
+  it('pose un bouton seul sur sa ligne', () => {
+    const bouton = insererBouton('Avant après', 5, 5);
+    expect(bouton.valeur).toBe('Avant\n[[Texte du bouton|https://]]\n après');
+    expect(bouton.valeur.slice(bouton.debut, bouton.fin)).toBe('Texte du bouton');
+    const avecTexte = insererBouton('Je note', 0, 7);
+    expect(avecTexte.valeur).toBe('[[Je note|https://]]');
+    expect(avecTexte.valeur.slice(avecTexte.debut, avecTexte.fin)).toBe('https://');
+  });
+
+  it('nettoie les crochets qui casseraient la syntaxe', () => {
+    expect(insererBouton('a [b|c]', 0, 7).valeur).toBe('[[a bc|https://]]');
+    expect(insererLien('[x]', 0, 3).valeur).toBe('[x](https://)');
+  });
+});
+
+describe('message aux inscrits', () => {
+  it('refuse le texte de départ tel quel, ou avec sa phrase à remplacer', () => {
+    expect(messageAEcrire(MODELES_DEFAUT.message.corps)).toBe(true);
+    expect(messageAEcrire(`${MODELES_DEFAUT.message.corps}\n\nPS : merci.`)).toBe(true);
+    expect(messageAEcrire('Bonjour {{prenom}},\n\nLe parking change de place.')).toBe(false);
+  });
+});
+
+describe('contexte de l’aperçu', () => {
+  const base = {
+    reglage: { jours_decalage: -7, heure_envoi: '10:00:00' },
+    date: SOMMIERES, dates: [SOMMIERES, BEZOUCE], prenom: 'Camille', origine: ORIGINE,
+    maintenant: MAINTENANT, exemples: false, encart: true,
+  };
+
+  it('se place à l’échéance de l’étape pour la date choisie', () => {
+    const { contexte, instant } = preparerApercu({ ...base, cle: 'j_moins_7' });
+    expect(instant.toISOString()).toBe('2027-07-24T08:00:00.000Z');
+    const rendu = rendreEmail(MODELES_DEFAUT.j_moins_7, contexte, { cible: 'apercu' });
+    expect(rendu.html).toContain('samedi 31 juillet 2027');
+    expect(rendu.sujet).toBe('L’Olympiade à Sommières, c’est dans 7 jours');
+    expect(rendu.html).toContain('Bonjour Camille,');
+    // Pas de soirée liée : la ligne des manades et le lien pour noter disparaissent.
+    expect(rendu.html).not.toContain('Manades engagées');
+  });
+
+  it('complète les infos manquantes avec des exemples sur demande', () => {
+    const { contexte } = preparerApercu({ ...base, cle: 'j_moins_7', exemples: true });
+    const rendu = rendreEmail(MODELES_DEFAUT.j_moins_7, contexte, { cible: 'apercu' });
+    expect(rendu.html).toContain('Manades engagées');
+    expect(rendu.html).toContain(`${ORIGINE}/noter`);
+  });
+
+  it('montre l’encart de bienvenue quelques jours avant la date', () => {
+    const avec = preparerApercu({ ...base, cle: 'bienvenue', reglage: { jours_decalage: null, heure_envoi: null } });
+    expect(avec.contexte.encartDateProche).toBe(true);
+    expect(rendreEmail(MODELES_DEFAUT.bienvenue, avec.contexte, { cible: 'apercu' }).html).toContain('c’est dans 3 jours');
+    const sans = preparerApercu({ ...base, cle: 'bienvenue', reglage: { jours_decalage: null, heure_envoi: null }, encart: false });
+    expect(sans.contexte.encartDateProche).toBe(false);
+    expect(sans.instant).toBe(MAINTENANT);
+  });
+
+  it('liste les prochaines dates confirmées comme l’envoi, avec leur lien « Je viens »', () => {
+    const { contexte } = preparerApercu({ ...base, cle: 'prochaines_dates', reglage: { jours_decalage: 7, heure_envoi: '10:00' }, dates: [SOMMIERES, BEZOUCE, LE_CRES] });
+    // Le 07/08 à 10 h : Bezouce (05/08) est passée, seul Le Crès est à venir.
+    expect(contexte.prochaines.map((date) => date.id)).toEqual(['le-cres']);
+    expect(contexte.prochaines[0].lienJeViens).toBe(`${ORIGINE}/emails/je-viens`);
+    const rendu = rendreEmail(MODELES_DEFAUT.prochaines_dates, contexte, { cible: 'apercu' });
+    expect(rendu.html).toContain('lun. 16/08 · Le Crès');
+  });
+
+  it('exclut la date de l’email et garde 3 prochaines dates au plus', () => {
+    const autres = [1, 2, 3, 4].map((n) => ({ ...LE_CRES, id: `autre-${n}`, date_soiree: `2027-09-0${n}` }));
+    const { contexte } = preparerApercu({ ...base, cle: 'message', reglage: { jours_decalage: null, heure_envoi: null }, dates: [SOMMIERES, ...autres] });
+    expect(contexte.prochaines.map((date) => date.id)).toEqual(['autre-1', 'autre-2', 'autre-3']);
+  });
+
+  it('ne met le lien de confirmation que dans la confirmation, et « Je viens » que dans l’annonce', () => {
+    const reglageVide = { jours_decalage: null, heure_envoi: null };
+    expect(preparerApercu({ ...base, cle: 'confirmation', reglage: reglageVide }).contexte.liens)
+      .toEqual({ desinscription: `${ORIGINE}/emails/desinscription`, confirmation: `${ORIGINE}/emails/confirmation`, jeViens: null });
+    expect(preparerApercu({ ...base, cle: 'confirmation', reglage: reglageVide }).contexte.prochaines).toEqual([]);
+    expect(preparerApercu({ ...base, cle: 'veille' }).contexte.liens).toMatchObject({ confirmation: null, jeViens: null });
+    const annonce = preparerApercu({ ...base, cle: 'annonce', reglage: { jours_decalage: -10, heure_envoi: '10:00' } });
+    expect(annonce.contexte.liens.jeViens).toBe(`${ORIGINE}/emails/je-viens`);
+    expect(annonce.contexte.annoncees.map((date) => date.id)).toEqual(['sommieres']);
+  });
+
+  it('retombe sur maintenant si le réglage en cours de saisie est invalide', () => {
+    const { instant } = preparerApercu({ ...base, cle: 'veille', reglage: { jours_decalage: -1, heure_envoi: '25:00' } });
+    expect(instant).toBe(MAINTENANT);
+  });
+
+  it('sans date au calendrier, rend sans date, ou avec une date d’exemple', () => {
+    const sans = preparerApercu({ ...base, cle: 'veille', date: null, dates: [] });
+    expect(sans.contexte.date).toBeNull();
+    const exemple = preparerApercu({ ...base, cle: 'veille', date: null, dates: [], exemples: true });
+    expect(exemple.contexte.date?.ville).toBe('Sommières');
+  });
+
+  it('écrit le prénom vide comme une absence de prénom', () => {
+    const { contexte } = preparerApercu({ ...base, cle: 'veille', prenom: '  ' });
+    expect(contexte.prenom).toBeNull();
+    expect(rendreEmail(MODELES_DEFAUT.veille, contexte, { cible: 'apercu' }).html).toContain('Bonjour,');
+  });
+});

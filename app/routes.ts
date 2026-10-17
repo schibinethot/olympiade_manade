@@ -21,6 +21,7 @@ export default [
   route('admin/participants', 'routes/admin-participants.tsx'),
   route('admin/messages', 'routes/admin-messages.tsx'),
   route('admin/abonnes', 'routes/admin-abonnes.tsx'),
+  route('admin/emails', 'routes/admin-emails.tsx'),
   route('admin/juges', 'routes/admin-juges.tsx'),
   route('admin/soirees', 'routes/admin-soirees.tsx'),
   route('admin/soirees/:soireeId', 'routes/admin-soiree.tsx'),

@@ -73,6 +73,9 @@ type Pages = {
   "/admin/abonnes": {
     params: {};
   };
+  "/admin/emails": {
+    params: {};
+  };
   "/admin/juges": {
     params: {};
   };
@@ -118,7 +121,7 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/manades" | "/manades/:slug" | "/classements" | "/dates" | "/contact" | "/mentions-legales" | "/confidentialite" | "/noter" | "/inscription" | "/inscription/code" | "/emails/confirmation" | "/emails/desinscription" | "/emails/je-viens" | "/admin" | "/admin/statistiques" | "/admin/cookies" | "/admin/participants" | "/admin/messages" | "/admin/abonnes" | "/admin/juges" | "/admin/soirees" | "/admin/soirees/:soireeId" | "/admin/soirees/:soireeId/direct" | "/admin/soirees/:soireeId/resultats" | "/admin/vitrine" | "/compte" | "/ecran/:slug" | "/jury" | "/*";
+    page: "/" | "/manades" | "/manades/:slug" | "/classements" | "/dates" | "/contact" | "/mentions-legales" | "/confidentialite" | "/noter" | "/inscription" | "/inscription/code" | "/emails/confirmation" | "/emails/desinscription" | "/emails/je-viens" | "/admin" | "/admin/statistiques" | "/admin/cookies" | "/admin/participants" | "/admin/messages" | "/admin/abonnes" | "/admin/emails" | "/admin/juges" | "/admin/soirees" | "/admin/soirees/:soireeId" | "/admin/soirees/:soireeId/direct" | "/admin/soirees/:soireeId/resultats" | "/admin/vitrine" | "/compte" | "/ecran/:slug" | "/jury" | "/*";
   };
   "routes/accueil.tsx": {
     id: "routes/accueil";
@@ -200,6 +203,10 @@ type RouteFiles = {
     id: "routes/admin-abonnes";
     page: "/admin/abonnes";
   };
+  "routes/admin-emails.tsx": {
+    id: "routes/admin-emails";
+    page: "/admin/emails";
+  };
   "routes/admin-juges.tsx": {
     id: "routes/admin-juges";
     page: "/admin/juges";
@@ -264,6 +271,7 @@ type RouteModules = {
   "routes/admin-participants": typeof import("./app/routes/admin-participants.tsx");
   "routes/admin-messages": typeof import("./app/routes/admin-messages.tsx");
   "routes/admin-abonnes": typeof import("./app/routes/admin-abonnes.tsx");
+  "routes/admin-emails": typeof import("./app/routes/admin-emails.tsx");
   "routes/admin-juges": typeof import("./app/routes/admin-juges.tsx");
   "routes/admin-soirees": typeof import("./app/routes/admin-soirees.tsx");
   "routes/admin-soiree": typeof import("./app/routes/admin-soiree.tsx");
