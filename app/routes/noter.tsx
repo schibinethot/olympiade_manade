@@ -50,6 +50,7 @@ export default function Noter({ loaderData }: Route.ComponentProps) {
         <Link to="/dates" className={LIEN}>
           Voir les dates
         </Link>
+        {session ? <Link to="/compte" className={LIEN}>Supprimer mon compte</Link> : null}
       </p>
     </TitrePage>{session ? <NotationPublic key={session.user.id} compte={session.user.id} /> : null}</>
   );

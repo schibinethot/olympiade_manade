@@ -8,6 +8,9 @@ import feuilleDeStyle from './app.css?url';
 import { SuiviNotes } from './composants/SuiviNotes';
 import { SuiviPresence } from './composants/SuiviPresence';
 import { FournisseurEtatSoiree } from './lib/contexte-etat';
+import { CoqueAndroid } from './composants/CoqueAndroid';
+import { BanniereDeblocage } from './composants/Notifications';
+import { ServiceTravailleur } from './composants/ServiceTravailleur';
 
 const police = (fichier: string) =>
   ({ rel: 'preload', href: `/polices/${fichier}`, as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' }) as const;
@@ -24,6 +27,7 @@ export const links: Route.LinksFunction = () => [
   police('playfair-display-latin-wght-normal.woff2'),
   police('playfair-display-latin-wght-italic.woff2'),
   { rel: 'icon', href: '/favicon.svg', type: 'image/svg+xml' },
+  { rel: 'manifest', href: '/manifest.webmanifest' },
 ];
 
 export const meta: Route.MetaFunction = () => [
@@ -71,13 +75,17 @@ function Coque({ children, generique = false }: { children: ReactNode; generique
 
 export default function App() {
   return (
-    <FournisseurEtatSoiree>
-      <Coque>
-        <SuiviPresence />
-        <SuiviNotes />
-        <Outlet />
-      </Coque>
-    </FournisseurEtatSoiree>
+    <CoqueAndroid>
+      <FournisseurEtatSoiree>
+        <ServiceTravailleur />
+        <Coque>
+          <BanniereDeblocage />
+          <SuiviPresence />
+          <SuiviNotes />
+          <Outlet />
+        </Coque>
+      </FournisseurEtatSoiree>
+    </CoqueAndroid>
   );
 }
 

@@ -7,6 +7,8 @@ interface ImportMetaEnv {
   readonly VITE_TURNSTILE_SITE_KEY?: string;
   /** Ouverture publique de l'inscription : seule la chaîne « true » l'active (app/lib/inscription-ouverte.ts). */
   readonly VITE_INSCRIPTION_OUVERTE?: string;
+  /** Clé publique VAPID. La clé privée reste exclusivement dans VAPID_PRIVATE_KEY, côté serveur. */
+  readonly VITE_VAPID_PUBLIC_KEY?: string;
 }
 
 // Année de publication, injectée au build par `define` (vite.config.ts).

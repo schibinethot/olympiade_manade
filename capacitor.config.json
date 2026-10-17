@@ -1,0 +1,9 @@
+{
+  "appId": "fr.olympiademanade.app",
+  "appName": "Olympiade des Manades",
+  "webDir": "build/client",
+  "appendUserAgent": "OlympiadeAndroid",
+  "android": {
+    "allowMixedContent": false
+  }
+}
