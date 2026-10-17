@@ -84,6 +84,8 @@ export default function Classements({ loaderData }: Route.ComponentProps) {
   const choisir = (choix: number) => setParametres({ annee: String(choix) }, { replace: true, preventScrollReset: true });
 
   const resultats = palmares && annee !== null ? resultatsAnnee(palmares, annee) : [];
+  const soirDirect = annee !== null && anneeDirect === annee ? instantane.soiree : null;
+  const classementDirect = soirDirect?.classements ?? null;
   const aujourdhui = jourParis(maintenant);
   const soireesAnnee = calendrier?.filter((s) => s.annee === annee && s.statut !== 'annulee') ?? [];
   const aVenir = soireesAnnee.some((s) => s.date_soiree >= aujourdhui);
@@ -108,17 +110,22 @@ export default function Classements({ loaderData }: Route.ComponentProps) {
         className={`${MARGES} mt-[18px] rounded-sm tablette:mt-[22px] paysage:mt-[26px]`}
       >
         {annee !== null ? <h2 className="sr-only">Palmarès {annee}</h2> : null}
+        {classementDirect ? (
+          <div className="mb-8">
+            <h2 className="mb-3 font-display text-[22px] leading-tight font-bold">Classement calculé · {soirDirect?.nom}</h2>
+            <p className="mb-4 text-sm text-encre-2">Relecture de l’instantané public, selon le réglage de visibilité de la soirée.</p>
+            <ClassementCalcule classements={classementDirect} />
+          </div>
+        ) : null}
         {!palmares ? (
           <p className="text-encre-2">Informations momentanément indisponibles. Réessayez dans un instant.</p>
         ) : resultats.length ? (
           <div className={GRILLE}>
             {resultats.map((resultat, rang) => (
-              <CarteResultat key={resultat.id} resultat={resultat} aLaUne={rang === 0} />
+              <CarteResultat key={resultat.id} resultat={resultat} aLaUne={rang === 0 && !classementDirect} />
             ))}
           </div>
-        ) : annee !== null && instantane.soiree?.classements && anneeDirect === annee ? (
-          <ClassementCalcule classements={instantane.soiree.classements} />
-        ) : annee !== null && aVenir ? (
+        ) : classementDirect ? null : annee !== null && aVenir ? (
           <AnneeEnDirect annee={annee} soirees={soireesAnnee.length} />
         ) : (
           <p className="text-encre-2">Aucun résultat publié pour {annee ?? 'cette année'}.</p>

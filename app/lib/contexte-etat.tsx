@@ -4,6 +4,8 @@ import { ETAT_SOIREE, type EtatSoiree } from './etat-soiree';
 export type InstantanePublic = {
   etat: EtatSoiree;
   source: 'fige' | 'instantane';
+  /** Horodatage de la dernière écriture de l’instantané, quand le serveur le fournit. */
+  calculeLe?: string | null;
   soiree: {
     id: string;
     slug: string;

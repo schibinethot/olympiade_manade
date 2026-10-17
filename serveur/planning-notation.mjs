@@ -17,7 +17,7 @@ export function creerPlanningNotation({ url, clePublique, fileActive = false, fe
   async function actualiser() {
     if (!url || !clePublique) throw new Error('configuration absente');
     const adresse = new URL('/rest/v1/soirees', url);
-    adresse.searchParams.set('select', 'id,nom,date_soiree,mode_vote,vote_debut,vote_fin,statut,message_public,epreuves(id,nom,ordre,notee,passages(id,ordre,statut_public,manades(nom)))');
+    adresse.searchParams.set('select', 'id,nom,date_soiree,mode_vote,vote_debut,vote_fin,statut,message_public,delai_vote_minutes,epreuves(id,nom,ordre,notee,heure_fin,passages(id,ordre,statut_public,fin_passage_le,ferme_le,manades(nom)))');
     adresse.searchParams.set('statut', 'in.(publiee,en_cours)');
     adresse.searchParams.set('vote_fin', `gte.${new Date(maintenant() - 86_400_000).toISOString()}`);
     adresse.searchParams.set('order', 'date_soiree.asc');

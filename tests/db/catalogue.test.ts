@@ -62,24 +62,34 @@ const VOTE = 'INSERT, SELECT, UPDATE';
 const ADMIN = 'DELETE, INSERT, SELECT, UPDATE';
 const DROITS_ATTENDUS = [
   { role: 'anon', table: 'calendrier', droits: LECTURE },
+  { role: 'anon', table: 'contenus_vitrine', droits: LECTURE },
   { role: 'anon', table: 'epreuves', droits: LECTURE },
   { role: 'anon', table: 'etat_soiree', droits: LECTURE },
+  { role: 'anon', table: 'identite_legale', droits: LECTURE },
   { role: 'anon', table: 'manades', droits: LECTURE },
   { role: 'anon', table: 'palmares', droits: LECTURE },
+  { role: 'anon', table: 'parametres', droits: LECTURE },
   { role: 'anon', table: 'passages', droits: LECTURE },
+  { role: 'anon', table: 'photos_vitrine', droits: LECTURE },
   { role: 'anon', table: 'soiree_manades', droits: LECTURE },
   { role: 'anon', table: 'soirees', droits: LECTURE },
+  { role: 'authenticated', table: 'abonnements_push', droits: ADMIN },
   { role: 'authenticated', table: 'avis_soiree', droits: VOTE },
   { role: 'authenticated', table: 'calendrier', droits: ADMIN },
+  { role: 'authenticated', table: 'contenus_vitrine', droits: ADMIN },
   { role: 'authenticated', table: 'epreuves', droits: ADMIN },
   { role: 'authenticated', table: 'etat_soiree', droits: LECTURE },
   { role: 'authenticated', table: 'file_notes', droits: LECTURE },
+  { role: 'authenticated', table: 'identite_legale', droits: ADMIN },
+  { role: 'authenticated', table: 'imports_planning', droits: ADMIN },
   { role: 'authenticated', table: 'manades', droits: ADMIN },
   { role: 'authenticated', table: 'messages_contact', droits: LECTURE },
   { role: 'authenticated', table: 'notes_jury', droits: VOTE },
   { role: 'authenticated', table: 'notes_public', droits: VOTE },
   { role: 'authenticated', table: 'palmares', droits: ADMIN },
+  { role: 'authenticated', table: 'parametres', droits: LECTURE },
   { role: 'authenticated', table: 'passages', droits: ADMIN },
+  { role: 'authenticated', table: 'photos_vitrine', droits: ADMIN },
   { role: 'authenticated', table: 'profils', droits: LECTURE },
   { role: 'authenticated', table: 'soiree_juges', droits: ADMIN },
   { role: 'authenticated', table: 'soiree_manades', droits: ADMIN },
@@ -122,6 +132,7 @@ describe('catalogue : tables et droits', () => {
       );
       expect(rows).toEqual([
         { table: 'messages_contact', colonne: 'traite', role: 'authenticated', droit: 'UPDATE' },
+        { table: 'parametres', colonne: 'app_ouverte_au_public', role: 'authenticated', droit: 'UPDATE' },
         { table: 'profils', colonne: 'prenom', role: 'authenticated', droit: 'UPDATE' },
       ]);
     }));
@@ -228,6 +239,7 @@ describe('catalogue : fonctions', () => {
          where p.pronamespace = 'public'::regnamespace order by 1`,
       );
       expect(rows).toEqual([
+        { fonction: 'enregistrer_choix_notifications(text)' },
         {
           fonction:
             'enregistrer_metrique_serveur(timestamp with time zone,text,integer,integer,bigint,integer,bigint,numeric,integer,integer,integer[])',
@@ -239,6 +251,7 @@ describe('catalogue : fonctions', () => {
         { fonction: 'lire_supervision(integer)' },
         { fonction: 'mettre_note_en_file(uuid,uuid,smallint)' },
         { fonction: 'nettoyer_metriques_serveur()' },
+        { fonction: 'purger_spectateurs_inactifs()' },
         { fonction: 'traiter_file_notes(integer,text)' },
       ]);
     }));

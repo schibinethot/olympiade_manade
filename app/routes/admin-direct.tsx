@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type DragEvent } from 'react';
 import { Link, useParams } from 'react-router';
 import { BOUTON, BOUTON_PLEIN, CadreAdmin, CARTE, CHAMP, useClientAdmin } from '../composants/admin/CadreAdmin';
+import { etapesReordre } from '../lib/ordre';
+import { documentPdf, telechargerFichier } from '../lib/pdf';
 
 type Passage = {
   id: string; epreuve_id: string; manade_id: string; ordre: number;
@@ -20,7 +22,7 @@ export default function Cockpit() {
 }
 
 function Pilotage({ soireeId }: { soireeId: string }) {
-  const { client, erreurClient } = useClientAdmin();
+  const { client, session, erreurClient } = useClientAdmin();
   const [soiree, setSoiree] = useState<Soiree | null>(null);
   const [epreuves, setEpreuves] = useState<Epreuve[]>([]);
   const [passages, setPassages] = useState<Passage[]>([]);
@@ -98,6 +100,16 @@ function Pilotage({ soireeId }: { soireeId: string }) {
     setConfirmation(null);
     if (error) setErreur(error.message || 'L’action n’a pas abouti.');
     else await recharger();
+    return !error;
+  }
+
+  async function prevenir(texte: string) {
+    if (!session?.access_token) return;
+    await fetch('/api/notifications/diffuser', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ cle: soireeId, texte, url: '/noter' }),
+    }).catch(() => undefined);
   }
 
   function maj(ids: string[], valeurs: Record<string, unknown>) {
@@ -110,9 +122,14 @@ function Pilotage({ soireeId }: { soireeId: string }) {
   }
 
   async function debloquer(cibles: Passage[]) {
-    await executer(() => maj(cibles.map((passage) => passage.id), juryASuivre(cibles)
+    const ok = await executer(() => maj(cibles.map((passage) => passage.id), juryASuivre(cibles)
       ? { statut_public: 'ouvert', statut_jury: 'ouvert' }
       : { statut_public: 'ouvert' }));
+    if (ok) {
+      const manade = cibles.length === 1 ? noms.get(cibles[0].manade_id) : null;
+      const epreuve = epreuves.find((ligne) => ligne.id === cibles[0]?.epreuve_id)?.nom ?? 'Passage';
+      void prevenir(manade ? `${epreuve} en piste : manade ${manade}` : `${epreuve} en piste`);
+    }
   }
 
   async function fermer(cibles: Passage[]) {
@@ -161,6 +178,35 @@ function Pilotage({ soireeId }: { soireeId: string }) {
     ?? epreuves.find((epreuve) => epreuve.notee) ?? epreuves[0];
   const liste = passages.filter((passage) => passage.epreuve_id === courante?.id).sort((a, b) => a.ordre - b.ordre);
 
+  async function glisserPassages(depuis: number, vers: number) {
+    if (!client) return;
+    const etapes = etapesReordre(liste.map((passage) => ({ id: passage.id, ordre: passage.ordre })), depuis, vers);
+    if (!etapes.length) return;
+    await executer(async () => {
+      for (const etape of etapes) {
+        const resultat = await client.from('passages').update({ ordre: etape.ordre }).eq('id', etape.id);
+        if (resultat.error) return resultat;
+      }
+      return { error: null };
+    });
+  }
+
+  function deposer(evenement: DragEvent, vers: number) {
+    evenement.preventDefault();
+    const depuis = Number(evenement.dataTransfer.getData('text/plain'));
+    if (Number.isInteger(depuis)) void glisserPassages(depuis, vers);
+  }
+
+  function exporterPdf() {
+    if (!soiree || !courante) return;
+    const lignes = [
+      soiree.nom,
+      courante.nom,
+      ...liste.map((passage) => `${noms.get(passage.manade_id) ?? 'Manade'} · ${votes.get(passage.id) ?? 0} vote(s) · ${passage.statut_public}`),
+    ];
+    telechargerFichier(`cockpit-${soiree.nom}.pdf`, documentPdf({ titre: 'Cockpit', lignes }), 'application/pdf');
+  }
+
   return (
     <>
       <p className="text-sm text-encre-2">{soiree.nom} · {soiree.statut} · {soiree.mode_vote === 'libre' ? 'Vote libre' : 'Vote par déblocage'}</p>
@@ -176,13 +222,21 @@ function Pilotage({ soireeId }: { soireeId: string }) {
             <button type="button" className={BOUTON_PLEIN} disabled={enCours} onClick={() => void debloquer(liste)}>Débloquer l’épreuve</button>
             <button type="button" className={BOUTON} disabled={enCours} onClick={() => setConfirmation(confirmation === 'fermer' ? null : 'fermer')}>Fermer l’épreuve</button>
             <button type="button" className={BOUTON} disabled={enCours} onClick={() => void decalerSuite(courante.ordre)}>Décaler la suite de +{minutes} min</button>
+            <button type="button" className={BOUTON} onClick={exporterPdf}>Exporter le suivi PDF</button>
           </div>
           {confirmation === 'fermer' ? <button type="button" className={`${BOUTON_PLEIN} mt-3`} onClick={() => void fermer(liste)}>Confirmer la fermeture</button> : null}
           <ul className="mt-5 grid gap-3">
-            {liste.map((passage) => {
+            {liste.map((passage, rang) => {
               const reste = passage.ferme_le ? Math.max(0, Math.ceil((Date.parse(passage.ferme_le) - maintenant) / 1000)) : null;
               return (
-                <li key={passage.id} className="rounded-xl border border-trait p-3">
+                <li
+                  key={passage.id}
+                  className="rounded-xl border border-trait p-3"
+                  draggable
+                  onDragStart={(evenement) => evenement.dataTransfer.setData('text/plain', String(rang))}
+                  onDragOver={(evenement) => evenement.preventDefault()}
+                  onDrop={(evenement) => deposer(evenement, rang)}
+                >
                   <p className="font-semibold">{noms.get(passage.manade_id) ?? 'Manade'}</p>
                   <p className="text-sm text-encre-2">{votes.get(passage.id) ?? 0} vote{(votes.get(passage.id) ?? 0) > 1 ? 's' : ''} · public {passage.statut_public} · jury {passage.statut_jury}</p>
                   {reste !== null && passage.statut_public === 'ouvert' ? <p className="text-sm">{reste > 0 ? `Fermeture automatique dans ${reste} s` : 'Échéance de vote dépassée'}</p> : null}

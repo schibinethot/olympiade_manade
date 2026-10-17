@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { BOUTON_PLEIN, CadreAdmin, CARTE, CHAMP, useClientAdmin } from '../composants/admin/CadreAdmin';
+import { CodeQr } from '../composants/CodeQr';
 
 type Juge = { id: string; prenom: string; email: string | null };
 type Soiree = { id: string; nom: string; date_soiree: string };
@@ -93,7 +94,13 @@ function Contenu() {
           <button className={BOUTON_PLEIN} disabled={enCours || !soirees.length}>{enCours ? 'Création…' : 'Créer le lien du juge'}</button>
         </form>
         {erreur ? <p role="alert" className="mt-3 text-rouge-alerte">{erreur}</p> : null}
-        {lien ? <p className="mt-3 break-all text-sm">Lien personnel : <a className="underline" href={lien}>{lien}</a></p> : null}
+        {lien ? (
+          <div className="mt-4 grid gap-3">
+            <p className="break-all text-sm">Lien personnel : <a className="underline" href={lien}>{lien}</a></p>
+            <CodeQr valeur={lien} libelle="QR code du lien personnel du juge" />
+            <p className="text-sm text-encre-2">Transmettez le lien ou le QR au juge. Aucun SMS n’est envoyé.</p>
+          </div>
+        ) : null}
       </section>
       <section className={CARTE}>
         <h2 className="font-display text-2xl">Juges connus</h2>

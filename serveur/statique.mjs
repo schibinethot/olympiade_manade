@@ -17,6 +17,8 @@ import { fileNotesDepuisEnvironnement } from './file-notes.mjs';
 import { contactDepuisEnvironnement } from './contact.mjs';
 import { creerEtatSoiree, instantaneDepuisEnvironnement } from './instantane.mjs';
 import { jugesDepuisEnvironnement } from './juges.mjs';
+import { complementsDepuisEnvironnement } from './complements.mjs';
+import { courrielDepuisEnvironnement } from './courriel.mjs';
 
 const RACINE = fileURLToPath(new URL('../build/client/', import.meta.url));
 
@@ -45,6 +47,7 @@ try {
       lire: (slug) => (instantane ? instantane.lire(slug) : Promise.resolve(null)),
     }),
     juges: jugesDepuisEnvironnement(process.env),
+    complements: complementsDepuisEnvironnement(process.env),
     acces,
   });
 } catch (erreur) {
@@ -52,11 +55,21 @@ try {
   process.exit(1);
 }
 
+const courriel = courrielDepuisEnvironnement(process.env);
+
 serveur.listen(port, () => {
   fileNotes?.demarrer();
   instantane?.demarrer();
   console.log(
-    JSON.stringify({ level: 'info', timestamp: new Date().toISOString(), message: 'serveur prêt', port, fichiers: serveur.fichiers }),
+    JSON.stringify({
+      level: 'info',
+      timestamp: new Date().toISOString(),
+      message: 'serveur prêt',
+      port,
+      fichiers: serveur.fichiers,
+      courriel: courriel.mode,
+      courrielPret: courriel.pret,
+    }),
   );
 });
 

@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
-import { CorpsLegal, EncadreOrganisateur, LIEN_TEXTE, SectionLegale } from '../composants/TexteLegal';
+import { IdentitePublique } from '../composants/IdentitePublique';
+import { CorpsLegal, LIEN_TEXTE, SectionLegale } from '../composants/TexteLegal';
 import { TitrePage } from '../composants/TitrePage';
 import type { Route } from './+types/confidentialite';
 
@@ -20,9 +21,7 @@ export default function Confidentialite() {
       <TitrePage surtitre="Vos données" titre="Confidentialité" />
       <CorpsLegal>
         <SectionLegale id="responsable" titre="Responsable du traitement">
-          <EncadreOrganisateur>
-            <p>L’identité et les coordonnées du responsable du traitement seront fournies par l’organisateur.</p>
-          </EncadreOrganisateur>
+          <IdentitePublique repli={<p>L’identité et les coordonnées du responsable du traitement seront fournies par l’organisateur.</p>} />
         </SectionLegale>
 
         <SectionLegale id="donnees" titre="Données collectées">
@@ -116,7 +115,15 @@ export default function Confidentialite() {
               sans le prénom, l’email ni le contenu du message.
             </li>
             <li>
-              <strong>Brevo</strong>&nbsp;: envoi des emails, prévu pour remplacer le service d’email de Supabase.
+              <strong>Brevo</strong>&nbsp;: envoi des emails lorsque le SMTP est activé.
+            </li>
+            <li>
+              <strong>Anthropic</strong>&nbsp;: lecture du planning déposé par l’organisateur, seulement si une clé est configurée.
+              Le fichier est traité pour préparer un brouillon et n’est pas conservé après la demande. Le tableau validé reste lié à la soirée.
+            </li>
+            <li>
+              <strong>Services de notification du navigateur</strong> (Apple, Google, Mozilla, Microsoft)&nbsp;: envoi des alertes de soirée si vous les acceptez.
+              L’application Android, si elle est installée, utilise le même site. Elle n’est pas ouverte au public par défaut.
             </li>
           </ul>
           <p>
@@ -136,7 +143,9 @@ export default function Confidentialite() {
             art. 85).
           </p>
           <p>
-            Pour exercer ces droits, écrivez-nous via le {LIEN_CONTACT}. Nous répondons dans un délai d’un mois (art. 12(3)
+            Pour supprimer votre compte spectateur, ouvrez la page{' '}
+            <Link to="/compte" className={LIEN_TEXTE}>Supprimer mon compte</Link>
+            {' '}une fois connecté. Pour les autres droits, écrivez-nous via le {LIEN_CONTACT}. Nous répondons dans un délai d’un mois (art. 12(3)
             RGPD). Une pièce d’identité n’est demandée qu’en cas de doute raisonnable sur votre identité.
           </p>
           <p>

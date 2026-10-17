@@ -1,3 +1,4 @@
+import { PrecisionAccueil } from '../composants/PrecisionAccueil';
 import { Affiche, CreditAffiche } from '../composants/Affiche';
 import { BlocNoter } from '../composants/BlocNoter';
 import { DernierVainqueur } from '../composants/DernierVainqueur';
@@ -64,6 +65,7 @@ export default function Accueil({ loaderData }: Route.ComponentProps) {
         <CreditAffiche className="-mt-2 px-1 tablette:-mt-2.5" />
       </section>
 
+      <PrecisionAccueil />
       <ManadesEdition />
       <Epreuves />
       <DernierVainqueur palmares={palmares} />

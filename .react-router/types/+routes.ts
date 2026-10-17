@@ -71,6 +71,12 @@ type Pages = {
       "soireeId": string;
     };
   };
+  "/admin/vitrine": {
+    params: {};
+  };
+  "/compte": {
+    params: {};
+  };
   "/ecran/:slug": {
     params: {
       "slug": string;
@@ -89,7 +95,7 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/classements" | "/dates" | "/contact" | "/mentions-legales" | "/confidentialite" | "/noter" | "/inscription" | "/inscription/code" | "/admin" | "/admin/statistiques" | "/admin/participants" | "/admin/messages" | "/admin/juges" | "/admin/soirees" | "/admin/soirees/:soireeId" | "/admin/soirees/:soireeId/direct" | "/admin/soirees/:soireeId/resultats" | "/ecran/:slug" | "/jury" | "/*";
+    page: "/" | "/classements" | "/dates" | "/contact" | "/mentions-legales" | "/confidentialite" | "/noter" | "/inscription" | "/inscription/code" | "/admin" | "/admin/statistiques" | "/admin/participants" | "/admin/messages" | "/admin/juges" | "/admin/soirees" | "/admin/soirees/:soireeId" | "/admin/soirees/:soireeId/direct" | "/admin/soirees/:soireeId/resultats" | "/admin/vitrine" | "/compte" | "/ecran/:slug" | "/jury" | "/*";
   };
   "routes/accueil.tsx": {
     id: "routes/accueil";
@@ -163,6 +169,14 @@ type RouteFiles = {
     id: "routes/admin-resultats";
     page: "/admin/soirees/:soireeId/resultats";
   };
+  "routes/admin-vitrine.tsx": {
+    id: "routes/admin-vitrine";
+    page: "/admin/vitrine";
+  };
+  "routes/compte.tsx": {
+    id: "routes/compte";
+    page: "/compte";
+  };
   "routes/ecran.tsx": {
     id: "routes/ecran";
     page: "/ecran/:slug";
@@ -197,6 +211,8 @@ type RouteModules = {
   "routes/admin-soiree": typeof import("./app/routes/admin-soiree.tsx");
   "routes/admin-direct": typeof import("./app/routes/admin-direct.tsx");
   "routes/admin-resultats": typeof import("./app/routes/admin-resultats.tsx");
+  "routes/admin-vitrine": typeof import("./app/routes/admin-vitrine.tsx");
+  "routes/compte": typeof import("./app/routes/compte.tsx");
   "routes/ecran": typeof import("./app/routes/ecran.tsx");
   "routes/jury": typeof import("./app/routes/jury.tsx");
   "routes/introuvable": typeof import("./app/routes/introuvable.tsx");

@@ -21,9 +21,10 @@ export default function Participants() {
 }
 
 function Liste() {
-  const { client, erreurClient } = useClientAdmin();
+  const { client, session, erreurClient } = useClientAdmin();
   const [lignes, setLignes] = useState<Participant[] | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
 
   useEffect(() => {
     if (!client) return;
@@ -53,6 +54,13 @@ function Liste() {
         ))}
       </ul>
       {!lignes.length ? <p className="mt-3 text-sm text-encre-2">Aucun compte pour le moment.</p> : null}
+      <button type="button" className="mt-4 inline-flex min-h-12 items-center rounded-xl border border-trait px-4 text-sm font-semibold" onClick={() => void (async () => {
+        if (!session?.access_token || !window.confirm('Supprimer les comptes spectateurs inactifs depuis 24 mois ?')) return;
+        const reponse = await fetch('/api/admin/purge-comptes', { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}` } });
+        const corps = await reponse.json().catch(() => null) as { supprimes?: number } | null;
+        setInfo(reponse.ok ? `${corps?.supprimes ?? 0} compte(s) supprimé(s).` : 'La purge n’a pas abouti.');
+      })()}>Purger les comptes inactifs (24 mois)</button>
+      {info ? <p role="status" className="mt-2 text-sm">{info}</p> : null}
       <p className="mt-4 text-sm text-encre-2">Les inscriptions publiques restent fermées tant que le drapeau prévu n’est pas activé.</p>
     </section>
   );

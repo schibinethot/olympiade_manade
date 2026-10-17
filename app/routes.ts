@@ -19,6 +19,8 @@ export default [
   route('admin/soirees/:soireeId', 'routes/admin-soiree.tsx'),
   route('admin/soirees/:soireeId/direct', 'routes/admin-direct.tsx'),
   route('admin/soirees/:soireeId/resultats', 'routes/admin-resultats.tsx'),
+  route('admin/vitrine', 'routes/admin-vitrine.tsx'),
+  route('compte', 'routes/compte.tsx'),
   route('ecran/:slug', 'routes/ecran.tsx'),
   route('jury', 'routes/jury.tsx'),
   route('*', 'routes/introuvable.tsx'),

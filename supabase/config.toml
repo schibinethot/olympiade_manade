@@ -198,6 +198,9 @@ password_requirements = "lower_upper_letters_digits_symbols"
 
 [auth.rate_limit]
 # Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
+# Laisser bas tant que le SMTP Auth n'est pas branché. Exemple Brevo, à ne décommenter
+# qu'avec des secrets hors dépôt : host = "smtp-relay.brevo.com", user = "env(BREVO_SMTP_USER)",
+# pass = "env(BREVO_SMTP_KEY)". Distinct de SMTP_MODE, qui n'envoie que le formulaire de contact.
 email_sent = 2
 # Number of SMS messages that can be sent per hour. Requires auth.sms to be enabled.
 sms_sent = 30
