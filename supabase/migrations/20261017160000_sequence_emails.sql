@@ -64,7 +64,10 @@ create table public.destinataires_emails (
   profil_id uuid null unique references public.profils (id) on delete set null,
   abonne boolean not null default false,
   -- Dépôt du formulaire actualités en attente du clic de confirmation (adresse non vérifiée par ce dépôt).
+  -- Écrit seulement par les déclencheurs de abonnements_actualites et par le clic ci-dessous.
   abonnement_a_confirmer boolean not null default false,
+  -- Dernier clic de confirmation d'un abonnement : seule écriture du serveur qui vaut consentement.
+  abonnement_confirme_le timestamptz null,
   annonces boolean not null default false,
   annonces_le timestamptz null,
   annonces_texte text null,
@@ -195,7 +198,9 @@ grant select on public.modeles_emails to service_role;
 grant insert (cle, nom, actif, sujet, preheader, corps, encart, jours_decalage, heure_envoi)
   on public.modeles_emails to service_role;
 grant select, delete on public.destinataires_emails to service_role;
-grant update (confirme_le, abonnement_a_confirmer, annonces, annonces_le, annonces_texte, annonces_version,
+-- Pas de droit sur abonnement_a_confirmer : annuler une demande, c'est supprimer l'abonnement ; la confirmer,
+-- c'est écrire abonnement_confirme_le (clic).
+grant update (confirme_le, abonnement_confirme_le, annonces, annonces_le, annonces_texte, annonces_version,
   desinscrit_le)
   on public.destinataires_emails to service_role;
 grant select, insert on public.rattachements_emails to service_role;
@@ -268,11 +273,13 @@ create trigger destinataires_emails_horodater
   before update on public.destinataires_emails
   for each row execute function prive.horodater_destinataire_email();
 
--- Clic de confirmation d'un abonnement (action « confirmer » du serveur) : un seul update du service,
--- abonnement_a_confirmer de vrai à faux, suffit. Le déclencheur en applique tous les effets, avec le texte
--- et la version acceptés au dépôt, horodatés au clic :
---   confirme_le = coalesce(confirme_le, maintenant), desinscrit_le = null, annonces = true.
--- Si l'abonnement a été retiré entre-temps (désinscription, effacement), la demande est seulement annulée.
+-- Clic de confirmation d'un abonnement (action « confirmer » du serveur) : un seul update du service, qui
+-- écrit abonnement_confirme_le. Seule cette écriture explicite vaut consentement. Le déclencheur en applique
+-- tous les effets, avec le texte et la version acceptés au dépôt, horodatés au clic par la base :
+--   abonnement_a_confirmer = false, confirme_le = coalesce(confirme_le, maintenant), desinscrit_le = null,
+--   annonces = true.
+-- Sans demande en attente, avec une valeur nulle, ou si l'abonnement a été retiré entre-temps, l'écriture est
+-- sans effet : les champs de consentement envoyés avec elle reprennent leurs valeurs d'avant.
 create function prive.confirmer_abonnement_email() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
@@ -280,21 +287,32 @@ declare
   v_texte text;
   v_version text;
 begin
-  if not old.abonnement_a_confirmer or new.abonnement_a_confirmer then
+  if new.abonnement_confirme_le is not distinct from old.abonnement_confirme_le then
     return new;
   end if;
-  select a.consentement_texte, a.consentement_version into v_texte, v_version
-  from public.abonnements_actualites a
-  where a.email = new.email;
-  if not found then
-    return new;
+  if new.abonnement_confirme_le is not null and old.abonnement_a_confirmer then
+    select a.consentement_texte, a.consentement_version into v_texte, v_version
+    from public.abonnements_actualites a
+    where a.email = new.email;
+    if found then
+      new.abonnement_a_confirmer := false;
+      new.abonnement_confirme_le := now();
+      new.confirme_le := coalesce(old.confirme_le, now());
+      new.desinscrit_le := null;
+      new.annonces := true;
+      new.annonces_le := now();
+      new.annonces_texte := v_texte;
+      new.annonces_version := v_version;
+      return new;
+    end if;
   end if;
-  new.confirme_le := coalesce(old.confirme_le, new.confirme_le, now());
-  new.desinscrit_le := null;
-  new.annonces := true;
-  new.annonces_le := now();
-  new.annonces_texte := v_texte;
-  new.annonces_version := v_version;
+  new.abonnement_confirme_le := old.abonnement_confirme_le;
+  new.confirme_le := old.confirme_le;
+  new.desinscrit_le := old.desinscrit_le;
+  new.annonces := old.annonces;
+  new.annonces_le := old.annonces_le;
+  new.annonces_texte := old.annonces_texte;
+  new.annonces_version := old.annonces_version;
   return new;
 end
 $$;
@@ -544,7 +562,9 @@ create trigger auth_users_destinataire_emails
   for each row execute function prive.inscrire_spectateur_emails();
 
 -- Compte supprimé : la ligne disparaît, sauf si l'adresse est aussi abonnée aux actualités. Elle perd alors
--- le prénom venu du compte (minimisation) ; profil_id passe à nul par la clé étrangère.
+-- le prénom venu du compte (minimisation) ; profil_id passe à nul par la clé étrangère. Si l'abonnement
+-- attend encore son clic, l'adresse n'était vérifiée que par le compte : elle redevient non confirmée et
+-- ne reçoit plus de rappel de date.
 create function prive.retirer_profil_emails() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
@@ -552,7 +572,8 @@ begin
   delete from public.destinataires_emails d
   where d.profil_id = old.id and not d.abonne;
   update public.destinataires_emails d
-  set prenom = null
+  set prenom = null,
+      confirme_le = case when d.abonnement_a_confirmer then null else d.confirme_le end
   where d.profil_id = old.id;
   return old;
 end

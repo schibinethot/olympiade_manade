@@ -59,6 +59,7 @@ interface Destinataire {
   profil_id: string | null;
   abonne: boolean;
   abonnement_a_confirmer: boolean;
+  abonnement_confirme_le: Date | null;
   annonces: boolean;
   annonces_le: Date | null;
   annonces_texte: string | null;
@@ -115,11 +116,15 @@ async function abonner(db: pg.Client, email: string): Promise<void> {
   await commeSuperutilisateur(db);
 }
 
-/** Clic sur le lien de confirmation : action « confirmer » du serveur, un seul PATCH en service_role. */
+/**
+ * Clic sur le lien de confirmation : action « confirmer » du serveur, un seul PATCH en service_role
+ * (`?email=eq.…&abonnement_a_confirmer=is.true` avec `{ abonnement_confirme_le: <ISO> }`).
+ * clock_timestamp() : deux clics de la même transaction de test portent des valeurs distinctes.
+ */
 async function cliquer(db: pg.Client, email: string): Promise<number> {
   await commeService(db);
   const { rowCount } = await db.query(
-    `update public.destinataires_emails set abonnement_a_confirmer = false
+    `update public.destinataires_emails set abonnement_confirme_le = clock_timestamp()
      where email = $1 and abonnement_a_confirmer`,
     [email],
   );
@@ -278,8 +283,8 @@ async function creerCompte(
 async function destinataires(db: pg.Client, email: string): Promise<Destinataire[]> {
   await commeSuperutilisateur(db);
   const { rows } = await db.query(
-    `select id, email, prenom, profil_id, abonne, abonnement_a_confirmer, annonces, annonces_le, annonces_texte,
-            annonces_version, confirme_le, desinscrit_le
+    `select id, email, prenom, profil_id, abonne, abonnement_a_confirmer, abonnement_confirme_le, annonces,
+            annonces_le, annonces_texte, annonces_version, confirme_le, desinscrit_le
      from public.destinataires_emails where email = $1`,
     [email],
   );
@@ -450,7 +455,7 @@ describe('séquence d’e-mails : droits', () => {
         ).rows.map((r: { colonne: string }) => r.colonne);
 
       expect(await colonnes('destinataires_emails', 'UPDATE')).toEqual([
-        'abonnement_a_confirmer',
+        'abonnement_confirme_le',
         'annonces',
         'annonces_le',
         'annonces_texte',
@@ -539,6 +544,7 @@ describe('séquence d’e-mails : abonnés aux actualités', () => {
       });
       expect(lea.confirme_le).not.toBeNull();
       expect(lea.annonces_le).not.toBeNull();
+      expect(lea.abonnement_confirme_le).not.toBeNull();
       expect(await rattachementsDe(db, lea.id)).toEqual([{ calendrier_id: cible, origine: 'inscription' }]);
       // Un second clic (lien rouvert) ne trouve plus rien à confirmer.
       expect(await cliquer(db, 'lea@exemple.fr')).toBe(0);
@@ -703,11 +709,127 @@ describe('séquence d’e-mails : abonnés aux actualités', () => {
       const [paul] = await destinataires(db, 'paul@test.fr');
       expect(paul).toMatchObject({ abonne: false, abonnement_a_confirmer: false, annonces: false });
 
-      // Lien de confirmation reçu avant l'effacement : la demande a été annulée, rien ne change.
+      // Lien de confirmation reçu avant l'effacement : la demande a été annulée, rien ne change, même si le
+      // serveur écrit le clic sans filtrer sur la demande en attente.
       expect(await cliquer(db, 'paul@test.fr')).toBe(0);
       await commeService(db);
-      await db.query(`update public.destinataires_emails set abonnement_a_confirmer = false where email = 'paul@test.fr'`);
-      expect((await destinataires(db, 'paul@test.fr'))[0]).toMatchObject({ annonces: false, annonces_texte: null });
+      await db.query(
+        `update public.destinataires_emails set abonnement_confirme_le = clock_timestamp() where email = 'paul@test.fr'`,
+      );
+      expect((await destinataires(db, 'paul@test.fr'))[0]).toMatchObject({
+        annonces: false,
+        annonces_texte: null,
+        abonnement_confirme_le: null,
+      });
+    }));
+});
+
+describe('séquence d’e-mails : clic de confirmation explicite', () => {
+  it('le serveur ne peut pas écrire le drapeau de demande : annuler, c’est supprimer l’abonnement', () =>
+    dansUneTransaction(async (db) => {
+      await abonner(db, 'lea@exemple.fr');
+      await commeService(db);
+      expect(
+        await doitEtreRefuse(
+          db,
+          `update public.destinataires_emails set abonnement_a_confirmer = false where email = 'lea@exemple.fr'`,
+        ),
+      ).toBe('42501');
+      expect(
+        await doitEtreRefuse(
+          db,
+          `update public.destinataires_emails set abonnement_a_confirmer = true where email = 'lea@exemple.fr'`,
+        ),
+      ).toBe('42501');
+      // Purge d'une demande en attente : suppression de l'abonnement, sans aucun consentement fabriqué.
+      expect(
+        (await db.query(`delete from public.abonnements_actualites where email = 'lea@exemple.fr'`)).rowCount,
+      ).toBe(1);
+      expect(await destinataires(db, 'lea@exemple.fr')).toEqual([]);
+    }));
+
+  it('une écriture du clic sans demande en attente, nulle ou sans abonnement est sans effet, champs envoyés compris', () =>
+    dansUneTransaction(async (db) => {
+      await viderCalendrier(db);
+      await ajouterDate(db, 10, 'confirmee');
+      const forger = `update public.destinataires_emails
+        set abonnement_confirme_le = $2::timestamptz, confirme_le = now(), desinscrit_le = null, annonces = true,
+            annonces_le = now(), annonces_texte = 'Consentement forgé', annonces_version = 'forge'
+        where id = $1`;
+      const consentement = async (id: string) => {
+        await commeSuperutilisateur(db);
+        const { rows } = await db.query(
+          `select abonnement_a_confirmer, abonnement_confirme_le, confirme_le, desinscrit_le, annonces, annonces_le,
+                  annonces_texte, annonces_version
+           from public.destinataires_emails where id = $1`,
+          [id],
+        );
+        return rows[0];
+      };
+
+      // 1. Désinscrite sans demande en attente : le clic forgé ne lève rien.
+      const opposee = await insererDestinataire(db, 'opposee@exemple.fr', {
+        confirme_le: '2026-10-01T10:00:00Z',
+        desinscrit_le: '2026-10-02T10:00:00Z',
+      });
+      const avantOpposee = await consentement(opposee);
+      await commeService(db);
+      expect((await db.query(forger, [opposee, '2026-10-17T10:00:00Z'])).rowCount).toBe(1);
+      expect(await consentement(opposee)).toEqual(avantOpposee);
+      expect(await rattachementsDe(db, opposee)).toEqual([]);
+
+      // 1 bis. Abonnement confirmé puis annonces arrêtées (« arreter_annonces ») : un nouveau clic ne les
+      //        réactive pas, l'abonnement existe pourtant toujours.
+      await abonner(db, 'arret@exemple.fr');
+      await cliquer(db, 'arret@exemple.fr');
+      const [arret] = await destinataires(db, 'arret@exemple.fr');
+      await commeService(db);
+      await db.query(`update public.destinataires_emails set annonces = false where id = $1`, [arret.id]);
+      const avantArret = await consentement(arret.id);
+      await commeService(db);
+      expect((await db.query(forger, [arret.id, '2026-10-17T10:00:00Z'])).rowCount).toBe(1);
+      expect(await consentement(arret.id)).toEqual(avantArret);
+      expect(avantArret).toMatchObject({ abonnement_a_confirmer: false, annonces: false });
+
+      // 2. Demande en attente mais abonnement introuvable : sans effet, champs envoyés compris.
+      const orpheline = await insererDestinataire(db, 'orpheline@exemple.fr', {
+        aConfirmer: true,
+        desinscrit_le: '2026-10-02T10:00:00Z',
+      });
+      const avantOrpheline = await consentement(orpheline);
+      await commeService(db);
+      expect((await db.query(forger, [orpheline, '2026-10-17T10:00:00Z'])).rowCount).toBe(1);
+      expect(await consentement(orpheline)).toEqual(avantOrpheline);
+      expect(avantOrpheline).toMatchObject({ abonnement_a_confirmer: true, confirme_le: null, annonces: false });
+
+      // 3. Adresse déjà cliquée une fois, désinscrite puis redéposée : demande en attente avec abonnement.
+      //    Effacer la date du clic (valeur nulle) n'est pas un clic.
+      await abonner(db, 'lou@exemple.fr');
+      await cliquer(db, 'lou@exemple.fr');
+      await desinscrire(db, 'lou@exemple.fr');
+      await abonner(db, 'lou@exemple.fr');
+      const [lou] = await destinataires(db, 'lou@exemple.fr');
+      expect(lou).toMatchObject({ abonnement_a_confirmer: true, annonces: false });
+      expect(lou.abonnement_confirme_le).not.toBeNull();
+      expect(lou.desinscrit_le).not.toBeNull();
+      const avantLou = await consentement(lou.id);
+      await commeService(db);
+      expect((await db.query(forger, [lou.id, null])).rowCount).toBe(1);
+      expect(await consentement(lou.id)).toEqual(avantLou);
+
+      // 4. Même ligne, vraie date de clic : le clic seul compte, horodaté par la base, champs alignés.
+      await commeService(db);
+      expect((await db.query(forger, [lou.id, '2000-01-01T00:00:00Z'])).rowCount).toBe(1);
+      const apres = await consentement(lou.id);
+      expect(apres).toMatchObject({
+        abonnement_a_confirmer: false,
+        annonces: true,
+        annonces_texte: TEXTE_ABONNEMENT,
+        annonces_version: VERSION_ABONNEMENT,
+        desinscrit_le: null,
+        confirme_le: avantLou.confirme_le,
+      });
+      expect(apres.abonnement_confirme_le.getFullYear()).toBeGreaterThan(2000);
     }));
 });
 
@@ -829,15 +951,40 @@ describe('séquence d’e-mails : spectateurs', () => {
   it('suppression d’un compte : ligne supprimée s’il n’est pas abonné, gardée sans profil ni prénom s’il l’est', () =>
     dansUneTransaction(async (db) => {
       await semerSoiree(db);
-      await abonner(db, 'paul@test.fr');
+      await viderCalendrier(db);
+      const date = await ajouterDate(db, 10, 'confirmee'); // Léa, Paul et Camille y sont rattachés
+      const camille = '00000000-0000-4000-8000-0000000000c8';
+      await creerCompte(db, camille, 'camille@exemple.fr', '2026-10-12T18:30:00.000Z', {
+        prenom: 'Camille',
+        consentement: true,
+      });
+      await abonner(db, 'paul@test.fr'); // demande en attente
+      await abonner(db, 'camille@exemple.fr');
+      await cliquer(db, 'camille@exemple.fr'); // abonnement confirmé
       expect(await destinataires(db, 'lea@test.fr')).toHaveLength(1);
-      expect((await destinataires(db, 'paul@test.fr'))[0].prenom).toBe('Paul');
+      expect((await destinataires(db, 'paul@test.fr'))[0]).toMatchObject({ prenom: 'Paul' });
 
-      await modifier(db, 'delete from auth.users where id in ($1, $2)', [IDS.spectateur, IDS.spectateur2]);
+      await modifier(db, 'delete from auth.users where id in ($1, $2, $3)', [IDS.spectateur, IDS.spectateur2, camille]);
       expect(await destinataires(db, 'lea@test.fr')).toEqual([]);
+
+      // Adresse vérifiée par le seul compte, abonnement pas encore cliqué : redevient non confirmée.
       const [paul] = await destinataires(db, 'paul@test.fr');
-      expect(paul).toMatchObject({ profil_id: null, prenom: null, abonne: true, abonnement_a_confirmer: true });
-      expect(paul.confirme_le).not.toBeNull();
+      expect(paul).toMatchObject({
+        profil_id: null,
+        prenom: null,
+        abonne: true,
+        abonnement_a_confirmer: true,
+        confirme_le: null,
+      });
+      // Abonnement confirmé par son propre clic : l'adresse reste confirmée.
+      const [cam] = await destinataires(db, 'camille@exemple.fr');
+      expect(cam).toMatchObject({ profil_id: null, prenom: null, abonne: true, abonnement_a_confirmer: false });
+      expect(cam.confirme_le).not.toBeNull();
+
+      const r = await appelerRpc(db);
+      expect(r.destinataires.find((d) => d.id === paul.id)).toMatchObject({ abonnement_a_confirmer: true });
+      expect(r.rattachements.filter((x) => x.destinataire_id === paul.id)).toEqual([]);
+      expect(r.rattachements.filter((x) => x.destinataire_id === cam.id).map((x) => x.calendrier_id)).toEqual([date]);
     }));
 });
 
