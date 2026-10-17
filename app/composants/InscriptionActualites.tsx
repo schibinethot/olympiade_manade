@@ -12,7 +12,7 @@ export function InscriptionActualites() {
   const [jeton, setJeton] = useState<string | null>(null);
   const [reinitialisation, setReinitialisation] = useState(0);
   const [enCours, setEnCours] = useState(false);
-  const [succes, setSucces] = useState(false);
+  const [succes, setSucces] = useState<'enregistre' | 'confirmation' | null>(null);
   const [erreur, setErreur] = useState('');
   const [champInvalide, setChampInvalide] = useState<'email' | 'consentement' | null>(null);
   const verrou = useRef(false);
@@ -57,7 +57,7 @@ export function InscriptionActualites() {
           ? 'Trop de demandes. Réessayez dans quelques minutes.'
           : 'L’inscription est momentanément indisponible. Réessayez dans un instant.');
       }
-      setSucces(true);
+      setSucces(resultat.confirmation === true ? 'confirmation' : 'enregistre');
       setEmail('');
       setConsentement(false);
     } catch (echec) {
@@ -86,7 +86,9 @@ export function InscriptionActualites() {
       <div className="mt-4 min-w-0 paysage:mt-0">
         <div role="status">
           {succes ? <p className="flex items-start gap-3 rounded-2xl bg-lin p-5 text-[15px] font-semibold text-encre">
-            <Icone nom="valide" className="mt-0.5 size-5 text-ok" /> Merci, votre inscription est enregistrée. À bientôt pour les nouvelles de l’Olympiade&nbsp;!
+            <Icone nom="valide" className="mt-0.5 size-5 text-ok" /> {succes === 'confirmation'
+              ? 'Merci\u00a0! Un email de confirmation vient de partir\u00a0: cliquez sur le bouton qu’il contient pour valider votre inscription.'
+              : 'Merci, votre inscription est enregistrée. À bientôt pour les nouvelles de l’Olympiade\u00a0!'}
           </p> : null}
         </div>
         {!succes ? <form method="post" action="/api/actualites" noValidate onSubmit={soumettre} onFocus={() => setVerification(true)} aria-label="Recevoir les nouvelles de l’Olympiade" aria-busy={enCours}>

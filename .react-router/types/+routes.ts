@@ -46,6 +46,15 @@ type Pages = {
   "/inscription/code": {
     params: {};
   };
+  "/emails/confirmation": {
+    params: {};
+  };
+  "/emails/desinscription": {
+    params: {};
+  };
+  "/emails/je-viens": {
+    params: {};
+  };
   "/admin": {
     params: {};
   };
@@ -109,7 +118,7 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/manades" | "/manades/:slug" | "/classements" | "/dates" | "/contact" | "/mentions-legales" | "/confidentialite" | "/noter" | "/inscription" | "/inscription/code" | "/admin" | "/admin/statistiques" | "/admin/cookies" | "/admin/participants" | "/admin/messages" | "/admin/abonnes" | "/admin/juges" | "/admin/soirees" | "/admin/soirees/:soireeId" | "/admin/soirees/:soireeId/direct" | "/admin/soirees/:soireeId/resultats" | "/admin/vitrine" | "/compte" | "/ecran/:slug" | "/jury" | "/*";
+    page: "/" | "/manades" | "/manades/:slug" | "/classements" | "/dates" | "/contact" | "/mentions-legales" | "/confidentialite" | "/noter" | "/inscription" | "/inscription/code" | "/emails/confirmation" | "/emails/desinscription" | "/emails/je-viens" | "/admin" | "/admin/statistiques" | "/admin/cookies" | "/admin/participants" | "/admin/messages" | "/admin/abonnes" | "/admin/juges" | "/admin/soirees" | "/admin/soirees/:soireeId" | "/admin/soirees/:soireeId/direct" | "/admin/soirees/:soireeId/resultats" | "/admin/vitrine" | "/compte" | "/ecran/:slug" | "/jury" | "/*";
   };
   "routes/accueil.tsx": {
     id: "routes/accueil";
@@ -154,6 +163,18 @@ type RouteFiles = {
   "routes/inscription-code.tsx": {
     id: "routes/inscription-code";
     page: "/inscription/code";
+  };
+  "routes/emails-confirmation.tsx": {
+    id: "routes/emails-confirmation";
+    page: "/emails/confirmation";
+  };
+  "routes/emails-desinscription.tsx": {
+    id: "routes/emails-desinscription";
+    page: "/emails/desinscription";
+  };
+  "routes/emails-je-viens.tsx": {
+    id: "routes/emails-je-viens";
+    page: "/emails/je-viens";
   };
   "routes/admin.tsx": {
     id: "routes/admin";
@@ -234,6 +255,9 @@ type RouteModules = {
   "routes/noter": typeof import("./app/routes/noter.tsx");
   "routes/inscription": typeof import("./app/routes/inscription.tsx");
   "routes/inscription-code": typeof import("./app/routes/inscription-code.tsx");
+  "routes/emails-confirmation": typeof import("./app/routes/emails-confirmation.tsx");
+  "routes/emails-desinscription": typeof import("./app/routes/emails-desinscription.tsx");
+  "routes/emails-je-viens": typeof import("./app/routes/emails-je-viens.tsx");
   "routes/admin": typeof import("./app/routes/admin.tsx");
   "routes/admin-statistiques": typeof import("./app/routes/admin-statistiques.tsx");
   "routes/admin-cookies": typeof import("./app/routes/admin-cookies.tsx");

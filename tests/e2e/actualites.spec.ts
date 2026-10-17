@@ -58,6 +58,17 @@ test('un échec conserve l’adresse et permet de réessayer', async ({ page }) 
   await expect(carte.getByText(/Merci, votre inscription est enregistrée/)).toBeVisible();
 });
 
+test('une adresse à confirmer reçoit le message de confirmation', async ({ page }) => {
+  await page.route('**/api/actualites', (route) => route.fulfill({ json: { ok: true, confirmation: true } }));
+  await page.goto('/');
+  const carte = page.getByRole('region', { name: TITRE });
+  await carte.getByRole('textbox').fill('lea@example.test');
+  await carte.getByRole('checkbox').check();
+  await carte.getByRole('button', { name: 'Je m’inscris' }).click();
+  await expect(carte.getByText('Merci ! Un email de confirmation vient de partir : cliquez sur le bouton qu’il contient pour valider votre inscription.')).toBeVisible();
+  await expect(carte.getByText(/votre inscription est enregistrée/)).toHaveCount(0);
+});
+
 test('sans JavaScript, l’adresse ne peut pas partir dans l’URL', async ({ browser }) => {
   const contexte = await browser.newContext({ javaScriptEnabled: false });
   const page = await contexte.newPage();

@@ -162,16 +162,22 @@ describe('appels Supabase Auth', () => {
 
   it('demanderCode crée le compte au besoin, avec le prénom et le consentement, et un lien de secours vers /inscription/code', async () => {
     auth.signInWithOtp.mockResolvedValue({ data: { user: null, session: null }, error: null });
-    await demanderCode('Léa', 'lea@exemple.fr', 'captcha-valide');
+    await demanderCode('Léa', 'lea@exemple.fr', 'captcha-valide', false);
     expect(auth.signInWithOtp).toHaveBeenCalledWith({
       email: 'lea@exemple.fr',
       options: {
         shouldCreateUser: true,
-        data: { prenom: 'Léa', consentement: true },
+        data: { prenom: 'Léa', consentement: true, annonces: false },
         emailRedirectTo: 'https://exemple.fr/inscription/code',
         captchaToken: 'captcha-valide',
       },
     });
+  });
+
+  it('demanderCode transmet annonces: true quand la case est cochée', async () => {
+    auth.signInWithOtp.mockResolvedValue({ data: { user: null, session: null }, error: null });
+    await demanderCode('Léa', 'lea@exemple.fr', 'captcha-valide', true);
+    expect(auth.signInWithOtp.mock.calls[0][0].options.data).toEqual({ prenom: 'Léa', consentement: true, annonces: true });
   });
 
   it('demanderCode transforme une erreur Supabase en ErreurAuth au message français', async () => {

@@ -30,6 +30,7 @@ const REPLI = '/__spa-fallback.html';
 const ROUTES_MONOPAGE = new Set([
   '/noter', '/inscription', '/inscription/code', '/admin', '/admin/statistiques',
   '/admin/participants', '/admin/messages', '/admin/juges', '/admin/soirees', '/jury',
+  '/emails/confirmation', '/emails/desinscription', '/emails/je-viens',
 ]);
 
 /** Routes à paramètre (soirée, écran) : le repli monopage, pas la page introuvable. @param {string} chemin */

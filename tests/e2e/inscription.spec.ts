@@ -83,6 +83,37 @@ test('inscription complète : prénom, email, consentement, code collé, arrivé
   expect(verification).toMatchObject({ email: 'lea@exemple.fr', token: '123456', type: 'email' });
 });
 
+test('la case annonces est décochée et facultative, et son état part avec la demande de code', async ({ page }) => {
+  const demandes: Record<string, unknown>[] = [];
+  await page.route('**/auth/v1/otp*', async (route) => {
+    demandes.push(route.request().postDataJSON());
+    await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+  });
+  const LIBELLE_ANNONCES = 'Recevoir aussi l’annonce des prochaines dates (facultatif)';
+  await page.goto('/inscription');
+  await expect(page.getByLabel(LIBELLE_ANNONCES)).toBeVisible();
+  await expect(page.getByLabel(LIBELLE_ANNONCES)).not.toBeChecked();
+  await expect(page.getByText('Votre prénom et votre email servent à l’inscription, au vote du public et aux rappels de votre date. Chaque email contient un lien de désinscription.')).toBeVisible();
+
+  await page.getByLabel('Prénom').fill('Léa');
+  await page.getByLabel('Email').fill('lea@exemple.fr');
+  await page.getByLabel(/J’accepte la politique de confidentialité/).check();
+  await attendreTurnstile(page);
+  await page.getByRole('button', { name: 'Recevoir mon code' }).click();
+  await expect(page).toHaveURL(/\/inscription\/code$/);
+  expect(demandes[0]).toMatchObject({ data: { prenom: 'Léa', consentement: true, annonces: false } });
+
+  await page.goto('/inscription');
+  await page.getByLabel('Prénom').fill('Léa');
+  await page.getByLabel('Email').fill('lea@exemple.fr');
+  await page.getByLabel(/J’accepte la politique de confidentialité/).check();
+  await page.getByLabel(LIBELLE_ANNONCES).check();
+  await attendreTurnstile(page);
+  await page.getByRole('button', { name: 'Recevoir mon code' }).click();
+  await expect(page).toHaveURL(/\/inscription\/code$/);
+  expect(demandes[1]).toMatchObject({ data: { prenom: 'Léa', consentement: true, annonces: true } });
+});
+
 test('un code refusé affiche un message clair et laisse réessayer', async ({ page }) => {
   await page.route('**/auth/v1/otp*', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
   await page.route('**/auth/v1/verify*', (route) =>

@@ -74,6 +74,15 @@ export default function Confidentialite() {
               Donner accès au vote et envoyer les notifications liées à la soirée&nbsp;: votre consentement, recueilli par une
               case à cocher à l’inscription (art. 6(1)(a) RGPD). Vous pouvez le retirer à tout moment.
             </li>
+            <li>
+              <strong>Emails liés à votre date et annonces des prochaines dates</strong>&nbsp;: confirmation de votre
+              adresse, rappels de la date que vous suivez (une semaine avant, la veille, le jour même, le lendemain)
+              et, si vous l’avez demandé, annonce des prochaines dates. Base légale&nbsp;: votre consentement pour les
+              annonces (art. 6(1)(a) RGPD) et l’exécution du service que vous avez demandé pour les rappels de la date
+              suivie (art. 6(1)(b) RGPD). Chaque email contient un lien de désinscription&nbsp;: un clic suffit, sans
+              connexion, pour arrêter seulement les annonces ou ne plus rien recevoir. Votre adresse n’est utilisée
+              pour ces envois qu’une fois confirmée.
+            </li>
           </ul>
           <p>Aucune newsletter sans case dédiée, décochée par défaut.</p>
           <p>Avec votre accord, l’organisation peut vous adresser les actualités, dates, informations pratiques,
@@ -91,6 +100,8 @@ export default function Confidentialite() {
         <SectionLegale id="duree" titre="Durée de conservation">
           <ul>
             <li>Abonnement aux actualités&nbsp;: adresse et consentement conservés jusqu’à votre demande de retrait ou l’arrêt de la liste d’information.</li>
+            <li>Journal des emails envoyés (date, type d’email, résultat)&nbsp;: 12 mois, puis supprimé.</li>
+            <li>Adresses jamais confirmées&nbsp;: supprimées 30 jours après l’envoi de l’email de confirmation.</li>
             <li>Comptes spectateurs inactifs&nbsp;: supprimés après 24 mois d’inactivité.</li>
             <li>Mesures techniques agrégées et derniers signaux d’activité&nbsp;: conservation de 30 jours.</li>
             <li>Preuves de vos choix relatifs aux cookies&nbsp;: conservées 12 mois, puis supprimées.</li>

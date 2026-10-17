@@ -108,18 +108,19 @@ function enErreurAuth(erreur: unknown, etape: EtapeAuth): ErreurAuth {
 
 /**
  * Envoie un code à 6 chiffres. Même réponse que l'adresse soit nouvelle ou déjà inscrite : rien ne
- * révèle qu'un compte existe. Pour un compte existant, Supabase ignore `data` (le prénom ne change pas).
+ * révèle qu'un compte existe. Pour un compte existant, Supabase ignore `data` (le prénom ne change pas,
+ * l'accord pour les annonces non plus : Supabase ne pose ces métadonnées qu'à la création du compte).
  * Le lien de secours de l'email ramène sur /inscription/code (adresse autorisée dans la
  * configuration Auth, additional_redirect_urls).
  */
-export async function demanderCode(prenom: string, email: string, captchaToken: string): Promise<void> {
+export async function demanderCode(prenom: string, email: string, captchaToken: string, annonces = false): Promise<void> {
   try {
     if (!captchaToken.trim()) throw new ErreurAuth(MESSAGES_AUTH.verificationHumaine);
     const { error } = await (await supabase()).auth.signInWithOtp({
       email,
       options: {
         shouldCreateUser: true,
-        data: { prenom, consentement: true },
+        data: { prenom, consentement: true, annonces },
         emailRedirectTo: typeof window === 'undefined' ? undefined : `${window.location.origin}/inscription/code`,
         captchaToken,
       },

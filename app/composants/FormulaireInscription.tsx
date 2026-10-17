@@ -45,6 +45,8 @@ export function FormulaireInscription({ initial }: Props) {
     email: initial?.email ?? '',
     consentement: false,
   });
+  // Facultatif, décoché par défaut : accord pour l'annonce des prochaines dates (hors validation).
+  const [annonces, setAnnonces] = useState(false);
   const [erreurs, setErreurs] = useState<ErreursInscription>({});
   const [verifier, setVerifier] = useState(false);
   const [envoi, setEnvoi] = useState<Envoi>('repos');
@@ -82,7 +84,7 @@ export function FormulaireInscription({ initial }: Props) {
     const prenom = champs.prenom.trim();
     const email = normaliserEmail(champs.email);
     try {
-      await demanderCode(prenom, email, captchaToken);
+      await demanderCode(prenom, email, captchaToken, annonces);
       const demande = { prenom, email, envoyeeLe: Date.now() };
       memoriserDemande(demande);
       navigate('/inscription/code', { state: demande });
@@ -181,9 +183,27 @@ export function FormulaireInscription({ initial }: Props) {
           </Link>
         </label>
         <p id={`${id}-usage`} className="col-start-2">
-          Votre prénom et votre email servent uniquement à l’inscription et au vote du public.
+          Votre prénom et votre email servent à l’inscription, au vote du public et aux rappels de votre date. Chaque email contient un lien de désinscription.
         </p>
         <div className="col-start-2">{erreur('consentement')}</div>
+      </div>
+
+      {/* Annonce des prochaines dates : facultative, jamais cochée d'office. */}
+      <div className="grid grid-cols-[22px_1fr] gap-x-2.5 text-[13px] leading-[1.45] text-encre-2">
+        <span className="relative mt-px grid size-[22px] place-items-center">
+          <input
+            id={`${id}-annonces`}
+            name="annonces"
+            type="checkbox"
+            checked={annonces}
+            onChange={(e) => setAnnonces(e.target.checked)}
+            className="peer size-[22px] cursor-pointer appearance-none rounded-[7px] border-[1.5px] border-[#958a77] bg-creme checked:border-encre checked:bg-encre"
+          />
+          <Icone nom="valide" className="pointer-events-none absolute size-[15px] text-sable opacity-0 peer-checked:opacity-100" />
+        </span>
+        <label htmlFor={`${id}-annonces`} className="cursor-pointer">
+          Recevoir aussi l’annonce des prochaines dates (facultatif)
+        </label>
       </div>
 
       <div className="grid gap-2.5">
