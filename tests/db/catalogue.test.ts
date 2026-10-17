@@ -73,6 +73,7 @@ const DROITS_ATTENDUS = [
   { role: 'anon', table: 'photos_vitrine', droits: LECTURE },
   { role: 'anon', table: 'soiree_manades', droits: LECTURE },
   { role: 'anon', table: 'soirees', droits: LECTURE },
+  { role: 'authenticated', table: 'abonnements_actualites', droits: 'DELETE, SELECT' },
   { role: 'authenticated', table: 'abonnements_push', droits: ADMIN },
   { role: 'authenticated', table: 'avis_soiree', droits: VOTE },
   { role: 'authenticated', table: 'calendrier', droits: ADMIN },

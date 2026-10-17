@@ -1,5 +1,5 @@
-import { $ as ETAT_SOIREE, A as SaisonAccueil, B as INSCRIPTION_OUVERTE, C as anneesClassements, D as lireDonneesVitrineNavigateur, E as lireDonneesVitrine, F as lireOuRepli, G as SuiviNotes, H as Affiche, I as Epreuves, J as PiedDePage, K as SuiviPresence, L as EPREUVES, M as FormulaireContact, N as VerificationHumaine, O as donneesRelues, P as lireCalendrier, Q as useMaintenant, R as DernierVainqueur, S as anneeChoisie, T as DELAI_LECTURE_NAVIGATEUR_MS, U as CreditAffiche, V as TEXTE_INSCRIPTIONS_FERMEES, W as VILLE_AFFICHE, X as Icone, Y as Entete, Z as useSession, _ as ONGLET_ACTIF, _t as prochaineSoireeA, a as useAccesAdmin, at as demanderCode, b as idOnglet, c as CorpsLegal, ct as normaliserCode, d as SectionLegale, dt as traduireErreurAuth, et as MESSAGES_AUTH, f as noteProjections, ft as validerInscription, g as CLASSE_ONGLET, gt as momentSoiree, h as useHydrate, ht as formaterJourMois, i as octets, it as demandeValide, j as ManadesEdition, k as useRelectureApresInteraction, l as EncadreOrganisateur, lt as normaliserEmail, m as CarteDate, mt as verifierTotp, n as latence, nt as connecterAdmin, o as NotationPublic, ot as formaterDecompte, p as sectionsDates, pt as verifierCode, q as TitrePage, r as nombre, rt as demandeEnCours, s as CreditsPhotos, st as memoriserDemande, t as exporterMesures, tt as commencerEnrolementTotp, u as LIEN_TEXTE, ut as oublierDemande, v as ONGLET_INACTIF, vt as soireeDeReference, w as resultatsAnnee, x as CarteResultat, y as OngletsAnnee, yt as jourParis, z as BlocNoter } from "./assets/app-8-BwKimu.js";
-import { Link, Links, Meta, Navigate, Outlet, Scripts, ScrollRestoration, ServerRouter, UNSAFE_withComponentProps, UNSAFE_withErrorBoundaryProps, UNSAFE_withHydrateFallbackProps, isRouteErrorResponse, useLocation, useNavigate, useSearchParams } from "react-router";
+import { $ as ManadesEdition, A as LIEN_TEXTE, At as demandeEnCours, B as ONGLET_INACTIF, Bt as verifierCode, C as octets, Ct as useSession, D as CHAMPS_IDENTITE, Dt as MESSAGES_AUTH, E as IdentitePublique, Et as useInstantanePublic, F as CarteDate, Ft as normaliserCode, G as anneesClassements, Gt as prochaineSoireeA, H as idOnglet, Ht as supabase, I as useHydrate, It as normaliserEmail, J as lireDonneesVitrine, K as resultatsAnnee, Kt as soireeDeReference, L as ClassementCalcule, Lt as oublierDemande, M as evenementsDesDates, Mt as demanderCode, N as noteProjections, Nt as formaterDecompte, O as CreditsPhotos, Ot as commencerEnrolementTotp, P as sectionsDates, Pt as memoriserDemande, Q as SaisonAccueil, R as CLASSE_ONGLET, Rt as traduireErreurAuth, S as nombre, St as Icone, T as NotationPublic, Tt as FournisseurEtatSoiree, U as CarteResultat, Ut as formaterJourMois, V as OngletsAnnee, Vt as verifierTotp, W as anneeChoisie, Wt as momentSoiree, X as donneesRelues, Y as lireDonneesVitrineNavigateur, Z as useRelectureApresInteraction, _ as CHAMP$1, _t as SuiviPresence, a as depuisChampParis, at as EPREUVES, b as exporterMesures, bt as PiedDePage, c as horairesModele, ct as INSCRIPTION_OUVERTE, d as documentPdf, dt as CreditAffiche, et as FormulaireContact, f as matriceQr, ft as VILLE_AFFICHE, g as CARTE$1, gt as CoqueAndroid, h as BOUTON_PLEIN, ht as BanniereDeblocage, i as champParis, it as Epreuves, j as SectionLegale, jt as demandeValide, k as CorpsLegal, kt as connecterAdmin, l as slugifier, lt as TEXTE_INSCRIPTIONS_FERMEES, m as BOUTON$1, mt as ServiceTravailleur, n as ImportPlanning, nt as lireCalendrier, o as etapesEchange, ot as DernierVainqueur, p as telechargerFichier, pt as PrecisionAccueil, q as DELAI_LECTURE_NAVIGATEUR_MS, qt as jourParis, r as EPREUVES_MODELE, rt as lireOuRepli, s as fenetreDefaut, st as BlocNoter, t as etapesReordre, tt as VerificationHumaine, u as CodeQr, ut as Affiche, v as CadreAdmin, vt as SuiviNotes, w as useAccesAdmin, wt as useMaintenant, x as latence, xt as Entete, y as useClientAdmin, yt as TitrePage, z as ONGLET_ACTIF, zt as validerInscription } from "./assets/app-DSfVGv7v.js";
+import { Link, Links, Meta, Navigate, Outlet, Scripts, ScrollRestoration, ServerRouter, UNSAFE_withComponentProps, UNSAFE_withErrorBoundaryProps, UNSAFE_withHydrateFallbackProps, isRouteErrorResponse, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 import { isbot } from "isbot";
 import { renderToReadableStream } from "react-dom/server";
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
@@ -17,7 +17,7 @@ var __exportAll = (all, no_symbols) => {
 	return target;
 };
 //#endregion
-//#region node_modules/.pnpm/@react-router+dev@8.4.0_react-router@8.4.0_react-dom@19.3.0_react@19.3.0__react@19.3.0__61ab97f2d391a02f47cb0a7d0e4cd79f/node_modules/@react-router/dev/dist/config/defaults/entry.server.web.tsx
+//#region node_modules/.pnpm/@react-router+dev@8.4.0_react-router@8.4.0_react-dom@19.3.0_react@19.3.0__react@19.3.0__3900bbcba3aa462d3a0441387023a823/node_modules/@react-router/dev/dist/config/defaults/entry.server.web.tsx
 var entry_server_web_exports = /* @__PURE__ */ __exportAll({
 	default: () => handleRequest,
 	streamTimeout: () => streamTimeout
@@ -50,7 +50,7 @@ async function handleRequest(request, responseStatusCode, responseHeaders, route
 }
 //#endregion
 //#region app/app.css?url
-var app_default = "/assets/app-Sv8rRJ25.css";
+var app_default = "/assets/app-DoZ5tzGl.css";
 //#endregion
 //#region app/root.tsx
 var root_exports = /* @__PURE__ */ __exportAll({
@@ -59,7 +59,7 @@ var root_exports = /* @__PURE__ */ __exportAll({
 	Layout: () => Layout,
 	default: () => root_default,
 	links: () => links,
-	meta: () => meta$12
+	meta: () => meta$23
 });
 var police = (fichier) => ({
 	rel: "preload",
@@ -82,9 +82,13 @@ var links = () => [
 		rel: "icon",
 		href: "/favicon.svg",
 		type: "image/svg+xml"
+	},
+	{
+		rel: "manifest",
+		href: "/manifest.webmanifest"
 	}
 ];
-var meta$12 = () => [{ title: "Olympiade des Manades" }, {
+var meta$23 = () => [{ title: "Olympiade des Manades" }, {
 	name: "description",
 	content: "Le public note les manades, en direct, aux côtés du jury."
 }];
@@ -131,11 +135,12 @@ function Coque({ children, generique = false }) {
 	});
 }
 var root_default = UNSAFE_withComponentProps(function App() {
-	return /* @__PURE__ */ jsxs(Coque, { children: [
+	return /* @__PURE__ */ jsx(CoqueAndroid, { children: /* @__PURE__ */ jsxs(FournisseurEtatSoiree, { children: [/* @__PURE__ */ jsx(ServiceTravailleur, {}), /* @__PURE__ */ jsxs(Coque, { children: [
+		/* @__PURE__ */ jsx(BanniereDeblocage, {}),
 		/* @__PURE__ */ jsx(SuiviPresence, {}),
 		/* @__PURE__ */ jsx(SuiviNotes, {}),
 		/* @__PURE__ */ jsx(Outlet, {})
-	] });
+	] })] }) });
 });
 var HydrateFallback = UNSAFE_withHydrateFallbackProps(function HydrateFallback() {
 	return /* @__PURE__ */ jsx(Coque, {
@@ -169,9 +174,9 @@ var accueil_exports = /* @__PURE__ */ __exportAll({
 	clientLoader: () => clientLoader$3,
 	default: () => accueil_default,
 	loader: () => loader$2,
-	meta: () => meta$11
+	meta: () => meta$22
 });
-var meta$11 = () => [{ title: "Olympiade des Manades" }, {
+var meta$22 = () => [{ title: "Olympiade des Manades" }, {
 	name: "description",
 	content: "Les Olympiades camarguaises : le public note les manades, en direct, aux côtés du jury. Saison 2027."
 }];
@@ -184,6 +189,7 @@ async function clientLoader$3({ serverLoader }) {
 var accueil_default = UNSAFE_withComponentProps(function Accueil({ loaderData }) {
 	const { calendrier, palmares, lueLe } = loaderData;
 	const maintenant = useMaintenant(lueLe);
+	const instantane = useInstantanePublic();
 	useRelectureApresInteraction(loaderData);
 	const soiree = calendrier ? soireeDeReference(calendrier, maintenant) : null;
 	const soireeAffiche = calendrier ? prochaineSoireeA(calendrier, VILLE_AFFICHE, maintenant) : null;
@@ -194,14 +200,19 @@ var accueil_default = UNSAFE_withComponentProps(function Accueil({ loaderData })
 			children: [
 				/* @__PURE__ */ jsx(Affiche, { soiree: soireeAffiche }),
 				/* @__PURE__ */ jsx(BlocNoter, {
-					etat: ETAT_SOIREE,
+					etat: instantane.etat,
 					soiree,
 					calendrierDisponible: calendrier !== null,
-					maintenant
+					maintenant,
+					direct: instantane.etat === "ouvert" && instantane.soiree ? {
+						epreuve: instantane.soiree.epreuveEnCours ?? void 0,
+						manadeEnPiste: instantane.soiree.manadeEnPiste ?? void 0
+					} : void 0
 				}),
 				/* @__PURE__ */ jsx(CreditAffiche, { className: "-mt-2 px-1 tablette:-mt-2.5" })
 			]
 		}),
+		/* @__PURE__ */ jsx(PrecisionAccueil, {}),
 		/* @__PURE__ */ jsx(ManadesEdition, {}),
 		/* @__PURE__ */ jsx(Epreuves, {}),
 		/* @__PURE__ */ jsx(DernierVainqueur, { palmares }),
@@ -235,10 +246,10 @@ var classements_exports = /* @__PURE__ */ __exportAll({
 	clientLoader: () => clientLoader$2,
 	default: () => classements_default,
 	loader: () => loader$1,
-	meta: () => meta$10,
+	meta: () => meta$21,
 	shouldRevalidate: () => shouldRevalidate
 });
-var meta$10 = () => [{ title: "Classements · Olympiade des Manades" }, {
+var meta$21 = () => [{ title: "Classements · Olympiade des Manades" }, {
 	name: "description",
 	content: "Palmarès des Olympiades des manades : le vainqueur de chaque soirée, avec sa source."
 }];
@@ -295,6 +306,8 @@ var classements_default = UNSAFE_withComponentProps(function Classements({ loade
 	const hydrate = useHydrate();
 	const [parametres, setParametres] = useSearchParams();
 	const annees = anneesClassements(palmares, calendrier);
+	const instantane = useInstantanePublic();
+	const anneeDirect = instantane.soiree?.dateSoiree ? Number(instantane.soiree.dateSoiree.slice(0, 4)) : null;
 	const annee = anneeChoisie(hydrate ? parametres.get("annee") : null, annees);
 	const avecOnglets = annee !== null && annees.onglets.length > 1;
 	const choisir = (choix) => setParametres({ annee: String(choix) }, {
@@ -302,6 +315,8 @@ var classements_default = UNSAFE_withComponentProps(function Classements({ loade
 		preventScrollReset: true
 	});
 	const resultats = palmares && annee !== null ? resultatsAnnee(palmares, annee) : [];
+	const soirDirect = annee !== null && anneeDirect === annee ? instantane.soiree : null;
+	const classementDirect = soirDirect?.classements ?? null;
 	const aujourdhui = jourParis(maintenant);
 	const soireesAnnee = calendrier?.filter((s) => s.annee === annee && s.statut !== "annulee") ?? [];
 	const aVenir = soireesAnnee.some((s) => s.date_soiree >= aujourdhui);
@@ -324,29 +339,46 @@ var classements_default = UNSAFE_withComponentProps(function Classements({ loade
 			"aria-labelledby": avecOnglets ? idOnglet(annee) : void 0,
 			tabIndex: avecOnglets ? 0 : void 0,
 			className: `${MARGES} mt-[18px] rounded-sm tablette:mt-[22px] paysage:mt-[26px]`,
-			children: [annee !== null ? /* @__PURE__ */ jsxs("h2", {
-				className: "sr-only",
-				children: ["Palmarès ", annee]
-			}) : null, !palmares ? /* @__PURE__ */ jsx("p", {
-				className: "text-encre-2",
-				children: "Informations momentanément indisponibles. Réessayez dans un instant."
-			}) : resultats.length ? /* @__PURE__ */ jsx("div", {
-				className: GRILLE,
-				children: resultats.map((resultat, rang) => /* @__PURE__ */ jsx(CarteResultat, {
-					resultat,
-					aLaUne: rang === 0
-				}, resultat.id))
-			}) : annee !== null && aVenir ? /* @__PURE__ */ jsx(AnneeEnDirect, {
-				annee,
-				soirees: soireesAnnee.length
-			}) : /* @__PURE__ */ jsxs("p", {
-				className: "text-encre-2",
-				children: [
-					"Aucun résultat publié pour ",
-					annee ?? "cette année",
-					"."
-				]
-			})]
+			children: [
+				annee !== null ? /* @__PURE__ */ jsxs("h2", {
+					className: "sr-only",
+					children: ["Palmarès ", annee]
+				}) : null,
+				classementDirect ? /* @__PURE__ */ jsxs("div", {
+					className: "mb-8",
+					children: [
+						/* @__PURE__ */ jsxs("h2", {
+							className: "mb-3 font-display text-[22px] leading-tight font-bold",
+							children: ["Classement calculé · ", soirDirect?.nom]
+						}),
+						/* @__PURE__ */ jsx("p", {
+							className: "mb-4 text-sm text-encre-2",
+							children: "Relecture de l’instantané public, selon le réglage de visibilité de la soirée."
+						}),
+						/* @__PURE__ */ jsx(ClassementCalcule, { classements: classementDirect })
+					]
+				}) : null,
+				!palmares ? /* @__PURE__ */ jsx("p", {
+					className: "text-encre-2",
+					children: "Informations momentanément indisponibles. Réessayez dans un instant."
+				}) : resultats.length ? /* @__PURE__ */ jsx("div", {
+					className: GRILLE,
+					children: resultats.map((resultat, rang) => /* @__PURE__ */ jsx(CarteResultat, {
+						resultat,
+						aLaUne: rang === 0 && !classementDirect
+					}, resultat.id))
+				}) : classementDirect ? null : annee !== null && aVenir ? /* @__PURE__ */ jsx(AnneeEnDirect, {
+					annee,
+					soirees: soireesAnnee.length
+				}) : /* @__PURE__ */ jsxs("p", {
+					className: "text-encre-2",
+					children: [
+						"Aucun résultat publié pour ",
+						annee ?? "cette année",
+						"."
+					]
+				})
+			]
 		}),
 		palmares && annees.precedentes.length ? /* @__PURE__ */ jsx("div", {
 			className: `${MARGES} pt-10 paysage:pt-14`,
@@ -382,9 +414,9 @@ var dates_exports = /* @__PURE__ */ __exportAll({
 	clientLoader: () => clientLoader$1,
 	default: () => dates_default,
 	loader: () => loader,
-	meta: () => meta$9
+	meta: () => meta$20
 });
-var meta$9 = () => [{ title: "Dates · Olympiade des Manades" }, {
+var meta$20 = () => [{ title: "Dates · Olympiade des Manades" }, {
 	name: "description",
 	content: "Toutes les soirées d’Olympiades des manades : la saison à venir et les archives des années passées."
 }];
@@ -591,29 +623,37 @@ var dates_default = UNSAFE_withComponentProps(function Dates({ loaderData }) {
 	useRelectureApresInteraction(loaderData);
 	const sections = calendrier ? sectionsDates(calendrier, palmares, maintenant) : [];
 	const saison = sections.find((s) => s.type === "saison");
-	return /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx(TitrePage, {
-		surtitre: "Calendrier",
-		titre: saison ? /* @__PURE__ */ jsxs(Fragment, { children: ["Dates ", /* @__PURE__ */ jsx("em", { children: saison.annee })] }) : "Dates",
-		bas: sections.length > 1 ? /* @__PURE__ */ jsx(BarreAnnees, { sections }) : null,
-		children: /* @__PURE__ */ jsx("p", { children: "Les soirées d’Olympiades dans le Gard, l’Hérault et les Bouches-du-Rhône, de la saison à venir aux années passées." })
-	}), !calendrier ? /* @__PURE__ */ jsx("p", {
-		className: "px-4 pt-6 text-encre-2 tablette:px-7 paysage:px-10 bureau:px-14",
-		children: "Informations momentanément indisponibles. Réessayez dans un instant."
-	}) : sections.length === 0 ? /* @__PURE__ */ jsx("p", {
-		className: "px-4 pt-6 text-encre-2 tablette:px-7 paysage:px-10 bureau:px-14",
-		children: "Les dates de la saison seront bientôt publiées."
-	}) : sections.map((section, rang) => /* @__PURE__ */ jsx(SectionAnnee, {
-		section,
-		premiere: rang === 0
-	}, section.id))] });
+	const evenements = calendrier?.length ? evenementsDesDates(calendrier) : null;
+	return /* @__PURE__ */ jsxs(Fragment, { children: [
+		evenements ? /* @__PURE__ */ jsx("script", {
+			type: "application/ld+json",
+			dangerouslySetInnerHTML: { __html: JSON.stringify(evenements).replaceAll("<", "\\u003c") }
+		}) : null,
+		/* @__PURE__ */ jsx(TitrePage, {
+			surtitre: "Calendrier",
+			titre: saison ? /* @__PURE__ */ jsxs(Fragment, { children: ["Dates ", /* @__PURE__ */ jsx("em", { children: saison.annee })] }) : "Dates",
+			bas: sections.length > 1 ? /* @__PURE__ */ jsx(BarreAnnees, { sections }) : null,
+			children: /* @__PURE__ */ jsx("p", { children: "Les soirées d’Olympiades dans le Gard, l’Hérault et les Bouches-du-Rhône, de la saison à venir aux années passées." })
+		}),
+		!calendrier ? /* @__PURE__ */ jsx("p", {
+			className: "px-4 pt-6 text-encre-2 tablette:px-7 paysage:px-10 bureau:px-14",
+			children: "Informations momentanément indisponibles. Réessayez dans un instant."
+		}) : sections.length === 0 ? /* @__PURE__ */ jsx("p", {
+			className: "px-4 pt-6 text-encre-2 tablette:px-7 paysage:px-10 bureau:px-14",
+			children: "Les dates de la saison seront bientôt publiées."
+		}) : sections.map((section, rang) => /* @__PURE__ */ jsx(SectionAnnee, {
+			section,
+			premiere: rang === 0
+		}, section.id))
+	] });
 });
 //#endregion
 //#region app/routes/contact.tsx
 var contact_exports = /* @__PURE__ */ __exportAll({
 	default: () => contact_default,
-	meta: () => meta$8
+	meta: () => meta$19
 });
-var meta$8 = () => [{ title: "Contact · Olympiade des Manades" }, {
+var meta$19 = () => [{ title: "Contact · Olympiade des Manades" }, {
 	name: "description",
 	content: "Infos, dates, une manade à inscrire, une photo à proposer : écrivez à l’organisation."
 }];
@@ -655,9 +695,9 @@ var contact_default = UNSAFE_withComponentProps(function Contact() {
 //#region app/routes/mentions-legales.tsx
 var mentions_legales_exports = /* @__PURE__ */ __exportAll({
 	default: () => mentions_legales_default,
-	meta: () => meta$7
+	meta: () => meta$18
 });
-var meta$7 = () => [{ title: "Mentions légales · Olympiade des Manades" }, {
+var meta$18 = () => [{ title: "Mentions légales · Olympiade des Manades" }, {
 	name: "description",
 	content: "Éditeur, hébergeurs et crédits du site de l’Olympiade des Manades."
 }];
@@ -669,7 +709,7 @@ var mentions_legales_default = UNSAFE_withComponentProps(function MentionsLegale
 		/* @__PURE__ */ jsx(SectionLegale, {
 			id: "editeur",
 			titre: "Éditeur du site",
-			children: /* @__PURE__ */ jsx(EncadreOrganisateur, { children: /* @__PURE__ */ jsx("p", { children: "Ces informations seront fournies par l’organisateur\xA0: nom ou raison sociale, forme juridique, siège ou adresse, téléphone, email, numéro d’immatriculation, capital le cas échéant, numéro de TVA, directeur de la publication." }) })
+			children: /* @__PURE__ */ jsx(IdentitePublique, { repli: /* @__PURE__ */ jsx("p", { children: "Ces informations seront fournies par l’organisateur\xA0: nom ou raison sociale, forme juridique, siège ou adresse, téléphone, email, numéro d’immatriculation, capital le cas échéant, numéro de TVA, directeur de la publication." }) })
 		}),
 		/* @__PURE__ */ jsx(SectionLegale, {
 			id: "hebergement",
@@ -757,9 +797,9 @@ var mentions_legales_default = UNSAFE_withComponentProps(function MentionsLegale
 //#region app/routes/confidentialite.tsx
 var confidentialite_exports = /* @__PURE__ */ __exportAll({
 	default: () => confidentialite_default,
-	meta: () => meta$6
+	meta: () => meta$17
 });
-var meta$6 = () => [{ title: "Confidentialité · Olympiade des Manades" }, {
+var meta$17 = () => [{ title: "Confidentialité · Olympiade des Manades" }, {
 	name: "description",
 	content: "Données collectées, finalités, durée de conservation et droits RGPD."
 }];
@@ -776,7 +816,7 @@ var confidentialite_default = UNSAFE_withComponentProps(function Confidentialite
 		/* @__PURE__ */ jsx(SectionLegale, {
 			id: "responsable",
 			titre: "Responsable du traitement",
-			children: /* @__PURE__ */ jsx(EncadreOrganisateur, { children: /* @__PURE__ */ jsx("p", { children: "L’identité et les coordonnées du responsable du traitement seront fournies par l’organisateur." }) })
+			children: /* @__PURE__ */ jsx(IdentitePublique, { repli: /* @__PURE__ */ jsx("p", { children: "L’identité et les coordonnées du responsable du traitement seront fournies par l’organisateur." }) })
 		}),
 		/* @__PURE__ */ jsx(SectionLegale, {
 			id: "donnees",
@@ -827,7 +867,9 @@ var confidentialite_default = UNSAFE_withComponentProps(function Confidentialite
 				/* @__PURE__ */ jsxs("li", { children: [/* @__PURE__ */ jsx("strong", { children: "Supabase" }), "\xA0: base de données (région de l’Union européenne, Paris) et, pour l’instant, envoi des emails de connexion."] }),
 				/* @__PURE__ */ jsxs("li", { children: [/* @__PURE__ */ jsx("strong", { children: "Railway" }), "\xA0: hébergement du site."] }),
 				/* @__PURE__ */ jsxs("li", { children: [/* @__PURE__ */ jsx("strong", { children: "Cloudflare Turnstile" }), "\xA0: vérification anti-robot des formulaires de connexion et de contact. Pour le contact, le serveur lui transmet le résultat de la vérification et l’adresse de connexion, sans le prénom, l’email ni le contenu du message."] }),
-				/* @__PURE__ */ jsxs("li", { children: [/* @__PURE__ */ jsx("strong", { children: "Brevo" }), "\xA0: envoi des emails, prévu pour remplacer le service d’email de Supabase."] })
+				/* @__PURE__ */ jsxs("li", { children: [/* @__PURE__ */ jsx("strong", { children: "Brevo" }), "\xA0: envoi des emails lorsque le SMTP est activé."] }),
+				/* @__PURE__ */ jsxs("li", { children: [/* @__PURE__ */ jsx("strong", { children: "Anthropic" }), "\xA0: lecture du planning déposé par l’organisateur, seulement si une clé est configurée. Le fichier est traité pour préparer un brouillon et n’est pas conservé après la demande. Le tableau validé reste lié à la soirée."] }),
+				/* @__PURE__ */ jsxs("li", { children: [/* @__PURE__ */ jsx("strong", { children: "Services de notification du navigateur" }), " (Apple, Google, Mozilla, Microsoft)\xA0: envoi des alertes de soirée si vous les acceptez. L’application Android, si elle est installée, utilise le même site. Elle n’est pas ouverte au public par défaut."] })
 			] }), /* @__PURE__ */ jsxs("p", { children: [
 				"Railway Corp. est établie aux États-Unis. Supabase est exploitée par Supabase Pte. Ltd. (Singapour) et Supabase, Inc. (États-Unis). La base de données est hébergée dans l’Union européenne (Paris) et le site est servi depuis l’Europe. Tout accès depuis un pays hors de l’Union européenne est encadré par les clauses contractuelles types de la Commission européenne, prévues dans l’accord de traitement des données de chaque prestataire (art. 28 et 46 RGPD). Une copie des garanties peut être demandée via le ",
 				LIEN_CONTACT,
@@ -840,7 +882,15 @@ var confidentialite_default = UNSAFE_withComponentProps(function Confidentialite
 			children: [
 				/* @__PURE__ */ jsx("p", { children: "Vous disposez des droits d’accès, de rectification, d’effacement, d’opposition, de limitation et de portabilité de vos données, et du droit de retirer votre consentement à tout moment (vote et notifications). Vous pouvez aussi définir des directives sur le sort de vos données après votre décès (loi Informatique et Libertés, art. 85)." }),
 				/* @__PURE__ */ jsxs("p", { children: [
-					"Pour exercer ces droits, écrivez-nous via le ",
+					"Pour supprimer votre compte spectateur, ouvrez la page",
+					" ",
+					/* @__PURE__ */ jsx(Link, {
+						to: "/compte",
+						className: LIEN_TEXTE,
+						children: "Supprimer mon compte"
+					}),
+					" ",
+					"une fois connecté. Pour les autres droits, écrivez-nous via le ",
 					LIEN_CONTACT,
 					". Nous répondons dans un délai d’un mois (art. 12(3) RGPD). Une pièce d’identité n’est demandée qu’en cas de doute raisonnable sur votre identité."
 				] }),
@@ -865,9 +915,9 @@ var confidentialite_default = UNSAFE_withComponentProps(function Confidentialite
 var noter_exports = /* @__PURE__ */ __exportAll({
 	clientLoader: () => clientLoader,
 	default: () => noter_default,
-	meta: () => meta$5
+	meta: () => meta$16
 });
-var meta$5 = () => [{ title: "Noter les manades · Olympiade des Manades" }, {
+var meta$16 = () => [{ title: "Noter les manades · Olympiade des Manades" }, {
 	name: "robots",
 	content: "noindex"
 }];
@@ -892,18 +942,26 @@ var noter_default = UNSAFE_withComponentProps(function Noter({ loaderData }) {
 			session ? "Retrouvez les passages proposés et le suivi de vos notes ci-dessous." : "Le soir venu, vous donnerez une note de 1 à 10 à chaque manade, dès la fin de son passage."
 		] }), /* @__PURE__ */ jsxs("p", {
 			className: "mt-3 flex flex-wrap gap-x-5 gap-y-1",
-			children: [!session && !chargement ? INSCRIPTION_OUVERTE ? /* @__PURE__ */ jsx(Link, {
-				to: "/inscription",
-				className: LIEN,
-				children: "Inscrivez-vous dès maintenant, vous serez prêt le soir venu"
-			}) : /* @__PURE__ */ jsx("span", {
-				className: "font-semibold text-encre",
-				children: TEXTE_INSCRIPTIONS_FERMEES
-			}) : null, /* @__PURE__ */ jsx(Link, {
-				to: "/dates",
-				className: LIEN,
-				children: "Voir les dates"
-			})]
+			children: [
+				!session && !chargement ? INSCRIPTION_OUVERTE ? /* @__PURE__ */ jsx(Link, {
+					to: "/inscription",
+					className: LIEN,
+					children: "Inscrivez-vous dès maintenant, vous serez prêt le soir venu"
+				}) : /* @__PURE__ */ jsx("span", {
+					className: "font-semibold text-encre",
+					children: TEXTE_INSCRIPTIONS_FERMEES
+				}) : null,
+				/* @__PURE__ */ jsx(Link, {
+					to: "/dates",
+					className: LIEN,
+					children: "Voir les dates"
+				}),
+				session ? /* @__PURE__ */ jsx(Link, {
+					to: "/compte",
+					className: LIEN,
+					children: "Supprimer mon compte"
+				}) : null
+			]
 		})]
 	}), session ? /* @__PURE__ */ jsx(NotationPublic, { compte: session.user.id }, session.user.id) : null] });
 });
@@ -1243,9 +1301,9 @@ function FormulaireInscription({ initial }) {
 //#region app/routes/inscription.tsx
 var inscription_exports = /* @__PURE__ */ __exportAll({
 	default: () => inscription_default,
-	meta: () => meta$4
+	meta: () => meta$15
 });
-var meta$4 = () => [
+var meta$15 = () => [
 	{ title: "Inscription · Olympiade des Manades" },
 	{
 		name: "description",
@@ -1575,9 +1633,9 @@ function FormulaireCode({ demande }) {
 //#region app/routes/inscription-code.tsx
 var inscription_code_exports = /* @__PURE__ */ __exportAll({
 	default: () => inscription_code_default,
-	meta: () => meta$3
+	meta: () => meta$14
 });
-var meta$3 = () => [{ title: "Code reçu · Olympiade des Manades" }, {
+var meta$14 = () => [{ title: "Code reçu · Olympiade des Manades" }, {
 	name: "robots",
 	content: "noindex"
 }];
@@ -1655,9 +1713,9 @@ var inscription_code_default = UNSAFE_withComponentProps(function InscriptionCod
 //#region app/routes/admin.tsx
 var admin_exports = /* @__PURE__ */ __exportAll({
 	default: () => admin_default,
-	meta: () => meta$2
+	meta: () => meta$13
 });
-var meta$2 = () => [{ title: "Administration · Olympiade des Manades" }, {
+var meta$13 = () => [{ title: "Administration · Olympiade des Manades" }, {
 	name: "robots",
 	content: "noindex"
 }];
@@ -1752,16 +1810,42 @@ var admin_default = UNSAFE_withComponentProps(function Admin() {
 	return /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx(TitrePage, {
 		surtitre: "Espace organisateur",
 		titre: "Administration",
-		children: /* @__PURE__ */ jsx("p", { children: "Connectez-vous avec votre compte administrateur pour suivre l’activité et la charge du service." })
+		children: /* @__PURE__ */ jsx("p", { children: "Connectez-vous avec votre compte administrateur pour préparer une soirée, la piloter, puis suivre l’activité du service." })
 	}), /* @__PURE__ */ jsx("div", {
 		className: "px-4 tablette:px-7 paysage:px-10 bureau:px-14",
 		children: acces === "chargement" ? /* @__PURE__ */ jsx("p", {
 			role: "status",
 			children: "Vérification de l’accès…"
-		}) : acces === "autorise" ? /* @__PURE__ */ jsx(Link, {
-			to: "/admin/statistiques",
-			className: "inline-flex min-h-12 items-center rounded-xl bg-encre px-5 font-semibold text-sable",
-			children: "Statistiques et charge →"
+		}) : acces === "autorise" ? /* @__PURE__ */ jsxs("nav", {
+			className: "grid max-w-md gap-3",
+			"aria-label": "Espaces d’administration",
+			children: [
+				/* @__PURE__ */ jsx(Link, {
+					to: "/admin/soirees",
+					className: "inline-flex min-h-12 items-center rounded-xl border border-trait px-5 font-semibold",
+					children: "Mes soirées"
+				}),
+				/* @__PURE__ */ jsx(Link, {
+					to: "/admin/participants",
+					className: "inline-flex min-h-12 items-center rounded-xl border border-trait px-5 font-semibold",
+					children: "Participants"
+				}),
+				/* @__PURE__ */ jsx(Link, {
+					to: "/admin/juges",
+					className: "inline-flex min-h-12 items-center rounded-xl border border-trait px-5 font-semibold",
+					children: "Juges"
+				}),
+				/* @__PURE__ */ jsx(Link, {
+					to: "/admin/messages",
+					className: "inline-flex min-h-12 items-center rounded-xl border border-trait px-5 font-semibold",
+					children: "Messages de contact"
+				}),
+				/* @__PURE__ */ jsx(Link, {
+					to: "/admin/statistiques",
+					className: "inline-flex min-h-12 items-center rounded-xl bg-encre px-5 font-semibold text-sable",
+					children: "Statistiques et charge →"
+				})
+			]
 		}) : acces === "deux-facteurs-requis" && facteurId ? /* @__PURE__ */ jsxs("div", {
 			className: "grid gap-4",
 			children: [/* @__PURE__ */ jsx("p", { children: "Entrez le code à 6 chiffres de votre application d’authentification." }), formulaireTotp(facteurId)]
@@ -1860,9 +1944,9 @@ var admin_default = UNSAFE_withComponentProps(function Admin() {
 //#region app/routes/admin-statistiques.tsx
 var admin_statistiques_exports = /* @__PURE__ */ __exportAll({
 	default: () => admin_statistiques_default,
-	meta: () => meta$1
+	meta: () => meta$12
 });
-var meta$1 = () => [{ title: "Statistiques et charge · Administration" }, {
+var meta$12 = () => [{ title: "Statistiques et charge · Administration" }, {
 	name: "robots",
 	content: "noindex"
 }];
@@ -2483,6 +2567,3154 @@ function Courbe({ mesures: toutes, indicateur }) {
 	});
 }
 //#endregion
+//#region app/routes/admin-participants.tsx
+var admin_participants_exports = /* @__PURE__ */ __exportAll({
+	default: () => admin_participants_default,
+	meta: () => meta$11
+});
+var ROLES = {
+	admin: "Administrateur",
+	juge: "Juge",
+	spectateur: "Spectateur"
+};
+function meta$11() {
+	return [{ title: "Participants · Administration" }, {
+		name: "robots",
+		content: "noindex"
+	}];
+}
+var admin_participants_default = UNSAFE_withComponentProps(function Participants() {
+	return /* @__PURE__ */ jsx(CadreAdmin, {
+		surtitre: "Préparation",
+		titre: "Participants",
+		children: /* @__PURE__ */ jsx(Liste$1, {})
+	});
+});
+function Liste$1() {
+	const { client, session, erreurClient } = useClientAdmin();
+	const [lignes, setLignes] = useState(null);
+	const [erreur, setErreur] = useState(null);
+	const [info, setInfo] = useState(null);
+	useEffect(() => {
+		if (!client) return;
+		let actif = true;
+		client.rpc("lire_participants").then(({ data, error }) => {
+			if (!actif) return;
+			if (error) setErreur("La liste des participants est indisponible. Vérifiez que la migration de pilotage est appliquée.");
+			else setLignes(data ?? []);
+		});
+		return () => {
+			actif = false;
+		};
+	}, [client]);
+	if (erreurClient || erreur) return /* @__PURE__ */ jsx("p", {
+		role: "alert",
+		className: "text-rouge-alerte",
+		children: erreurClient ?? erreur
+	});
+	if (!lignes) return /* @__PURE__ */ jsx("p", {
+		role: "status",
+		children: "Lecture des participants…"
+	});
+	return /* @__PURE__ */ jsxs("section", {
+		className: CARTE$1,
+		"aria-labelledby": "titre-participants",
+		children: [
+			/* @__PURE__ */ jsx("h2", {
+				id: "titre-participants",
+				className: "font-display text-2xl",
+				children: "Comptes"
+			}),
+			/* @__PURE__ */ jsxs("p", {
+				className: "mt-1 text-sm text-encre-2",
+				children: [
+					lignes.length,
+					" compte",
+					lignes.length > 1 ? "s" : "",
+					". Le rôle se change côté serveur, pas depuis cette liste."
+				]
+			}),
+			/* @__PURE__ */ jsx("ul", {
+				className: "mt-4 divide-y divide-trait",
+				children: lignes.map((personne) => /* @__PURE__ */ jsxs("li", {
+					className: "flex min-h-12 flex-wrap items-center justify-between gap-2 py-2",
+					children: [
+						/* @__PURE__ */ jsx("span", {
+							className: "font-semibold",
+							children: personne.prenom
+						}),
+						/* @__PURE__ */ jsx("span", {
+							className: "text-sm text-encre-2",
+							children: personne.email
+						}),
+						/* @__PURE__ */ jsx("span", {
+							className: "text-sm",
+							children: ROLES[personne.role] ?? personne.role
+						}),
+						/* @__PURE__ */ jsx("span", {
+							className: "text-sm text-encre-2",
+							children: personne.consentement_le ? "Consentement enregistré" : "Consentement en attente"
+						})
+					]
+				}, personne.id))
+			}),
+			!lignes.length ? /* @__PURE__ */ jsx("p", {
+				className: "mt-3 text-sm text-encre-2",
+				children: "Aucun compte pour le moment."
+			}) : null,
+			/* @__PURE__ */ jsx("button", {
+				type: "button",
+				className: "mt-4 inline-flex min-h-12 items-center rounded-xl border border-trait px-4 text-sm font-semibold",
+				onClick: () => void (async () => {
+					if (!session?.access_token || !window.confirm("Supprimer les comptes spectateurs inactifs depuis 24 mois ?")) return;
+					const reponse = await fetch("/api/admin/purge-comptes", {
+						method: "POST",
+						headers: { Authorization: `Bearer ${session.access_token}` }
+					});
+					const corps = await reponse.json().catch(() => null);
+					setInfo(reponse.ok ? `${corps?.supprimes ?? 0} compte(s) supprimé(s).` : "La purge n’a pas abouti.");
+				})(),
+				children: "Purger les comptes inactifs (24 mois)"
+			}),
+			info ? /* @__PURE__ */ jsx("p", {
+				role: "status",
+				className: "mt-2 text-sm",
+				children: info
+			}) : null,
+			/* @__PURE__ */ jsx("p", {
+				className: "mt-4 text-sm text-encre-2",
+				children: "Les inscriptions publiques restent fermées tant que le drapeau prévu n’est pas activé."
+			})
+		]
+	});
+}
+//#endregion
+//#region app/routes/admin-messages.tsx
+var admin_messages_exports = /* @__PURE__ */ __exportAll({
+	default: () => admin_messages_default,
+	meta: () => meta$10
+});
+function meta$10() {
+	return [{ title: "Messages · Administration" }, {
+		name: "robots",
+		content: "noindex"
+	}];
+}
+var admin_messages_default = UNSAFE_withComponentProps(function Messages() {
+	return /* @__PURE__ */ jsx(CadreAdmin, {
+		surtitre: "Préparation",
+		titre: "Messages de contact",
+		children: /* @__PURE__ */ jsx(Liste, {})
+	});
+});
+function Liste() {
+	const { client, erreurClient } = useClientAdmin();
+	const [lignes, setLignes] = useState(null);
+	const [erreur, setErreur] = useState(null);
+	const [enCours, setEnCours] = useState(null);
+	useEffect(() => {
+		if (!client) return;
+		let actif = true;
+		client.from("messages_contact").select("id, prenom, email, message, cree_le, traite").order("cree_le", { ascending: false }).then(({ data, error }) => {
+			if (!actif) return;
+			if (error) setErreur("Les messages sont indisponibles.");
+			else setLignes(data ?? []);
+		});
+		return () => {
+			actif = false;
+		};
+	}, [client]);
+	async function traiter(id) {
+		if (!client || enCours) return;
+		setEnCours(id);
+		setErreur(null);
+		const { error } = await client.from("messages_contact").update({ traite: true }).eq("id", id);
+		setEnCours(null);
+		if (error) setErreur("Le message n’a pas pu être marqué comme traité.");
+		else setLignes((avant) => avant?.map((message) => message.id === id ? {
+			...message,
+			traite: true
+		} : message) ?? null);
+	}
+	if (erreurClient) return /* @__PURE__ */ jsx("p", {
+		role: "alert",
+		className: "text-rouge-alerte",
+		children: erreurClient
+	});
+	if (!lignes && !erreur) return /* @__PURE__ */ jsx("p", {
+		role: "status",
+		children: "Lecture des messages…"
+	});
+	return /* @__PURE__ */ jsxs("section", {
+		className: "grid gap-4",
+		"aria-labelledby": "titre-messages",
+		children: [
+			/* @__PURE__ */ jsx("h2", {
+				id: "titre-messages",
+				className: "sr-only",
+				children: "Messages reçus"
+			}),
+			erreur ? /* @__PURE__ */ jsx("p", {
+				role: "alert",
+				className: "text-rouge-alerte",
+				children: erreur
+			}) : null,
+			!lignes?.length ? /* @__PURE__ */ jsx("p", {
+				className: CARTE$1,
+				children: "Aucun message pour le moment."
+			}) : lignes.map((message) => /* @__PURE__ */ jsxs("article", {
+				className: CARTE$1,
+				children: [
+					/* @__PURE__ */ jsxs("header", {
+						className: "flex flex-wrap items-baseline justify-between gap-2",
+						children: [/* @__PURE__ */ jsx("h3", {
+							className: "font-display text-2xl",
+							children: message.prenom
+						}), /* @__PURE__ */ jsx("time", {
+							className: "text-sm text-encre-2",
+							dateTime: message.cree_le,
+							children: new Date(message.cree_le).toLocaleString("fr-FR")
+						})]
+					}),
+					/* @__PURE__ */ jsx("p", {
+						className: "mt-1 text-sm text-encre-2",
+						children: message.email
+					}),
+					/* @__PURE__ */ jsx("p", {
+						className: "mt-3 whitespace-pre-wrap",
+						children: message.message
+					}),
+					message.traite ? /* @__PURE__ */ jsx("p", {
+						className: "mt-3 text-sm font-semibold",
+						children: "Traité"
+					}) : /* @__PURE__ */ jsx("button", {
+						type: "button",
+						className: `${BOUTON$1} mt-3 bg-encre text-sable`,
+						disabled: enCours === message.id,
+						onClick: () => void traiter(message.id),
+						children: enCours === message.id ? "Enregistrement…" : "Marquer comme traité"
+					})
+				]
+			}, message.id))
+		]
+	});
+}
+//#endregion
+//#region app/routes/admin-juges.tsx
+var admin_juges_exports = /* @__PURE__ */ __exportAll({
+	default: () => admin_juges_default,
+	meta: () => meta$9
+});
+function meta$9() {
+	return [{ title: "Juges · Administration" }, {
+		name: "robots",
+		content: "noindex"
+	}];
+}
+var admin_juges_default = UNSAFE_withComponentProps(function Juges() {
+	return /* @__PURE__ */ jsx(CadreAdmin, {
+		surtitre: "Préparation",
+		titre: "Juges",
+		children: /* @__PURE__ */ jsx(Contenu$2, {})
+	});
+});
+function Contenu$2() {
+	const { client, session, erreurClient } = useClientAdmin();
+	const [juges, setJuges] = useState(null);
+	const [soirees, setSoirees] = useState([]);
+	const [erreur, setErreur] = useState(null);
+	const [lien, setLien] = useState(null);
+	const [enCours, setEnCours] = useState(false);
+	useEffect(() => {
+		if (!client) return;
+		let actif = true;
+		Promise.all([client.rpc("lire_participants"), client.from("soirees").select("id, nom, date_soiree").order("date_soiree", { ascending: false })]).then(([personnes, liste]) => {
+			if (!actif) return;
+			if (personnes.error || liste.error) setErreur("La liste des juges est indisponible.");
+			else {
+				setJuges((personnes.data ?? []).filter((personne) => personne.role === "juge"));
+				setSoirees(liste.data ?? []);
+			}
+		});
+		return () => {
+			actif = false;
+		};
+	}, [client]);
+	async function creer(evenement) {
+		evenement.preventDefault();
+		if (!session?.access_token || enCours) return;
+		const champs = new FormData(evenement.currentTarget);
+		setEnCours(true);
+		setErreur(null);
+		setLien(null);
+		try {
+			const reponse = await fetch("/api/admin/juges", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${session.access_token}`
+				},
+				body: JSON.stringify({
+					prenom: String(champs.get("prenom") ?? ""),
+					email: String(champs.get("email") ?? ""),
+					soireeId: String(champs.get("soiree") ?? "")
+				})
+			});
+			const corps = await reponse.json().catch(() => null);
+			if (!reponse.ok) {
+				setErreur(corps?.error === "service_indisponible" ? "La création d’un juge demande la clé serveur. Le rattachement d’un juge déjà existant reste possible sur la soirée." : "Le juge n’a pas pu être créé. Vérifiez les champs et la configuration.");
+				return;
+			}
+			setLien(corps?.lien ?? null);
+			evenement.currentTarget.reset();
+		} catch {
+			setErreur("Le juge n’a pas pu être créé.");
+		} finally {
+			setEnCours(false);
+		}
+	}
+	if (erreurClient) return /* @__PURE__ */ jsx("p", {
+		role: "alert",
+		className: "text-rouge-alerte",
+		children: erreurClient
+	});
+	return /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsxs("section", {
+		className: CARTE$1,
+		children: [
+			/* @__PURE__ */ jsx("h2", {
+				className: "font-display text-2xl",
+				children: "Nouveau juge"
+			}),
+			/* @__PURE__ */ jsx("p", {
+				className: "mt-1 text-sm text-encre-2",
+				children: "Le lien personnel s’affiche ici. Sans SMTP, transmettez-le vous-même au juge. Aucune inscription publique n’est ouverte."
+			}),
+			/* @__PURE__ */ jsxs("form", {
+				onSubmit: (evenement) => void creer(evenement),
+				className: "mt-4 grid gap-3",
+				children: [
+					/* @__PURE__ */ jsxs("label", {
+						className: "grid gap-2 font-medium",
+						children: ["Prénom", /* @__PURE__ */ jsx("input", {
+							name: "prenom",
+							required: true,
+							maxLength: 60,
+							className: CHAMP$1
+						})]
+					}),
+					/* @__PURE__ */ jsxs("label", {
+						className: "grid gap-2 font-medium",
+						children: ["Email", /* @__PURE__ */ jsx("input", {
+							name: "email",
+							type: "email",
+							required: true,
+							maxLength: 254,
+							className: CHAMP$1
+						})]
+					}),
+					/* @__PURE__ */ jsxs("label", {
+						className: "grid gap-2 font-medium",
+						children: ["Soirée", /* @__PURE__ */ jsxs("select", {
+							name: "soiree",
+							required: true,
+							className: CHAMP$1,
+							children: [/* @__PURE__ */ jsx("option", {
+								value: "",
+								children: "Choisir"
+							}), soirees.map((soiree) => /* @__PURE__ */ jsx("option", {
+								value: soiree.id,
+								children: soiree.nom
+							}, soiree.id))]
+						})]
+					}),
+					/* @__PURE__ */ jsx("button", {
+						className: BOUTON_PLEIN,
+						disabled: enCours || !soirees.length,
+						children: enCours ? "Création…" : "Créer le lien du juge"
+					})
+				]
+			}),
+			erreur ? /* @__PURE__ */ jsx("p", {
+				role: "alert",
+				className: "mt-3 text-rouge-alerte",
+				children: erreur
+			}) : null,
+			lien ? /* @__PURE__ */ jsxs("div", {
+				className: "mt-4 grid gap-3",
+				children: [
+					/* @__PURE__ */ jsxs("p", {
+						className: "break-all text-sm",
+						children: ["Lien personnel : ", /* @__PURE__ */ jsx("a", {
+							className: "underline",
+							href: lien,
+							children: lien
+						})]
+					}),
+					/* @__PURE__ */ jsx(CodeQr, {
+						valeur: lien,
+						libelle: "QR code du lien personnel du juge"
+					}),
+					/* @__PURE__ */ jsx("p", {
+						className: "text-sm text-encre-2",
+						children: "Transmettez le lien ou le QR au juge. Aucun SMS n’est envoyé."
+					})
+				]
+			}) : null
+		]
+	}), /* @__PURE__ */ jsxs("section", {
+		className: CARTE$1,
+		children: [/* @__PURE__ */ jsx("h2", {
+			className: "font-display text-2xl",
+			children: "Juges connus"
+		}), !juges ? /* @__PURE__ */ jsx("p", {
+			role: "status",
+			className: "mt-3",
+			children: "Lecture…"
+		}) : juges.length ? /* @__PURE__ */ jsx("ul", {
+			className: "mt-3 divide-y divide-trait",
+			children: juges.map((juge) => /* @__PURE__ */ jsxs("li", {
+				className: "flex min-h-12 items-center justify-between gap-3",
+				children: [/* @__PURE__ */ jsx("span", {
+					className: "font-semibold",
+					children: juge.prenom
+				}), /* @__PURE__ */ jsx("span", {
+					className: "text-sm text-encre-2",
+					children: juge.email
+				})]
+			}, juge.id))
+		}) : /* @__PURE__ */ jsx("p", {
+			className: "mt-3 text-sm text-encre-2",
+			children: "Aucun juge pour le moment."
+		})]
+	})] });
+}
+//#endregion
+//#region app/routes/admin-soirees.tsx
+var admin_soirees_exports = /* @__PURE__ */ __exportAll({
+	default: () => admin_soirees_default,
+	meta: () => meta$8
+});
+var STATUTS$1 = {
+	brouillon: "Brouillon",
+	publiee: "Publiée",
+	en_cours: "En cours",
+	terminee: "Terminée",
+	reportee: "Reportée",
+	annulee: "Annulée"
+};
+function meta$8() {
+	return [{ title: "Soirées · Administration" }, {
+		name: "robots",
+		content: "noindex"
+	}];
+}
+var admin_soirees_default = UNSAFE_withComponentProps(function Soirees() {
+	return /* @__PURE__ */ jsx(CadreAdmin, {
+		surtitre: "Préparation",
+		titre: "Mes soirées",
+		children: /* @__PURE__ */ jsx(Contenu$1, {})
+	});
+});
+function Contenu$1() {
+	const { client, erreurClient } = useClientAdmin();
+	const [soirees, setSoirees] = useState(null);
+	const [manades, setManades] = useState([]);
+	const [erreur, setErreur] = useState(null);
+	const [enCours, setEnCours] = useState(false);
+	async function recharger(actuel = client) {
+		if (!actuel) return;
+		const [liste, annuaire] = await Promise.all([actuel.from("soirees").select("id, slug, nom, date_soiree, lieu, statut").order("date_soiree", { ascending: false }), actuel.from("manades").select("id, nom, ville").order("nom")]);
+		if (liste.error || annuaire.error) setErreur("Les soirées sont indisponibles.");
+		else {
+			setSoirees(liste.data ?? []);
+			setManades(annuaire.data ?? []);
+		}
+	}
+	useEffect(() => {
+		if (client) recharger(client);
+	}, [client]);
+	async function creer(evenement) {
+		evenement.preventDefault();
+		if (!client || enCours) return;
+		const champs = new FormData(evenement.currentTarget);
+		const nom = String(champs.get("nom") ?? "").trim();
+		const date = String(champs.get("date") ?? "");
+		const lieu = String(champs.get("lieu") ?? "").trim();
+		const fenetre = fenetreDefaut(date);
+		setEnCours(true);
+		setErreur(null);
+		let slug = slugifier(`${nom}-${date.slice(0, 4)}`);
+		for (let essai = 0; essai < 5; essai += 1) {
+			const { error } = await client.from("soirees").insert({
+				slug,
+				nom,
+				date_soiree: date,
+				lieu: lieu || null,
+				vote_debut: fenetre.voteDebut,
+				vote_fin: fenetre.voteFin,
+				statut: "brouillon"
+			});
+			if (!error) {
+				evenement.currentTarget.reset();
+				await recharger();
+				setEnCours(false);
+				return;
+			}
+			if (!/duplicate|unique/i.test(error.message)) {
+				setErreur("La soirée n’a pas pu être créée.");
+				setEnCours(false);
+				return;
+			}
+			slug = `${slugifier(nom)}-${essai + 2}`;
+		}
+		setErreur("La soirée n’a pas pu être créée.");
+		setEnCours(false);
+	}
+	async function ajouterManade(evenement) {
+		evenement.preventDefault();
+		if (!client || enCours) return;
+		const champs = new FormData(evenement.currentTarget);
+		setEnCours(true);
+		setErreur(null);
+		const { error } = await client.from("manades").insert({
+			nom: String(champs.get("nom") ?? "").trim(),
+			ville: String(champs.get("ville") ?? "").trim() || null
+		});
+		setEnCours(false);
+		if (error) setErreur("La manade n’a pas pu être ajoutée à l’annuaire.");
+		else {
+			evenement.currentTarget.reset();
+			await recharger();
+		}
+	}
+	if (erreurClient) return /* @__PURE__ */ jsx("p", {
+		role: "alert",
+		className: "text-rouge-alerte",
+		children: erreurClient
+	});
+	return /* @__PURE__ */ jsxs(Fragment, { children: [
+		/* @__PURE__ */ jsxs("section", {
+			className: CARTE$1,
+			children: [
+				/* @__PURE__ */ jsx("h2", {
+					className: "font-display text-2xl",
+					children: "Nouvelle soirée"
+				}),
+				/* @__PURE__ */ jsx("p", {
+					className: "mt-1 text-sm text-encre-2",
+					children: "Créée en brouillon, invisible du public. Fenêtre de vote par défaut : 21h00–23h30, heure de Paris."
+				}),
+				/* @__PURE__ */ jsxs("form", {
+					onSubmit: (evenement) => void creer(evenement),
+					className: "mt-4 grid gap-3 tablette:grid-cols-2",
+					children: [
+						/* @__PURE__ */ jsxs("label", {
+							className: "grid gap-2 font-medium",
+							children: ["Nom", /* @__PURE__ */ jsx("input", {
+								name: "nom",
+								required: true,
+								maxLength: 120,
+								className: CHAMP$1
+							})]
+						}),
+						/* @__PURE__ */ jsxs("label", {
+							className: "grid gap-2 font-medium",
+							children: ["Date", /* @__PURE__ */ jsx("input", {
+								name: "date",
+								type: "date",
+								required: true,
+								className: CHAMP$1
+							})]
+						}),
+						/* @__PURE__ */ jsxs("label", {
+							className: "grid gap-2 font-medium tablette:col-span-2",
+							children: ["Lieu", /* @__PURE__ */ jsx("input", {
+								name: "lieu",
+								maxLength: 160,
+								className: CHAMP$1
+							})]
+						}),
+						/* @__PURE__ */ jsx("button", {
+							className: BOUTON_PLEIN,
+							disabled: enCours,
+							children: enCours ? "Enregistrement…" : "Créer la soirée"
+						})
+					]
+				})
+			]
+		}),
+		erreur ? /* @__PURE__ */ jsx("p", {
+			role: "alert",
+			className: "text-rouge-alerte",
+			children: erreur
+		}) : null,
+		/* @__PURE__ */ jsxs("section", {
+			className: CARTE$1,
+			children: [
+				/* @__PURE__ */ jsx("h2", {
+					className: "font-display text-2xl",
+					children: "Soirées"
+				}),
+				!soirees ? /* @__PURE__ */ jsx("p", {
+					role: "status",
+					className: "mt-3",
+					children: "Lecture…"
+				}) : /* @__PURE__ */ jsx("ul", {
+					className: "mt-3 divide-y divide-trait",
+					children: soirees.map((soiree) => /* @__PURE__ */ jsxs("li", {
+						className: "flex min-h-14 flex-wrap items-center justify-between gap-3 py-2",
+						children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("p", {
+							className: "font-semibold",
+							children: soiree.nom
+						}), /* @__PURE__ */ jsxs("p", {
+							className: "text-sm text-encre-2",
+							children: [
+								soiree.date_soiree,
+								" · ",
+								soiree.lieu || "Lieu à préciser",
+								" · ",
+								STATUTS$1[soiree.statut] ?? soiree.statut
+							]
+						})] }), /* @__PURE__ */ jsx(Link, {
+							to: `/admin/soirees/${soiree.id}`,
+							className: BOUTON$1,
+							children: "Préparer"
+						})]
+					}, soiree.id))
+				}),
+				soirees && !soirees.length ? /* @__PURE__ */ jsx("p", {
+					className: "mt-3 text-sm text-encre-2",
+					children: "Aucune soirée. Le public reste hors soirée."
+				}) : null
+			]
+		}),
+		/* @__PURE__ */ jsxs("section", {
+			className: CARTE$1,
+			children: [
+				/* @__PURE__ */ jsx("h2", {
+					className: "font-display text-2xl",
+					children: "Annuaire des manades"
+				}),
+				/* @__PURE__ */ jsxs("form", {
+					onSubmit: (evenement) => void ajouterManade(evenement),
+					className: "mt-4 grid gap-3 tablette:grid-cols-[1fr_1fr_auto]",
+					children: [
+						/* @__PURE__ */ jsxs("label", {
+							className: "grid gap-2 font-medium",
+							children: ["Nom", /* @__PURE__ */ jsx("input", {
+								name: "nom",
+								required: true,
+								maxLength: 80,
+								className: CHAMP$1
+							})]
+						}),
+						/* @__PURE__ */ jsxs("label", {
+							className: "grid gap-2 font-medium",
+							children: ["Ville", /* @__PURE__ */ jsx("input", {
+								name: "ville",
+								maxLength: 80,
+								className: CHAMP$1
+							})]
+						}),
+						/* @__PURE__ */ jsx("button", {
+							className: `${BOUTON_PLEIN} self-end`,
+							disabled: enCours,
+							children: "Ajouter"
+						})
+					]
+				}),
+				/* @__PURE__ */ jsx("ul", {
+					className: "mt-4 columns-1 tablette:columns-2",
+					children: manades.map((manade) => /* @__PURE__ */ jsxs("li", {
+						className: "min-h-8",
+						children: [manade.nom, manade.ville ? ` · ${manade.ville}` : ""]
+					}, manade.id))
+				})
+			]
+		})
+	] });
+}
+//#endregion
+//#region app/routes/admin-soiree.tsx
+var admin_soiree_exports = /* @__PURE__ */ __exportAll({
+	default: () => admin_soiree_default,
+	meta: () => meta$7
+});
+var STATUTS = [
+	"brouillon",
+	"publiee",
+	"en_cours",
+	"terminee",
+	"reportee",
+	"annulee"
+];
+function meta$7() {
+	return [{ title: "Préparation · Administration" }, {
+		name: "robots",
+		content: "noindex"
+	}];
+}
+var admin_soiree_default = UNSAFE_withComponentProps(function PreparationSoiree() {
+	const { soireeId = "" } = useParams();
+	return /* @__PURE__ */ jsx(CadreAdmin, {
+		surtitre: "Préparation",
+		titre: "Soirée",
+		children: /* @__PURE__ */ jsx(Editeur, { soireeId })
+	});
+});
+function Editeur({ soireeId }) {
+	const { client, session, erreurClient } = useClientAdmin();
+	const [soiree, setSoiree] = useState(null);
+	const [annuaire, setAnnuaire] = useState([]);
+	const [engages, setEngages] = useState([]);
+	const [epreuves, setEpreuves] = useState([]);
+	const [passages, setPassages] = useState([]);
+	const [juges, setJuges] = useState([]);
+	const [rattaches, setRattaches] = useState([]);
+	const [erreur, setErreur] = useState(null);
+	const [info, setInfo] = useState(null);
+	const [enCours, setEnCours] = useState(false);
+	const [origine, setOrigine] = useState("");
+	useEffect(() => {
+		setOrigine(window.location.origin);
+	}, []);
+	async function recharger() {
+		if (!client) return;
+		const [s, m, sm, e, p, j, sj] = await Promise.all([
+			client.from("soirees").select("*").eq("id", soireeId).maybeSingle(),
+			client.from("manades").select("id, nom").order("nom"),
+			client.from("soiree_manades").select("manade_id, ordre").eq("soiree_id", soireeId).order("ordre"),
+			client.from("epreuves").select("id, ordre, nom, description, notee, heure_debut, heure_fin").eq("soiree_id", soireeId).order("ordre"),
+			client.from("passages").select("id, epreuve_id, manade_id, ordre"),
+			client.from("profils").select("id, prenom").eq("role", "juge").order("prenom"),
+			client.from("soiree_juges").select("juge_id").eq("soiree_id", soireeId)
+		]);
+		if (s.error || !s.data) {
+			setErreur("Cette soirée est introuvable.");
+			return;
+		}
+		setSoiree(s.data);
+		setAnnuaire(m.data ?? []);
+		setEngages(sm.data ?? []);
+		const epreuveIds = new Set((e.data ?? []).map((epreuve) => epreuve.id));
+		setEpreuves(e.data ?? []);
+		setPassages((p.data ?? []).filter((passage) => epreuveIds.has(passage.epreuve_id)));
+		setJuges(j.data ?? []);
+		setRattaches((sj.data ?? []).map((ligne) => ligne.juge_id));
+	}
+	useEffect(() => {
+		if (client) recharger();
+	}, [client, soireeId]);
+	async function executer(action) {
+		if (enCours) return;
+		setEnCours(true);
+		setErreur(null);
+		setInfo(null);
+		const { error } = await action();
+		setEnCours(false);
+		if (error) setErreur(error.message || "L’enregistrement n’a pas abouti.");
+		else {
+			setInfo("Enregistré.");
+			await recharger();
+		}
+	}
+	async function enregistrerInfos(evenement) {
+		evenement.preventDefault();
+		if (!client || !soiree) return;
+		const champs = new FormData(evenement.currentTarget);
+		const delai = String(champs.get("delai") ?? "");
+		await executer(() => client.from("soirees").update({
+			nom: String(champs.get("nom") ?? "").trim(),
+			lieu: String(champs.get("lieu") ?? "").trim() || null,
+			date_soiree: String(champs.get("date") ?? soiree.date_soiree),
+			vote_debut: depuisChampParis(String(champs.get("debut") ?? "")),
+			vote_fin: depuisChampParis(String(champs.get("fin") ?? "")),
+			mode_vote: String(champs.get("mode_vote")),
+			mode_fenetre: String(champs.get("mode_fenetre")),
+			delai_vote_minutes: delai === "" ? null : Number(delai),
+			bareme_jury: Number(champs.get("bareme")),
+			mode_classement: String(champs.get("mode_classement")),
+			methode_general: String(champs.get("methode")),
+			poids_jury: Number(champs.get("poids")),
+			classement_visible: champs.get("visible") === "on",
+			statut: String(champs.get("statut")),
+			message_public: String(champs.get("message") ?? "").trim() || null
+		}).eq("id", soiree.id));
+	}
+	async function basculerManade(manadeId, present) {
+		if (!client) return;
+		await executer(async () => {
+			if (present) {
+				const passagesManade = passages.filter((passage) => passage.manade_id === manadeId).map((passage) => passage.id);
+				if (passagesManade.length) {
+					const suppression = await client.from("passages").delete().in("id", passagesManade);
+					if (suppression.error) return suppression;
+				}
+				return client.from("soiree_manades").delete().eq("soiree_id", soireeId).eq("manade_id", manadeId);
+			}
+			const ordre = (engages.at(-1)?.ordre ?? 0) + 1;
+			const ajout = await client.from("soiree_manades").insert({
+				soiree_id: soireeId,
+				manade_id: manadeId,
+				ordre
+			});
+			if (ajout.error) return ajout;
+			if (epreuves.length) return client.from("passages").insert(epreuves.map((epreuve) => ({
+				epreuve_id: epreuve.id,
+				manade_id: manadeId,
+				ordre: (passages.filter((passage) => passage.epreuve_id === epreuve.id).at(-1)?.ordre ?? 0) + 1
+			})));
+			return ajout;
+		});
+	}
+	async function deplacerManade(index, sens) {
+		if (!client) return;
+		const voisin = engages[index + sens];
+		const courant = engages[index];
+		if (!voisin || !courant) return;
+		const [temporaire, ordreCourant, ordreVoisin] = etapesEchange(courant.ordre, voisin.ordre);
+		await executer(async () => {
+			const a = await client.from("soiree_manades").update({ ordre: temporaire }).eq("soiree_id", soireeId).eq("manade_id", courant.manade_id);
+			if (a.error) return a;
+			const b = await client.from("soiree_manades").update({ ordre: ordreCourant }).eq("soiree_id", soireeId).eq("manade_id", voisin.manade_id);
+			if (b.error) return b;
+			return client.from("soiree_manades").update({ ordre: ordreVoisin }).eq("soiree_id", soireeId).eq("manade_id", courant.manade_id);
+		});
+	}
+	async function poserModele() {
+		if (!client || !soiree) return;
+		if (epreuves.length && !window.confirm("Remplacer le planning actuel par les 4 épreuves de référence ? Les passages déjà notés ne peuvent pas être supprimés.")) return;
+		const horaires = horairesModele(soiree.date_soiree);
+		await executer(async () => {
+			if (epreuves.length) {
+				const suppression = await client.from("epreuves").delete().eq("soiree_id", soireeId);
+				if (suppression.error) return suppression;
+			}
+			const creees = await client.from("epreuves").insert(EPREUVES_MODELE.map((epreuve, index) => ({
+				soiree_id: soireeId,
+				ordre: index + 1,
+				nom: epreuve.nom,
+				description: epreuve.description,
+				notee: true,
+				heure_debut: horaires[index]?.heureDebut,
+				heure_fin: horaires[index]?.heureFin
+			}))).select("id");
+			if (creees.error || !creees.data) return creees;
+			if (!engages.length) return creees;
+			return client.from("passages").insert(creees.data.flatMap((epreuve) => engages.map((manade) => ({
+				epreuve_id: epreuve.id,
+				manade_id: manade.manade_id,
+				ordre: manade.ordre
+			}))));
+		});
+	}
+	async function ajouterEpreuve(evenement) {
+		evenement.preventDefault();
+		if (!client) return;
+		const champs = new FormData(evenement.currentTarget);
+		const nom = String(champs.get("nom") ?? "").trim();
+		await executer(async () => {
+			const creee = await client.from("epreuves").insert({
+				soiree_id: soireeId,
+				ordre: (epreuves.at(-1)?.ordre ?? 0) + 1,
+				nom,
+				description: String(champs.get("description") ?? "").trim() || null,
+				notee: champs.get("notee") === "on"
+			}).select("id").single();
+			if (creee.error || !creee.data) return creee;
+			if (!engages.length) return creee;
+			return client.from("passages").insert(engages.map((manade) => ({
+				epreuve_id: creee.data.id,
+				manade_id: manade.manade_id,
+				ordre: manade.ordre
+			})));
+		});
+	}
+	async function deplacerEpreuve(index, sens) {
+		if (!client) return;
+		const courant = epreuves[index];
+		const voisin = epreuves[index + sens];
+		if (!courant || !voisin) return;
+		const [temporaire, ordreCourant, ordreVoisin] = etapesEchange(courant.ordre, voisin.ordre);
+		await executer(async () => {
+			const a = await client.from("epreuves").update({ ordre: temporaire }).eq("id", courant.id);
+			if (a.error) return a;
+			const b = await client.from("epreuves").update({ ordre: ordreCourant }).eq("id", voisin.id);
+			if (b.error) return b;
+			return client.from("epreuves").update({ ordre: ordreVoisin }).eq("id", courant.id);
+		});
+	}
+	async function supprimerEpreuve(id) {
+		if (!client || !window.confirm("Supprimer cette épreuve et ses passages ?")) return;
+		await executer(() => client.from("epreuves").delete().eq("id", id));
+	}
+	async function glisser(table, liste, depuis, vers) {
+		if (!client) return;
+		const etapes = etapesReordre(liste, depuis, vers);
+		if (!etapes.length) return;
+		await executer(async () => {
+			for (const etape of etapes) {
+				const resultat = await (table === "soiree_manades" ? client.from(table).update({ ordre: etape.ordre }).eq("soiree_id", soireeId).eq("manade_id", etape.id) : client.from(table).update({ ordre: etape.ordre }).eq("id", etape.id));
+				if (resultat.error) return resultat;
+			}
+			return { error: null };
+		});
+	}
+	function depot(evenement, vers, appliquer) {
+		evenement.preventDefault();
+		const depuis = Number(evenement.dataTransfer.getData("text/plain"));
+		if (Number.isInteger(depuis)) appliquer(depuis);
+	}
+	async function deplacerPassage(epreuveId, index, sens) {
+		if (!client) return;
+		const liste = passages.filter((passage) => passage.epreuve_id === epreuveId).sort((a, b) => a.ordre - b.ordre);
+		const courant = liste[index];
+		const voisin = liste[index + sens];
+		if (!courant || !voisin) return;
+		const [temporaire, ordreCourant, ordreVoisin] = etapesEchange(courant.ordre, voisin.ordre);
+		await executer(async () => {
+			const a = await client.from("passages").update({ ordre: temporaire }).eq("id", courant.id);
+			if (a.error) return a;
+			const b = await client.from("passages").update({ ordre: ordreCourant }).eq("id", voisin.id);
+			if (b.error) return b;
+			return client.from("passages").update({ ordre: ordreVoisin }).eq("id", courant.id);
+		});
+	}
+	async function basculerJuge(jugeId, present) {
+		if (!client) return;
+		await executer(() => present ? client.from("soiree_juges").delete().eq("soiree_id", soireeId).eq("juge_id", jugeId) : client.from("soiree_juges").insert({
+			soiree_id: soireeId,
+			juge_id: jugeId
+		}));
+	}
+	async function dupliquer() {
+		if (!client || !soiree) return;
+		await executer(async () => {
+			let slug = `${slugifier(soiree.slug)}-copie`.slice(0, 60);
+			let identifiant = null;
+			for (let essai = 0; essai < 5; essai += 1) {
+				const copie = await client.from("soirees").insert({
+					slug,
+					nom: `${soiree.nom} (copie)`,
+					date_soiree: soiree.date_soiree,
+					lieu: soiree.lieu,
+					vote_debut: soiree.vote_debut,
+					vote_fin: soiree.vote_fin,
+					mode_vote: soiree.mode_vote,
+					mode_fenetre: soiree.mode_fenetre,
+					delai_vote_minutes: soiree.delai_vote_minutes,
+					bareme_jury: soiree.bareme_jury,
+					mode_classement: soiree.mode_classement,
+					methode_general: soiree.methode_general,
+					poids_jury: soiree.poids_jury,
+					classement_visible: false,
+					statut: "brouillon"
+				}).select("id").single();
+				if (!copie.error && copie.data) {
+					identifiant = copie.data.id;
+					break;
+				}
+				if (!copie.error || !/duplicate|unique/i.test(copie.error.message)) return copie;
+				slug = `${slugifier(soiree.slug)}-copie-${essai + 2}`.slice(0, 60);
+			}
+			if (!identifiant) return { error: { message: "La copie n’a pas pu être créée." } };
+			if (engages.length) {
+				const liens = await client.from("soiree_manades").insert(engages.map((manade) => ({
+					soiree_id: identifiant,
+					manade_id: manade.manade_id,
+					ordre: manade.ordre
+				})));
+				if (liens.error) return liens;
+			}
+			if (epreuves.length) {
+				const creees = await client.from("epreuves").insert(epreuves.map((epreuve) => ({
+					soiree_id: identifiant,
+					ordre: epreuve.ordre,
+					nom: epreuve.nom,
+					description: epreuve.description,
+					notee: epreuve.notee,
+					heure_debut: epreuve.heure_debut,
+					heure_fin: epreuve.heure_fin
+				}))).select("id, ordre");
+				if (creees.error || !creees.data) return creees;
+				const parOrdre = new Map(creees.data.map((epreuve) => [epreuve.ordre, epreuve.id]));
+				const aCopier = passages.flatMap((passage) => {
+					const source = epreuves.find((epreuve) => epreuve.id === passage.epreuve_id);
+					const epreuveId = source ? parOrdre.get(source.ordre) : void 0;
+					return epreuveId ? [{
+						epreuve_id: epreuveId,
+						manade_id: passage.manade_id,
+						ordre: passage.ordre
+					}] : [];
+				});
+				if (aCopier.length) {
+					const copies = await client.from("passages").insert(aCopier);
+					if (copies.error) return copies;
+				}
+			}
+			return { error: null };
+		});
+	}
+	if (erreurClient) return /* @__PURE__ */ jsx("p", {
+		role: "alert",
+		className: "text-rouge-alerte",
+		children: erreurClient
+	});
+	if (!soiree) return /* @__PURE__ */ jsx("p", {
+		role: "status",
+		children: erreur ?? "Lecture de la soirée…"
+	});
+	const nomManade = new Map(annuaire.map((manade) => [manade.id, manade.nom]));
+	return /* @__PURE__ */ jsxs(Fragment, { children: [
+		/* @__PURE__ */ jsxs("div", {
+			className: "flex flex-wrap gap-2",
+			children: [
+				/* @__PURE__ */ jsx(Link, {
+					to: `/admin/soirees/${soiree.id}/direct`,
+					className: BOUTON_PLEIN,
+					children: "Cockpit en direct"
+				}),
+				/* @__PURE__ */ jsx(Link, {
+					to: `/admin/soirees/${soiree.id}/resultats`,
+					className: BOUTON$1,
+					children: "Résultats"
+				}),
+				/* @__PURE__ */ jsx("button", {
+					type: "button",
+					className: BOUTON$1,
+					onClick: () => void dupliquer(),
+					disabled: enCours,
+					children: "Dupliquer"
+				})
+			]
+		}),
+		erreur ? /* @__PURE__ */ jsx("p", {
+			role: "alert",
+			className: "text-rouge-alerte",
+			children: erreur
+		}) : null,
+		info ? /* @__PURE__ */ jsx("p", {
+			role: "status",
+			className: "text-sm",
+			children: info
+		}) : null,
+		/* @__PURE__ */ jsxs("form", {
+			onSubmit: (evenement) => void enregistrerInfos(evenement),
+			className: `${CARTE$1} grid gap-3`,
+			children: [
+				/* @__PURE__ */ jsx("h2", {
+					className: "font-display text-2xl",
+					children: "Infos et réglages"
+				}),
+				/* @__PURE__ */ jsxs("label", {
+					className: "grid gap-2 font-medium",
+					children: ["Nom", /* @__PURE__ */ jsx("input", {
+						name: "nom",
+						defaultValue: soiree.nom,
+						required: true,
+						className: CHAMP$1
+					})]
+				}),
+				/* @__PURE__ */ jsxs("label", {
+					className: "grid gap-2 font-medium",
+					children: ["Lieu", /* @__PURE__ */ jsx("input", {
+						name: "lieu",
+						defaultValue: soiree.lieu ?? "",
+						className: CHAMP$1
+					})]
+				}),
+				/* @__PURE__ */ jsxs("label", {
+					className: "grid gap-2 font-medium",
+					children: ["Date", /* @__PURE__ */ jsx("input", {
+						name: "date",
+						type: "date",
+						defaultValue: soiree.date_soiree,
+						required: true,
+						className: CHAMP$1
+					})]
+				}),
+				/* @__PURE__ */ jsxs("div", {
+					className: "grid gap-3 tablette:grid-cols-2",
+					children: [/* @__PURE__ */ jsxs("label", {
+						className: "grid gap-2 font-medium",
+						children: ["Début des votes", /* @__PURE__ */ jsx("input", {
+							name: "debut",
+							type: "datetime-local",
+							defaultValue: champParis(soiree.vote_debut),
+							required: true,
+							className: CHAMP$1
+						})]
+					}), /* @__PURE__ */ jsxs("label", {
+						className: "grid gap-2 font-medium",
+						children: ["Fin des votes", /* @__PURE__ */ jsx("input", {
+							name: "fin",
+							type: "datetime-local",
+							defaultValue: champParis(soiree.vote_fin),
+							required: true,
+							className: CHAMP$1
+						})]
+					})]
+				}),
+				/* @__PURE__ */ jsxs("div", {
+					className: "grid gap-3 tablette:grid-cols-2",
+					children: [
+						/* @__PURE__ */ jsxs("label", {
+							className: "grid gap-2 font-medium",
+							children: ["Mode de vote", /* @__PURE__ */ jsxs("select", {
+								name: "mode_vote",
+								defaultValue: soiree.mode_vote,
+								className: CHAMP$1,
+								children: [/* @__PURE__ */ jsx("option", {
+									value: "deblocage",
+									children: "Par déblocage"
+								}), /* @__PURE__ */ jsx("option", {
+									value: "libre",
+									children: "Libre"
+								})]
+							})]
+						}),
+						/* @__PURE__ */ jsxs("label", {
+							className: "grid gap-2 font-medium",
+							children: ["Fenêtre", /* @__PURE__ */ jsxs("select", {
+								name: "mode_fenetre",
+								defaultValue: soiree.mode_fenetre,
+								className: CHAMP$1,
+								children: [/* @__PURE__ */ jsx("option", {
+									value: "ajustable",
+									children: "Ajustable"
+								}), /* @__PURE__ */ jsx("option", {
+									value: "automatique",
+									children: "Automatique"
+								})]
+							})]
+						}),
+						/* @__PURE__ */ jsxs("label", {
+							className: "grid gap-2 font-medium",
+							children: ["Délai de vote (minutes, vide = désactivé)", /* @__PURE__ */ jsx("input", {
+								name: "delai",
+								type: "number",
+								min: 1,
+								max: 30,
+								defaultValue: soiree.delai_vote_minutes ?? "",
+								className: CHAMP$1
+							})]
+						}),
+						/* @__PURE__ */ jsxs("label", {
+							className: "grid gap-2 font-medium",
+							children: ["Barème du jury", /* @__PURE__ */ jsxs("select", {
+								name: "bareme",
+								defaultValue: soiree.bareme_jury,
+								className: CHAMP$1,
+								children: [/* @__PURE__ */ jsx("option", {
+									value: 20,
+									children: "Sur 20"
+								}), /* @__PURE__ */ jsx("option", {
+									value: 10,
+									children: "Sur 10"
+								})]
+							})]
+						}),
+						/* @__PURE__ */ jsxs("label", {
+							className: "grid gap-2 font-medium",
+							children: ["Classement officiel", /* @__PURE__ */ jsxs("select", {
+								name: "mode_classement",
+								defaultValue: soiree.mode_classement,
+								className: CHAMP$1,
+								children: [
+									/* @__PURE__ */ jsx("option", {
+										value: "separe",
+										children: "Jury et prix du public"
+									}),
+									/* @__PURE__ */ jsx("option", {
+										value: "combine",
+										children: "Combiné"
+									}),
+									/* @__PURE__ */ jsx("option", {
+										value: "jury",
+										children: "Jury seul"
+									})
+								]
+							})]
+						}),
+						/* @__PURE__ */ jsxs("label", {
+							className: "grid gap-2 font-medium",
+							children: ["Méthode du général", /* @__PURE__ */ jsxs("select", {
+								name: "methode",
+								defaultValue: soiree.methode_general,
+								className: CHAMP$1,
+								children: [/* @__PURE__ */ jsx("option", {
+									value: "points",
+									children: "Points par place"
+								}), /* @__PURE__ */ jsx("option", {
+									value: "moyenne",
+									children: "Moyenne"
+								})]
+							})]
+						}),
+						/* @__PURE__ */ jsxs("label", {
+							className: "grid gap-2 font-medium",
+							children: ["Poids du jury (%)", /* @__PURE__ */ jsx("input", {
+								name: "poids",
+								type: "number",
+								min: 0,
+								max: 100,
+								defaultValue: soiree.poids_jury,
+								className: CHAMP$1
+							})]
+						}),
+						/* @__PURE__ */ jsxs("label", {
+							className: "grid gap-2 font-medium",
+							children: ["Statut", /* @__PURE__ */ jsx("select", {
+								name: "statut",
+								defaultValue: soiree.statut,
+								className: CHAMP$1,
+								children: STATUTS.map((statut) => /* @__PURE__ */ jsx("option", {
+									value: statut,
+									children: statut
+								}, statut))
+							})]
+						})
+					]
+				}),
+				/* @__PURE__ */ jsxs("label", {
+					className: "flex min-h-12 items-center gap-3 font-medium",
+					children: [/* @__PURE__ */ jsx("input", {
+						name: "visible",
+						type: "checkbox",
+						defaultChecked: soiree.classement_visible
+					}), " Classement visible du public"]
+				}),
+				/* @__PURE__ */ jsxs("label", {
+					className: "grid gap-2 font-medium",
+					children: ["Message public (report ou annulation)", /* @__PURE__ */ jsx("textarea", {
+						name: "message",
+						defaultValue: soiree.message_public ?? "",
+						maxLength: 500,
+						className: `${CHAMP$1} min-h-24 py-2`
+					})]
+				}),
+				/* @__PURE__ */ jsx("button", {
+					className: BOUTON_PLEIN,
+					disabled: enCours,
+					children: enCours ? "Enregistrement…" : "Enregistrer"
+				})
+			]
+		}),
+		/* @__PURE__ */ jsxs("section", {
+			className: CARTE$1,
+			children: [/* @__PURE__ */ jsx("h2", {
+				className: "font-display text-2xl",
+				children: "Manades"
+			}), /* @__PURE__ */ jsx("ul", {
+				className: "mt-3 grid gap-2",
+				children: annuaire.map((manade) => {
+					const index = engages.findIndex((lien) => lien.manade_id === manade.id);
+					return /* @__PURE__ */ jsxs("li", {
+						className: "flex min-h-12 flex-wrap items-center gap-2",
+						draggable: index >= 0,
+						onDragStart: (evenement) => evenement.dataTransfer.setData("text/plain", String(index)),
+						onDragOver: (evenement) => evenement.preventDefault(),
+						onDrop: (evenement) => depot(evenement, index, (depuis) => void glisser("soiree_manades", engages.map((lien) => ({
+							id: lien.manade_id,
+							ordre: lien.ordre
+						})), depuis, index)),
+						children: [/* @__PURE__ */ jsxs("button", {
+							type: "button",
+							className: BOUTON$1,
+							onClick: () => void basculerManade(manade.id, index >= 0),
+							children: [
+								index >= 0 ? "Retirer" : "Engager",
+								" ",
+								manade.nom
+							]
+						}), index >= 0 ? /* @__PURE__ */ jsxs(Fragment, { children: [
+							/* @__PURE__ */ jsxs("span", {
+								className: "text-sm text-encre-2",
+								children: ["Ordre ", engages[index]?.ordre]
+							}),
+							/* @__PURE__ */ jsx("button", {
+								type: "button",
+								className: BOUTON$1,
+								onClick: () => void deplacerManade(index, -1),
+								disabled: index === 0,
+								children: "Monter"
+							}),
+							/* @__PURE__ */ jsx("button", {
+								type: "button",
+								className: BOUTON$1,
+								onClick: () => void deplacerManade(index, 1),
+								disabled: index === engages.length - 1,
+								children: "Descendre"
+							})
+						] }) : null]
+					}, manade.id);
+				})
+			})]
+		}),
+		/* @__PURE__ */ jsxs("section", {
+			className: CARTE$1,
+			children: [
+				/* @__PURE__ */ jsxs("div", {
+					className: "flex flex-wrap items-center justify-between gap-3",
+					children: [
+						/* @__PURE__ */ jsx("h2", {
+							className: "font-display text-2xl",
+							children: "Planning"
+						}),
+						/* @__PURE__ */ jsx("button", {
+							type: "button",
+							className: BOUTON$1,
+							onClick: () => void poserModele(),
+							disabled: enCours,
+							children: "Modèle des 4 épreuves"
+						}),
+						/* @__PURE__ */ jsx("p", {
+							className: "mt-2 w-full text-sm text-encre-2",
+							children: "Glissez une ligne pour changer l’ordre, ou utilisez Monter et Descendre. Les notes déjà enregistrées ne sont pas modifiées."
+						})
+					]
+				}),
+				epreuves.map((epreuve, index) => {
+					const liste = passages.filter((passage) => passage.epreuve_id === epreuve.id).sort((a, b) => a.ordre - b.ordre);
+					return /* @__PURE__ */ jsxs("article", {
+						className: "mt-4 border-t border-trait pt-4",
+						draggable: true,
+						onDragStart: (evenement) => evenement.dataTransfer.setData("text/plain", String(index)),
+						onDragOver: (evenement) => evenement.preventDefault(),
+						onDrop: (evenement) => depot(evenement, index, (depuis) => void glisser("epreuves", epreuves.map((ligne) => ({
+							id: ligne.id,
+							ordre: ligne.ordre
+						})), depuis, index)),
+						children: [
+							/* @__PURE__ */ jsxs("div", {
+								className: "flex flex-wrap items-center gap-2",
+								children: [
+									/* @__PURE__ */ jsxs("h3", {
+										className: "font-semibold",
+										children: [
+											epreuve.ordre,
+											". ",
+											epreuve.nom,
+											epreuve.notee ? "" : " · démonstration"
+										]
+									}),
+									/* @__PURE__ */ jsx("button", {
+										type: "button",
+										className: BOUTON$1,
+										onClick: () => void deplacerEpreuve(index, -1),
+										disabled: index === 0,
+										children: "Monter"
+									}),
+									/* @__PURE__ */ jsx("button", {
+										type: "button",
+										className: BOUTON$1,
+										onClick: () => void deplacerEpreuve(index, 1),
+										disabled: index === epreuves.length - 1,
+										children: "Descendre"
+									}),
+									/* @__PURE__ */ jsx("button", {
+										type: "button",
+										className: BOUTON$1,
+										onClick: () => void supprimerEpreuve(epreuve.id),
+										children: "Supprimer"
+									})
+								]
+							}),
+							epreuve.description ? /* @__PURE__ */ jsx("p", {
+								className: "mt-1 text-sm text-encre-2",
+								children: epreuve.description
+							}) : null,
+							/* @__PURE__ */ jsx("ul", {
+								className: "mt-2 grid gap-1",
+								children: liste.map((passage, rang) => /* @__PURE__ */ jsxs("li", {
+									className: "flex min-h-12 items-center gap-2",
+									draggable: true,
+									onDragStart: (evenement) => {
+										evenement.stopPropagation();
+										evenement.dataTransfer.setData("text/plain", String(rang));
+									},
+									onDragOver: (evenement) => evenement.preventDefault(),
+									onDrop: (evenement) => {
+										evenement.stopPropagation();
+										depot(evenement, rang, (depuis) => void glisser("passages", liste.map((ligne) => ({
+											id: ligne.id,
+											ordre: ligne.ordre
+										})), depuis, rang));
+									},
+									children: [
+										/* @__PURE__ */ jsx("span", { children: nomManade.get(passage.manade_id) ?? "Manade" }),
+										/* @__PURE__ */ jsx("button", {
+											type: "button",
+											className: BOUTON$1,
+											onClick: () => void deplacerPassage(epreuve.id, rang, -1),
+											disabled: rang === 0,
+											children: "Monter"
+										}),
+										/* @__PURE__ */ jsx("button", {
+											type: "button",
+											className: BOUTON$1,
+											onClick: () => void deplacerPassage(epreuve.id, rang, 1),
+											disabled: rang === liste.length - 1,
+											children: "Descendre"
+										})
+									]
+								}, passage.id))
+							})
+						]
+					}, epreuve.id);
+				}),
+				/* @__PURE__ */ jsxs("form", {
+					onSubmit: (evenement) => void ajouterEpreuve(evenement),
+					className: "mt-4 grid gap-3",
+					children: [
+						/* @__PURE__ */ jsx("h3", {
+							className: "font-semibold",
+							children: "Saisie manuelle"
+						}),
+						/* @__PURE__ */ jsxs("label", {
+							className: "grid gap-2 font-medium",
+							children: ["Nom", /* @__PURE__ */ jsx("input", {
+								name: "nom",
+								required: true,
+								className: CHAMP$1
+							})]
+						}),
+						/* @__PURE__ */ jsxs("label", {
+							className: "grid gap-2 font-medium",
+							children: ["Description", /* @__PURE__ */ jsx("textarea", {
+								name: "description",
+								className: `${CHAMP$1} min-h-20 py-2`
+							})]
+						}),
+						/* @__PURE__ */ jsxs("label", {
+							className: "flex min-h-12 items-center gap-3",
+							children: [/* @__PURE__ */ jsx("input", {
+								name: "notee",
+								type: "checkbox",
+								defaultChecked: true
+							}), " Épreuve notée"]
+						}),
+						/* @__PURE__ */ jsx("button", {
+							className: BOUTON_PLEIN,
+							disabled: enCours,
+							children: "Ajouter l’épreuve"
+						})
+					]
+				})
+			]
+		}),
+		client ? /* @__PURE__ */ jsx(ImportPlanning, {
+			client,
+			soireeId,
+			jour: soiree.date_soiree,
+			dejaSaisi: epreuves.length > 0,
+			sessionToken: session?.access_token,
+			onApplique: () => void recharger()
+		}) : null,
+		/* @__PURE__ */ jsxs("section", {
+			className: CARTE$1,
+			children: [/* @__PURE__ */ jsx("h2", {
+				className: "font-display text-2xl",
+				children: "Juges de la soirée"
+			}), !juges.length ? /* @__PURE__ */ jsx("p", {
+				className: "mt-2 text-sm text-encre-2",
+				children: "Aucun compte juge. Créez-en un depuis la page Juges."
+			}) : /* @__PURE__ */ jsx("ul", {
+				className: "mt-3 grid gap-2",
+				children: juges.map((juge) => {
+					const present = rattaches.includes(juge.id);
+					return /* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsxs("button", {
+						type: "button",
+						className: BOUTON$1,
+						onClick: () => void basculerJuge(juge.id, present),
+						children: [
+							present ? "Retirer" : "Rattacher",
+							" ",
+							juge.prenom
+						]
+					}) }, juge.id);
+				})
+			})]
+		}),
+		/* @__PURE__ */ jsxs("section", {
+			className: CARTE$1,
+			children: [
+				/* @__PURE__ */ jsx("h2", {
+					className: "font-display text-2xl",
+					children: "QR code de vote et affiche"
+				}),
+				/* @__PURE__ */ jsx("p", {
+					className: "mt-1 text-sm text-encre-2",
+					children: "À afficher dans les arènes. Le public ouvre /noter. Les inscriptions restent fermées tant que le drapeau de build n’est pas ouvert."
+				}),
+				origine && soiree ? /* @__PURE__ */ jsx("div", {
+					className: "mt-4 inline-block rounded-2xl bg-white p-3",
+					children: /* @__PURE__ */ jsx(CodeQr, {
+						valeur: `${origine}/noter`,
+						libelle: `QR code de vote pour ${soiree.nom}`
+					})
+				}) : null,
+				/* @__PURE__ */ jsx("p", {
+					className: "mt-2 break-all text-sm",
+					children: origine ? `${origine}/noter` : "/noter"
+				}),
+				/* @__PURE__ */ jsx("button", {
+					type: "button",
+					className: `${BOUTON$1} mt-3`,
+					onClick: () => {
+						if (!soiree || !origine) return;
+						const url = `${origine}/noter`;
+						telechargerFichier(`affiche-${soiree.slug}.pdf`, documentPdf({
+							titre: soiree.nom,
+							lignes: [
+								soiree.lieu ?? "",
+								soiree.date_soiree,
+								"Votez sur votre téléphone",
+								url
+							],
+							qr: matriceQr(url),
+							legendeQr: "Scannez pour noter les manades"
+						}), "application/pdf");
+					},
+					children: "Télécharger l’affiche PDF"
+				})
+			]
+		})
+	] });
+}
+//#endregion
+//#region app/routes/admin-direct.tsx
+var admin_direct_exports = /* @__PURE__ */ __exportAll({
+	default: () => admin_direct_default,
+	meta: () => meta$6
+});
+function meta$6() {
+	return [{ title: "Cockpit · Administration" }, {
+		name: "robots",
+		content: "noindex"
+	}];
+}
+var admin_direct_default = UNSAFE_withComponentProps(function Cockpit() {
+	const { soireeId = "" } = useParams();
+	return /* @__PURE__ */ jsx(CadreAdmin, {
+		surtitre: "En direct",
+		titre: "Cockpit",
+		children: /* @__PURE__ */ jsx(Pilotage, { soireeId })
+	});
+});
+function Pilotage({ soireeId }) {
+	const { client, session, erreurClient } = useClientAdmin();
+	const [soiree, setSoiree] = useState(null);
+	const [epreuves, setEpreuves] = useState([]);
+	const [passages, setPassages] = useState([]);
+	const [noms, setNoms] = useState(/* @__PURE__ */ new Map());
+	const [votes, setVotes] = useState(/* @__PURE__ */ new Map());
+	const [jugesEnRetard, setJugesEnRetard] = useState([]);
+	const [erreur, setErreur] = useState(null);
+	const [enCours, setEnCours] = useState(false);
+	const [confirmation, setConfirmation] = useState(null);
+	const [minutes, setMinutes] = useState(5);
+	const [maintenant, setMaintenant] = useState(() => Date.now());
+	async function recharger() {
+		if (!client) return;
+		const [s, e, manades] = await Promise.all([
+			client.from("soirees").select("id, nom, statut, mode_vote, delai_vote_minutes").eq("id", soireeId).maybeSingle(),
+			client.from("epreuves").select("id, ordre, nom, notee, heure_debut, heure_fin").eq("soiree_id", soireeId).order("ordre"),
+			client.from("soiree_manades").select("manade_id, manades(nom)").eq("soiree_id", soireeId)
+		]);
+		if (s.error || !s.data) {
+			setErreur("Soirée introuvable.");
+			return;
+		}
+		setSoiree(s.data);
+		const listeEpreuves = e.data ?? [];
+		setEpreuves(listeEpreuves);
+		const ids = listeEpreuves.map((epreuve) => epreuve.id);
+		const p = ids.length ? await client.from("passages").select("id, epreuve_id, manade_id, ordre, statut_public, statut_jury, jury_lie_au_public, fin_passage_le, ferme_le").in("epreuve_id", ids) : {
+			data: [],
+			error: null
+		};
+		if (p.error) {
+			setErreur("Les passages sont indisponibles.");
+			return;
+		}
+		const liste = p.data ?? [];
+		setPassages(liste);
+		const carte = /* @__PURE__ */ new Map();
+		for (const lien of manades.data ?? []) {
+			const nom = Array.isArray(lien.manades) ? lien.manades[0]?.nom : lien.manades?.nom;
+			if (nom) carte.set(lien.manade_id, nom);
+		}
+		setNoms(carte);
+		const passageIds = liste.map((passage) => passage.id);
+		if (passageIds.length) {
+			const notes = await client.from("notes_public").select("passage_id").in("passage_id", passageIds);
+			const compte = /* @__PURE__ */ new Map();
+			for (const note of notes.data ?? []) compte.set(note.passage_id, (compte.get(note.passage_id) ?? 0) + 1);
+			setVotes(compte);
+			const jury = await client.from("notes_jury").select("passage_id, juge_id").in("passage_id", passageIds);
+			const rattaches = await client.from("soiree_juges").select("juge_id, profils(prenom)").eq("soiree_id", soireeId);
+			const ouverts = new Set(liste.filter((passage) => passage.statut_jury === "ouvert").map((passage) => passage.id));
+			const notesParJuge = /* @__PURE__ */ new Map();
+			for (const note of jury.data ?? []) {
+				const ensemble = notesParJuge.get(note.juge_id) ?? /* @__PURE__ */ new Set();
+				ensemble.add(note.passage_id);
+				notesParJuge.set(note.juge_id, ensemble);
+			}
+			const retard = [];
+			for (const juge of rattaches.data ?? []) {
+				const prenom = Array.isArray(juge.profils) ? juge.profils[0]?.prenom : juge.profils?.prenom;
+				const faites = notesParJuge.get(juge.juge_id) ?? /* @__PURE__ */ new Set();
+				if ([...ouverts].some((id) => !faites.has(id))) retard.push(prenom ?? "Juge");
+			}
+			setJugesEnRetard(retard);
+		}
+	}
+	useEffect(() => {
+		if (!client) return;
+		recharger();
+		const minuteur = setInterval(() => {
+			setMaintenant(Date.now());
+			recharger();
+		}, 8e3);
+		return () => clearInterval(minuteur);
+	}, [client, soireeId]);
+	async function executer(action) {
+		if (!client || enCours) return;
+		setEnCours(true);
+		setErreur(null);
+		const { error } = await action();
+		setEnCours(false);
+		setConfirmation(null);
+		if (error) setErreur(error.message || "L’action n’a pas abouti.");
+		else await recharger();
+		return !error;
+	}
+	async function prevenir(texte) {
+		if (!session?.access_token) return;
+		await fetch("/api/notifications/diffuser", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${session.access_token}`
+			},
+			body: JSON.stringify({
+				cle: soireeId,
+				texte,
+				url: "/noter"
+			})
+		}).catch(() => void 0);
+	}
+	function maj(ids, valeurs) {
+		if (!client) return Promise.resolve({ error: { message: "Indisponible" } });
+		return client.from("passages").update(valeurs).in("id", ids);
+	}
+	function juryASuivre(cibles) {
+		return cibles.length > 0 && cibles.every((passage) => passage.jury_lie_au_public && passage.statut_jury !== "verrouille");
+	}
+	async function debloquer(cibles) {
+		if (await executer(() => maj(cibles.map((passage) => passage.id), juryASuivre(cibles) ? {
+			statut_public: "ouvert",
+			statut_jury: "ouvert"
+		} : { statut_public: "ouvert" }))) {
+			const manade = cibles.length === 1 ? noms.get(cibles[0].manade_id) : null;
+			const epreuve = epreuves.find((ligne) => ligne.id === cibles[0]?.epreuve_id)?.nom ?? "Passage";
+			prevenir(manade ? `${epreuve} en piste : manade ${manade}` : `${epreuve} en piste`);
+		}
+	}
+	async function fermer(cibles) {
+		await executer(() => maj(cibles.map((passage) => passage.id), {
+			statut_public: "clos",
+			ferme_le: (/* @__PURE__ */ new Date()).toISOString(),
+			...juryASuivre(cibles) ? { statut_jury: "clos" } : {}
+		}));
+	}
+	async function passageTermine(passage) {
+		const fin = (/* @__PURE__ */ new Date()).toISOString();
+		const delai = soiree?.delai_vote_minutes;
+		await executer(() => maj([passage.id], {
+			fin_passage_le: fin,
+			ferme_le: delai == null ? null : new Date(Date.now() + delai * 6e4).toISOString()
+		}));
+	}
+	async function prolonger(passage) {
+		const base = passage.ferme_le && Date.parse(passage.ferme_le) > Date.now() ? Date.parse(passage.ferme_le) : Date.now();
+		await executer(() => maj([passage.id], {
+			statut_public: "ouvert",
+			ferme_le: new Date(base + minutes * 6e4).toISOString()
+		}));
+	}
+	async function decalerSuite(ordre) {
+		if (!client) return;
+		await executer(async () => {
+			const suivantes = epreuves.filter((epreuve) => epreuve.ordre > ordre && epreuve.heure_debut && epreuve.heure_fin);
+			for (const epreuve of suivantes) {
+				const resultat = await client.from("epreuves").update({
+					heure_debut: new Date(Date.parse(epreuve.heure_debut ?? "") + minutes * 6e4).toISOString(),
+					heure_fin: new Date(Date.parse(epreuve.heure_fin ?? "") + minutes * 6e4).toISOString()
+				}).eq("id", epreuve.id);
+				if (resultat.error) return resultat;
+			}
+			return { error: null };
+		});
+	}
+	if (erreurClient) return /* @__PURE__ */ jsx("p", {
+		role: "alert",
+		className: "text-rouge-alerte",
+		children: erreurClient
+	});
+	if (!soiree) return /* @__PURE__ */ jsx("p", {
+		role: "status",
+		children: erreur ?? "Lecture du cockpit…"
+	});
+	const courante = epreuves.find((epreuve) => passages.some((passage) => passage.epreuve_id === epreuve.id && passage.statut_public === "ouvert")) ?? epreuves.find((epreuve) => epreuve.notee) ?? epreuves[0];
+	const liste = passages.filter((passage) => passage.epreuve_id === courante?.id).sort((a, b) => a.ordre - b.ordre);
+	async function glisserPassages(depuis, vers) {
+		if (!client) return;
+		const etapes = etapesReordre(liste.map((passage) => ({
+			id: passage.id,
+			ordre: passage.ordre
+		})), depuis, vers);
+		if (!etapes.length) return;
+		await executer(async () => {
+			for (const etape of etapes) {
+				const resultat = await client.from("passages").update({ ordre: etape.ordre }).eq("id", etape.id);
+				if (resultat.error) return resultat;
+			}
+			return { error: null };
+		});
+	}
+	function deposer(evenement, vers) {
+		evenement.preventDefault();
+		const depuis = Number(evenement.dataTransfer.getData("text/plain"));
+		if (Number.isInteger(depuis)) glisserPassages(depuis, vers);
+	}
+	function exporterPdf() {
+		if (!soiree || !courante) return;
+		const lignes = [
+			soiree.nom,
+			courante.nom,
+			...liste.map((passage) => `${noms.get(passage.manade_id) ?? "Manade"} · ${votes.get(passage.id) ?? 0} vote(s) · ${passage.statut_public}`)
+		];
+		telechargerFichier(`cockpit-${soiree.nom}.pdf`, documentPdf({
+			titre: "Cockpit",
+			lignes
+		}), "application/pdf");
+	}
+	return /* @__PURE__ */ jsxs(Fragment, { children: [
+		/* @__PURE__ */ jsxs("p", {
+			className: "text-sm text-encre-2",
+			children: [
+				soiree.nom,
+				" · ",
+				soiree.statut,
+				" · ",
+				soiree.mode_vote === "libre" ? "Vote libre" : "Vote par déblocage"
+			]
+		}),
+		/* @__PURE__ */ jsx(Link, {
+			to: `/admin/soirees/${soireeId}`,
+			className: "text-sm underline",
+			children: "Retour à la préparation"
+		}),
+		erreur ? /* @__PURE__ */ jsx("p", {
+			role: "alert",
+			className: "text-rouge-alerte",
+			children: erreur
+		}) : null,
+		/* @__PURE__ */ jsxs("label", {
+			className: "grid max-w-xs gap-2 font-medium",
+			children: ["Minutes (décalage ou prolongation)", /* @__PURE__ */ jsx("input", {
+				type: "number",
+				min: 1,
+				max: 30,
+				value: minutes,
+				onChange: (evenement) => setMinutes(Number(evenement.target.value)),
+				className: CHAMP$1
+			})]
+		}),
+		courante ? /* @__PURE__ */ jsxs("section", {
+			className: CARTE$1,
+			children: [
+				/* @__PURE__ */ jsx("h2", {
+					className: "font-display text-3xl",
+					children: courante.nom
+				}),
+				/* @__PURE__ */ jsxs("div", {
+					className: "mt-4 flex flex-wrap gap-2",
+					children: [
+						/* @__PURE__ */ jsx("button", {
+							type: "button",
+							className: BOUTON_PLEIN,
+							disabled: enCours,
+							onClick: () => void debloquer(liste),
+							children: "Débloquer l’épreuve"
+						}),
+						/* @__PURE__ */ jsx("button", {
+							type: "button",
+							className: BOUTON$1,
+							disabled: enCours,
+							onClick: () => setConfirmation(confirmation === "fermer" ? null : "fermer"),
+							children: "Fermer l’épreuve"
+						}),
+						/* @__PURE__ */ jsxs("button", {
+							type: "button",
+							className: BOUTON$1,
+							disabled: enCours,
+							onClick: () => void decalerSuite(courante.ordre),
+							children: [
+								"Décaler la suite de +",
+								minutes,
+								" min"
+							]
+						}),
+						/* @__PURE__ */ jsx("button", {
+							type: "button",
+							className: BOUTON$1,
+							onClick: exporterPdf,
+							children: "Exporter le suivi PDF"
+						})
+					]
+				}),
+				confirmation === "fermer" ? /* @__PURE__ */ jsx("button", {
+					type: "button",
+					className: `${BOUTON_PLEIN} mt-3`,
+					onClick: () => void fermer(liste),
+					children: "Confirmer la fermeture"
+				}) : null,
+				/* @__PURE__ */ jsx("ul", {
+					className: "mt-5 grid gap-3",
+					children: liste.map((passage, rang) => {
+						const reste = passage.ferme_le ? Math.max(0, Math.ceil((Date.parse(passage.ferme_le) - maintenant) / 1e3)) : null;
+						return /* @__PURE__ */ jsxs("li", {
+							className: "rounded-xl border border-trait p-3",
+							draggable: true,
+							onDragStart: (evenement) => evenement.dataTransfer.setData("text/plain", String(rang)),
+							onDragOver: (evenement) => evenement.preventDefault(),
+							onDrop: (evenement) => deposer(evenement, rang),
+							children: [
+								/* @__PURE__ */ jsx("p", {
+									className: "font-semibold",
+									children: noms.get(passage.manade_id) ?? "Manade"
+								}),
+								/* @__PURE__ */ jsxs("p", {
+									className: "text-sm text-encre-2",
+									children: [
+										votes.get(passage.id) ?? 0,
+										" vote",
+										(votes.get(passage.id) ?? 0) > 1 ? "s" : "",
+										" · public ",
+										passage.statut_public,
+										" · jury ",
+										passage.statut_jury
+									]
+								}),
+								reste !== null && passage.statut_public === "ouvert" ? /* @__PURE__ */ jsx("p", {
+									className: "text-sm",
+									children: reste > 0 ? `Fermeture automatique dans ${reste} s` : "Échéance de vote dépassée"
+								}) : null,
+								/* @__PURE__ */ jsxs("div", {
+									className: "mt-2 flex flex-wrap gap-2",
+									children: [
+										/* @__PURE__ */ jsx("button", {
+											type: "button",
+											className: BOUTON_PLEIN,
+											disabled: enCours,
+											onClick: () => void debloquer([passage]),
+											children: "Débloquer"
+										}),
+										/* @__PURE__ */ jsx("button", {
+											type: "button",
+											className: BOUTON$1,
+											disabled: enCours,
+											onClick: () => void fermer([passage]),
+											children: "Fermer"
+										}),
+										/* @__PURE__ */ jsx("button", {
+											type: "button",
+											className: BOUTON$1,
+											disabled: enCours,
+											onClick: () => void passageTermine(passage),
+											children: "Passage terminé"
+										}),
+										/* @__PURE__ */ jsxs("button", {
+											type: "button",
+											className: BOUTON$1,
+											disabled: enCours,
+											onClick: () => void prolonger(passage),
+											children: [
+												"Prolonger de +",
+												minutes,
+												" min"
+											]
+										})
+									]
+								})
+							]
+						}, passage.id);
+					})
+				})
+			]
+		}) : /* @__PURE__ */ jsx("p", { children: "Aucune épreuve. Préparez le planning d’abord." }),
+		/* @__PURE__ */ jsxs("section", {
+			className: CARTE$1,
+			children: [
+				/* @__PURE__ */ jsx("h2", {
+					className: "font-display text-2xl",
+					children: "Juges en retard"
+				}),
+				jugesEnRetard.length ? /* @__PURE__ */ jsx("ul", {
+					className: "mt-2",
+					children: jugesEnRetard.map((nom) => /* @__PURE__ */ jsx("li", { children: nom }, nom))
+				}) : /* @__PURE__ */ jsx("p", {
+					className: "mt-2 text-sm text-encre-2",
+					children: "Aucun retard sur les passages ouverts au jury."
+				}),
+				/* @__PURE__ */ jsxs("div", {
+					className: "mt-4 flex flex-wrap gap-2",
+					children: [
+						/* @__PURE__ */ jsx("button", {
+							type: "button",
+							className: BOUTON$1,
+							onClick: () => setConfirmation(confirmation === "verrouiller" ? null : "verrouiller"),
+							children: "Verrouiller le jury"
+						}),
+						/* @__PURE__ */ jsx("button", {
+							type: "button",
+							className: BOUTON$1,
+							onClick: () => setConfirmation(confirmation === "terminer" ? null : "terminer"),
+							children: "Terminer la soirée"
+						}),
+						/* @__PURE__ */ jsx("button", {
+							type: "button",
+							className: BOUTON$1,
+							onClick: () => setConfirmation(confirmation === "annuler" ? null : "annuler"),
+							children: "Annuler la soirée"
+						})
+					]
+				}),
+				confirmation === "verrouiller" ? /* @__PURE__ */ jsx("button", {
+					type: "button",
+					className: `${BOUTON_PLEIN} mt-3`,
+					onClick: () => void executer(() => maj(passages.map((p) => p.id), { statut_jury: "verrouille" })),
+					children: "Confirmer le verrouillage"
+				}) : null,
+				confirmation === "terminer" && client ? /* @__PURE__ */ jsx("button", {
+					type: "button",
+					className: `${BOUTON_PLEIN} mt-3`,
+					onClick: () => void executer(() => client.from("soirees").update({ statut: "terminee" }).eq("id", soireeId)),
+					children: "Confirmer la fin"
+				}) : null,
+				confirmation === "annuler" && client ? /* @__PURE__ */ jsx("button", {
+					type: "button",
+					className: `${BOUTON_PLEIN} mt-3`,
+					onClick: () => void executer(() => client.from("soirees").update({ statut: "annulee" }).eq("id", soireeId)),
+					children: "Confirmer l’annulation"
+				}) : null
+			]
+		})
+	] });
+}
+//#endregion
+//#region serveur/classements.mjs
+/**
+* @typedef {{
+*   id: string,
+*   epreuveId: string,
+*   epreuveNom: string,
+*   epreuveOrdre: number,
+*   manadeId: string,
+*   manadeNom: string,
+*   publicOuvert: boolean,
+*   juryOuvert: boolean,
+*   notesPublic: number[],
+*   notesJury: number[],
+* }} PassageCalcul
+*/
+/**
+* @typedef {{
+*   mode: 'separe' | 'combine' | 'jury',
+*   methode: 'points' | 'moyenne',
+*   poidsJury: number,
+*   baremeJury: number,
+* }} ReglagesClassement
+*/
+/**
+* @typedef {{
+*   manadeId: string,
+*   manadeNom: string,
+*   score: number,
+*   votes: number | null,
+*   rang: number,
+*   points: number,
+* }} LigneEpreuve
+*/
+/**
+* @typedef {{
+*   manadeId: string,
+*   manadeNom: string,
+*   total: number,
+*   epreuves: number,
+*   rang: number,
+* }} LigneGeneral
+*/
+/**
+* @typedef {{
+*   provisoire: boolean,
+*   officiel: 'separe' | 'combine' | 'jury',
+*   methode: 'points' | 'moyenne',
+*   parEpreuve: {
+*     epreuveId: string,
+*     nom: string,
+*     ordre: number,
+*     public: LigneEpreuve[] | null,
+*     jury: LigneEpreuve[] | null,
+*     combine: LigneEpreuve[] | null,
+*   }[],
+*   general: {
+*     public: LigneGeneral[] | null,
+*     jury: LigneGeneral[] | null,
+*     combine: LigneGeneral[] | null,
+*   },
+* }} ResultatClassements
+*/
+/** @param {number} a @param {number} b */
+function presqueEgal(a, b) {
+	return Math.abs(a - b) < 1e-9;
+}
+/** @param {number[]} notes */
+function moyenne(notes) {
+	if (notes.length === 0) return null;
+	return notes.reduce((somme, note) => somme + note, 0) / notes.length;
+}
+/**
+* @param {{ manadeId: string, manadeNom: string, score: number, votes: number | null }[]} lignes
+* @returns {LigneEpreuve[]}
+*/
+function classerEpreuve(lignes) {
+	const tries = [...lignes].sort((a, b) => b.score - a.score || a.manadeNom.localeCompare(b.manadeNom, "fr"));
+	const n = tries.length;
+	let rang = 1;
+	return tries.map((ligne, index) => {
+		if (index > 0 && !presqueEgal(ligne.score, tries[index - 1].score)) rang = index + 1;
+		return {
+			...ligne,
+			rang,
+			points: n - rang + 1
+		};
+	});
+}
+/**
+* @param {Map<string, { manadeId: string, manadeNom: string, scores: number[], points: number }>} parManade
+* @param {'points' | 'moyenne'} methode
+* @returns {LigneGeneral[]}
+*/
+function classerGeneral(parManade, methode) {
+	/** @type {{ manadeId: string, manadeNom: string, total: number, epreuves: number }[]} */
+	const lignes = [];
+	for (const manade of parManade.values()) {
+		if (manade.scores.length === 0 && manade.points === 0 && methode === "moyenne") continue;
+		if (methode === "moyenne" && manade.scores.length === 0) continue;
+		const total = methode === "points" ? manade.points : manade.scores.reduce((somme, score) => somme + score, 0) / manade.scores.length;
+		lignes.push({
+			manadeId: manade.manadeId,
+			manadeNom: manade.manadeNom,
+			total,
+			epreuves: manade.scores.length
+		});
+	}
+	const tries = lignes.sort((a, b) => b.total - a.total || a.manadeNom.localeCompare(b.manadeNom, "fr"));
+	let rang = 1;
+	return tries.map((ligne, index) => {
+		if (index > 0 && !presqueEgal(ligne.total, tries[index - 1].total)) rang = index + 1;
+		return {
+			...ligne,
+			rang
+		};
+	});
+}
+/**
+* @param {PassageCalcul[]} passages
+* @param {'public' | 'jury' | 'combine'} canal
+* @param {ReglagesClassement} reglages
+*/
+function scoresEpreuve(passages, canal, reglages) {
+	/** @type {{ manadeId: string, manadeNom: string, score: number, votes: number | null }[]} */
+	const lignes = [];
+	for (const passage of passages) {
+		const publicMoyenne = moyenne(passage.notesPublic);
+		const juryBrut = moyenne(passage.notesJury);
+		const juryDix = juryBrut === null || reglages.baremeJury <= 0 ? null : juryBrut * (10 / reglages.baremeJury);
+		let score = null;
+		let votes = null;
+		if (canal === "public") {
+			score = publicMoyenne;
+			votes = passage.notesPublic.length;
+		} else if (canal === "jury") {
+			score = juryDix;
+			votes = passage.notesJury.length;
+		} else if (publicMoyenne !== null && juryDix !== null) {
+			const poids = Math.min(100, Math.max(0, reglages.poidsJury)) / 100;
+			score = poids * juryDix + (1 - poids) * publicMoyenne;
+			votes = passage.notesPublic.length;
+		}
+		if (score === null) continue;
+		lignes.push({
+			manadeId: passage.manadeId,
+			manadeNom: passage.manadeNom,
+			score,
+			votes
+		});
+	}
+	return classerEpreuve(lignes);
+}
+/**
+* @param {PassageCalcul[]} passages
+* @param {ReglagesClassement} reglages
+* @returns {ResultatClassements}
+*/
+function calculerClassements(passages, reglages) {
+	const groupes = /* @__PURE__ */ new Map();
+	for (const passage of passages) {
+		const liste = groupes.get(passage.epreuveId) ?? [];
+		liste.push(passage);
+		groupes.set(passage.epreuveId, liste);
+	}
+	const epreuves = [...groupes.entries()].map(([epreuveId, liste]) => ({
+		epreuveId,
+		nom: liste[0]?.epreuveNom ?? "",
+		ordre: liste[0]?.epreuveOrdre ?? 0,
+		passages: liste
+	})).sort((a, b) => a.ordre - b.ordre || a.nom.localeCompare(b.nom, "fr"));
+	/** @type {ResultatClassements['parEpreuve']} */
+	const parEpreuve = [];
+	/** @type {Map<string, Map<string, { manadeId: string, manadeNom: string, scores: number[], points: number }>>} */
+	const cumuls = /* @__PURE__ */ new Map([
+		["public", /* @__PURE__ */ new Map()],
+		["jury", /* @__PURE__ */ new Map()],
+		["combine", /* @__PURE__ */ new Map()]
+	]);
+	for (const epreuve of epreuves) {
+		/** @type {Record<'public' | 'jury' | 'combine', LigneEpreuve[]>} */
+		const canaux = {
+			public: scoresEpreuve(epreuve.passages, "public", reglages),
+			jury: scoresEpreuve(epreuve.passages, "jury", reglages),
+			combine: scoresEpreuve(epreuve.passages, "combine", reglages)
+		};
+		for (const canal of [
+			"public",
+			"jury",
+			"combine"
+		]) {
+			const cumul = cumuls.get(canal);
+			if (!cumul) continue;
+			for (const ligne of canaux[canal]) {
+				const existant = cumul.get(ligne.manadeId) ?? {
+					manadeId: ligne.manadeId,
+					manadeNom: ligne.manadeNom,
+					scores: [],
+					points: 0
+				};
+				existant.scores.push(ligne.score);
+				existant.points += ligne.points;
+				cumul.set(ligne.manadeId, existant);
+			}
+		}
+		parEpreuve.push({
+			epreuveId: epreuve.epreuveId,
+			nom: epreuve.nom,
+			ordre: epreuve.ordre,
+			public: canaux.public,
+			jury: canaux.jury,
+			combine: canaux.combine
+		});
+	}
+	return {
+		provisoire: passages.some((passage) => passage.publicOuvert || passage.juryOuvert || passage.notesJury.length === 0),
+		officiel: reglages.mode,
+		methode: reglages.methode,
+		parEpreuve,
+		general: {
+			public: classerGeneral(cumuls.get("public") ?? /* @__PURE__ */ new Map(), reglages.methode),
+			jury: classerGeneral(cumuls.get("jury") ?? /* @__PURE__ */ new Map(), reglages.methode),
+			combine: classerGeneral(cumuls.get("combine") ?? /* @__PURE__ */ new Map(), reglages.methode)
+		}
+	};
+}
+/** @param {string} valeur */
+function celluleCsv(valeur) {
+	if (/[;"\r\n]/.test(valeur)) return `"${valeur.replaceAll("\"", "\"\"")}"`;
+	return valeur;
+}
+/** Export des classements calculés, séparateur point-virgule, comme la supervision. @param {ResultatClassements} resultat */
+function exporterClassementsCsv(resultat) {
+	const entete = "portee;epreuve;canal;rang;manade;score;votes_ou_epreuves;points;provisoire";
+	/** @type {string[]} */
+	const lignes = [];
+	for (const epreuve of resultat.parEpreuve) for (const canal of [
+		"public",
+		"jury",
+		"combine"
+	]) for (const ligne of epreuve[canal] ?? []) lignes.push([
+		"epreuve",
+		epreuve.nom,
+		canal,
+		String(ligne.rang),
+		ligne.manadeNom,
+		String(ligne.score),
+		String(ligne.votes ?? ""),
+		String(ligne.points),
+		resultat.provisoire ? "oui" : "non"
+	].map(celluleCsv).join(";"));
+	for (const canal of [
+		"public",
+		"jury",
+		"combine"
+	]) for (const ligne of resultat.general[canal] ?? []) lignes.push([
+		"general",
+		"",
+		canal,
+		String(ligne.rang),
+		ligne.manadeNom,
+		String(ligne.total),
+		String(ligne.epreuves),
+		"",
+		resultat.provisoire ? "oui" : "non"
+	].map(celluleCsv).join(";"));
+	return `\uFEFF${[entete, ...lignes].join("\r\n")}`;
+}
+//#endregion
+//#region app/routes/admin-resultats.tsx
+var admin_resultats_exports = /* @__PURE__ */ __exportAll({
+	default: () => admin_resultats_default,
+	meta: () => meta$5
+});
+function meta$5() {
+	return [{ title: "Résultats · Administration" }, {
+		name: "robots",
+		content: "noindex"
+	}];
+}
+var admin_resultats_default = UNSAFE_withComponentProps(function Resultats() {
+	const { soireeId = "" } = useParams();
+	return /* @__PURE__ */ jsx(CadreAdmin, {
+		surtitre: "Résultats",
+		titre: "Classements",
+		children: /* @__PURE__ */ jsx(Calcul, { soireeId })
+	});
+});
+function Calcul({ soireeId }) {
+	const { client, session, erreurClient } = useClientAdmin();
+	const [resultat, setResultat] = useState(null);
+	const [nom, setNom] = useState("");
+	const [visible, setVisible] = useState(true);
+	const [erreur, setErreur] = useState(null);
+	const [avis, setAvis] = useState([]);
+	useEffect(() => {
+		if (!client) return;
+		let actif = true;
+		(async () => {
+			const soiree = await client.from("soirees").select("nom, mode_classement, methode_general, poids_jury, bareme_jury, classement_visible").eq("id", soireeId).maybeSingle();
+			if (!actif) return;
+			if (soiree.error || !soiree.data) {
+				setErreur("Soirée introuvable.");
+				return;
+			}
+			setNom(soiree.data.nom);
+			setVisible(Boolean(soiree.data.classement_visible));
+			const epreuves = await client.from("epreuves").select("id, nom, ordre, notee").eq("soiree_id", soireeId);
+			const ids = (epreuves.data ?? []).map((epreuve) => epreuve.id);
+			const [passages, manades] = await Promise.all([ids.length ? client.from("passages").select("id, epreuve_id, manade_id, statut_public, statut_jury, ferme_le").in("epreuve_id", ids) : Promise.resolve({
+				data: [],
+				error: null
+			}), client.from("manades").select("id, nom")]);
+			const liste = passages.data ?? [];
+			const notesP = liste.length ? await client.from("notes_public").select("passage_id, note").in("passage_id", liste.map((p) => p.id)) : { data: [] };
+			const notesJ = liste.length ? await client.from("notes_jury").select("passage_id, note").in("passage_id", liste.map((p) => p.id)) : { data: [] };
+			if (!actif) return;
+			const noms = new Map((manades.data ?? []).map((manade) => [manade.id, manade.nom]));
+			const epreuveParId = new Map((epreuves.data ?? []).map((epreuve) => [epreuve.id, epreuve]));
+			const publics = /* @__PURE__ */ new Map();
+			const jurys = /* @__PURE__ */ new Map();
+			for (const note of notesP.data ?? []) {
+				const valeurs = publics.get(note.passage_id) ?? [];
+				valeurs.push(Number(note.note));
+				publics.set(note.passage_id, valeurs);
+			}
+			for (const note of notesJ.data ?? []) {
+				const valeurs = jurys.get(note.passage_id) ?? [];
+				valeurs.push(Number(note.note));
+				jurys.set(note.passage_id, valeurs);
+			}
+			const passagesCalcul = liste.flatMap((passage) => {
+				const epreuve = epreuveParId.get(passage.epreuve_id);
+				if (!epreuve?.notee) return [];
+				const ferme = passage.ferme_le ? Date.parse(passage.ferme_le) <= Date.now() : false;
+				return [{
+					id: passage.id,
+					epreuveId: passage.epreuve_id,
+					epreuveNom: epreuve.nom,
+					epreuveOrdre: epreuve.ordre,
+					manadeId: passage.manade_id,
+					manadeNom: noms.get(passage.manade_id) ?? "Manade",
+					publicOuvert: passage.statut_public === "ouvert" && !ferme,
+					juryOuvert: passage.statut_jury === "ouvert",
+					notesPublic: publics.get(passage.id) ?? [],
+					notesJury: jurys.get(passage.id) ?? []
+				}];
+			});
+			const lectureAvis = await client.from("avis_soiree").select("etoiles, commentaire").eq("soiree_id", soireeId);
+			if (!actif) return;
+			setAvis(lectureAvis.data ?? []);
+			setResultat(calculerClassements(passagesCalcul, {
+				mode: soiree.data.mode_classement,
+				methode: soiree.data.methode_general,
+				poidsJury: soiree.data.poids_jury,
+				baremeJury: soiree.data.bareme_jury
+			}));
+		})();
+		return () => {
+			actif = false;
+		};
+	}, [client, soireeId]);
+	function exporter() {
+		if (!resultat) return;
+		const url = URL.createObjectURL(new Blob([exporterClassementsCsv(resultat)], { type: "text/csv;charset=utf-8" }));
+		const lien = document.createElement("a");
+		lien.href = url;
+		lien.download = `classements-${nom || "soiree"}.csv`;
+		lien.click();
+		setTimeout(() => URL.revokeObjectURL(url), 1e3);
+	}
+	function exporterPdf() {
+		if (!resultat) return;
+		const lignes = [
+			nom,
+			resultat.provisoire ? "Classement provisoire" : "Classement",
+			...resultat.parEpreuve.flatMap((epreuve) => {
+				const lignesEpreuve = epreuve.public ?? epreuve.jury ?? epreuve.combine ?? [];
+				return [`${epreuve.nom}`, ...lignesEpreuve.map((ligne) => `${ligne.rang}. ${ligne.manadeNom} — ${ligne.score}`)];
+			})
+		];
+		telechargerFichier(`classements-${nom || "soiree"}.pdf`, documentPdf({
+			titre: "Résultats",
+			lignes
+		}), "application/pdf");
+	}
+	async function reveler(valeur) {
+		if (!client) return;
+		const { error } = await client.from("soirees").update({ classement_visible: valeur }).eq("id", soireeId);
+		if (error) setErreur("La visibilité n’a pas pu être modifiée.");
+		else {
+			setVisible(valeur);
+			if (valeur && session?.access_token) await fetch("/api/notifications/diffuser", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${session.access_token}`
+				},
+				body: JSON.stringify({
+					cle: `${soireeId}-classement`,
+					texte: "Le classement est révélé.",
+					url: "/classements"
+				})
+			}).catch(() => void 0);
+		}
+	}
+	if (erreurClient) return /* @__PURE__ */ jsx("p", {
+		role: "alert",
+		className: "text-rouge-alerte",
+		children: erreurClient
+	});
+	if (erreur) return /* @__PURE__ */ jsx("p", {
+		role: "alert",
+		className: "text-rouge-alerte",
+		children: erreur
+	});
+	if (!resultat) return /* @__PURE__ */ jsx("p", {
+		role: "status",
+		children: "Calcul des classements…"
+	});
+	return /* @__PURE__ */ jsxs(Fragment, { children: [
+		/* @__PURE__ */ jsxs("div", {
+			className: "flex flex-wrap gap-2",
+			children: [
+				/* @__PURE__ */ jsx("button", {
+					type: "button",
+					className: BOUTON$1,
+					onClick: exporter,
+					children: "Exporter CSV"
+				}),
+				/* @__PURE__ */ jsx("button", {
+					type: "button",
+					className: BOUTON$1,
+					onClick: exporterPdf,
+					children: "Exporter PDF"
+				}),
+				/* @__PURE__ */ jsx("button", {
+					type: "button",
+					className: BOUTON$1,
+					onClick: () => void reveler(!visible),
+					children: visible ? "Masquer le classement public" : "Révéler le classement public"
+				}),
+				/* @__PURE__ */ jsx(Link, {
+					to: `/admin/soirees/${soireeId}/direct`,
+					className: BOUTON$1,
+					children: "Cockpit"
+				})
+			]
+		}),
+		/* @__PURE__ */ jsxs("p", {
+			className: "text-sm text-encre-2",
+			children: [
+				nom,
+				" · ",
+				visible ? "visible du public lorsque la soirée réelle est activée" : "masqué pour le public"
+			]
+		}),
+		/* @__PURE__ */ jsx(ClassementCalcule, { classements: resultat }),
+		/* @__PURE__ */ jsxs("section", {
+			className: "rounded-[22px] border border-trait bg-creme p-5",
+			children: [
+				/* @__PURE__ */ jsx("h2", {
+					className: "font-display text-2xl",
+					children: "Avis des spectateurs"
+				}),
+				/* @__PURE__ */ jsx("p", {
+					className: "mt-1 text-sm text-encre-2",
+					children: avis.length ? `Moyenne ${(avis.reduce((total, ligne) => total + ligne.etoiles, 0) / avis.length).toFixed(1)} sur 5 · ${avis.length} avis` : "Aucun avis."
+				}),
+				/* @__PURE__ */ jsx("ul", {
+					className: "mt-3 grid gap-2 text-sm",
+					children: avis.filter((ligne) => ligne.commentaire).map((ligne) => /* @__PURE__ */ jsxs("li", { children: [
+						ligne.etoiles,
+						"/5 — ",
+						ligne.commentaire
+					] }, ligne.commentaire))
+				})
+			]
+		})
+	] });
+}
+//#endregion
+//#region app/routes/admin-vitrine.tsx
+var admin_vitrine_exports = /* @__PURE__ */ __exportAll({
+	default: () => admin_vitrine_default,
+	meta: () => meta$4
+});
+function meta$4() {
+	return [{ title: "Vitrine · Administration" }, {
+		name: "robots",
+		content: "noindex"
+	}];
+}
+var admin_vitrine_default = UNSAFE_withComponentProps(function VitrineAdmin() {
+	return /* @__PURE__ */ jsx(CadreAdmin, {
+		surtitre: "Vitrine",
+		titre: "Contenus",
+		children: /* @__PURE__ */ jsx(Contenu, {})
+	});
+});
+function Contenu() {
+	const { client, erreurClient } = useClientAdmin();
+	const [dates, setDates] = useState([]);
+	const [palmares, setPalmares] = useState([]);
+	const [identite, setIdentite] = useState({
+		raison_sociale: "",
+		forme_juridique: "",
+		adresse: "",
+		telephone: "",
+		email: "",
+		immatriculation: "",
+		capital: "",
+		tva: "",
+		directeur_publication: ""
+	});
+	const [precision, setPrecision] = useState("");
+	const [info, setInfo] = useState(null);
+	const [erreur, setErreur] = useState(null);
+	useEffect(() => {
+		if (!client) return;
+		let actif = true;
+		Promise.all([
+			client.from("calendrier").select("id, annee, nom, ville, arenes, date_soiree, heure, statut, lien_billetterie").order("date_soiree"),
+			client.from("palmares").select("id, annee, evenement, ville, date_soiree, vainqueur, detail, statut, source_url").order("annee", { ascending: false }),
+			client.from("identite_legale").select("*").limit(1).maybeSingle(),
+			client.from("contenus_vitrine").select("valeur").eq("cle", "accueil_precision").maybeSingle()
+		]).then(([cal, pal, idt, texte]) => {
+			if (!actif) return;
+			if (cal.error || pal.error) setErreur("La vitrine est illisible. Appliquez les migrations.");
+			setDates(cal.data ?? []);
+			setPalmares(pal.data ?? []);
+			if (idt.data) setIdentite({
+				...identite,
+				...idt.data
+			});
+			setPrecision(texte.data?.valeur ?? "");
+		});
+		return () => {
+			actif = false;
+		};
+	}, [client]);
+	async function sauverIdentite(evenement) {
+		evenement.preventDefault();
+		if (!client) return;
+		const champs = Object.fromEntries(CHAMPS_IDENTITE.map(({ cle }) => [cle, identite[cle]?.trim() || null]));
+		const { error } = await client.from("identite_legale").upsert({
+			id: true,
+			...champs
+		});
+		setErreur(error ? "L’identité n’a pas été enregistrée." : null);
+		setInfo(error ? null : "Identité enregistrée. Aucun nom n’est inventé : les champs vides restent vides.");
+	}
+	async function sauverPrecision(evenement) {
+		evenement.preventDefault();
+		if (!client) return;
+		const valeur = precision.trim();
+		const { error } = valeur ? await client.from("contenus_vitrine").upsert({
+			cle: "accueil_precision",
+			valeur
+		}) : await client.from("contenus_vitrine").delete().eq("cle", "accueil_precision");
+		setErreur(error ? "Le texte n’a pas été enregistré." : null);
+		setInfo(error ? null : "Texte d’accueil enregistré.");
+	}
+	async function ajouterPhoto(evenement) {
+		evenement.preventDefault();
+		if (!client) return;
+		const champs = new FormData(evenement.currentTarget);
+		const { error } = await client.from("photos_vitrine").insert({
+			url: String(champs.get("url") ?? ""),
+			legende: String(champs.get("legende") ?? ""),
+			auteur: String(champs.get("auteur") ?? ""),
+			licence: String(champs.get("licence") ?? "")
+		});
+		setErreur(error ? "La photo n’a pas été ajoutée. L’adresse doit commencer par https:// et le crédit est obligatoire." : null);
+		if (!error) evenement.currentTarget.reset();
+	}
+	if (erreurClient) return /* @__PURE__ */ jsx("p", {
+		className: "text-rouge-alerte",
+		children: erreurClient
+	});
+	return /* @__PURE__ */ jsxs(Fragment, { children: [
+		erreur ? /* @__PURE__ */ jsx("p", {
+			className: "text-rouge-alerte",
+			children: erreur
+		}) : null,
+		info ? /* @__PURE__ */ jsx("p", {
+			role: "status",
+			children: info
+		}) : null,
+		/* @__PURE__ */ jsxs("form", {
+			onSubmit: (evenement) => void sauverIdentite(evenement),
+			className: `${CARTE$1} grid gap-3`,
+			children: [
+				/* @__PURE__ */ jsx("h2", {
+					className: "font-display text-2xl",
+					children: "Éditeur et responsable"
+				}),
+				/* @__PURE__ */ jsx("p", {
+					className: "text-sm text-encre-2",
+					children: "Laissez vide ce que l’organisateur n’a pas encore donné. Le site n’affiche alors que l’encadré à compléter."
+				}),
+				CHAMPS_IDENTITE.map(({ cle, libelle }) => /* @__PURE__ */ jsxs("label", {
+					className: "grid gap-2 text-sm font-medium",
+					children: [libelle, /* @__PURE__ */ jsx("input", {
+						className: CHAMP$1,
+						value: identite[cle] ?? "",
+						onChange: (evenement) => setIdentite({
+							...identite,
+							[cle]: evenement.target.value
+						})
+					})]
+				}, cle)),
+				/* @__PURE__ */ jsx("button", {
+					className: BOUTON_PLEIN,
+					children: "Enregistrer l’identité"
+				})
+			]
+		}),
+		/* @__PURE__ */ jsxs("form", {
+			onSubmit: (evenement) => void sauverPrecision(evenement),
+			className: `${CARTE$1} grid gap-3`,
+			children: [
+				/* @__PURE__ */ jsx("h2", {
+					className: "font-display text-2xl",
+					children: "Texte d’accueil"
+				}),
+				/* @__PURE__ */ jsx("textarea", {
+					className: `${CHAMP$1} min-h-24 py-2`,
+					value: precision,
+					maxLength: 2e3,
+					onChange: (evenement) => setPrecision(evenement.target.value)
+				}),
+				/* @__PURE__ */ jsx("button", {
+					className: BOUTON_PLEIN,
+					children: "Enregistrer le texte"
+				})
+			]
+		}),
+		/* @__PURE__ */ jsxs("form", {
+			onSubmit: (evenement) => void ajouterPhoto(evenement),
+			className: `${CARTE$1} grid gap-3`,
+			children: [
+				/* @__PURE__ */ jsx("h2", {
+					className: "font-display text-2xl",
+					children: "Photo supplémentaire"
+				}),
+				/* @__PURE__ */ jsx("p", {
+					className: "text-sm text-encre-2",
+					children: "Les photos déjà créditées de la vitrine restent en place. Une photo ajoutée ici doit avoir un auteur et une licence."
+				}),
+				/* @__PURE__ */ jsx("input", {
+					name: "url",
+					type: "url",
+					required: true,
+					placeholder: "https://",
+					className: CHAMP$1
+				}),
+				/* @__PURE__ */ jsx("input", {
+					name: "legende",
+					required: true,
+					placeholder: "Légende",
+					className: CHAMP$1
+				}),
+				/* @__PURE__ */ jsx("input", {
+					name: "auteur",
+					required: true,
+					placeholder: "Auteur",
+					className: CHAMP$1
+				}),
+				/* @__PURE__ */ jsx("input", {
+					name: "licence",
+					required: true,
+					placeholder: "Licence",
+					className: CHAMP$1
+				}),
+				/* @__PURE__ */ jsx("button", {
+					className: BOUTON_PLEIN,
+					children: "Ajouter la photo"
+				})
+			]
+		}),
+		/* @__PURE__ */ jsxs("section", {
+			className: CARTE$1,
+			children: [
+				/* @__PURE__ */ jsxs("h2", {
+					className: "font-display text-2xl",
+					children: [
+						"Dates (",
+						dates.length,
+						")"
+					]
+				}),
+				/* @__PURE__ */ jsx("ul", {
+					className: "mt-3 grid gap-2 text-sm",
+					children: dates.slice(0, 12).map((date) => /* @__PURE__ */ jsxs("li", { children: [
+						date.date_soiree,
+						" · ",
+						date.nom,
+						" · ",
+						date.ville,
+						" · ",
+						date.statut
+					] }, date.id))
+				}),
+				/* @__PURE__ */ jsx(DateForme, { onCreer: async (ligne) => {
+					if (!client) return;
+					const { error } = await client.from("calendrier").insert(ligne);
+					setErreur(error ? "La date n’a pas été ajoutée." : null);
+					if (!error) {
+						const relu = await client.from("calendrier").select("id, annee, nom, ville, arenes, date_soiree, heure, statut, lien_billetterie").order("date_soiree");
+						setDates(relu.data ?? []);
+					}
+				} })
+			]
+		}),
+		/* @__PURE__ */ jsxs("section", {
+			className: CARTE$1,
+			children: [
+				/* @__PURE__ */ jsxs("h2", {
+					className: "font-display text-2xl",
+					children: [
+						"Palmarès (",
+						palmares.length,
+						")"
+					]
+				}),
+				/* @__PURE__ */ jsx("ul", {
+					className: "mt-3 grid gap-2 text-sm",
+					children: palmares.slice(0, 8).map((ligne) => /* @__PURE__ */ jsxs("li", { children: [
+						ligne.annee,
+						" · ",
+						ligne.evenement,
+						" · ",
+						ligne.vainqueur,
+						" · ",
+						ligne.statut === "a_confirmer" ? "à confirmer" : "confirmé"
+					] }, ligne.id))
+				}),
+				/* @__PURE__ */ jsx(PalmaresForme, { onCreer: async (ligne) => {
+					if (!client) return;
+					const { error } = await client.from("palmares").insert(ligne);
+					setErreur(error ? "Le palmarès n’a pas été ajouté." : null);
+					if (!error) {
+						const relu = await client.from("palmares").select("id, annee, evenement, ville, date_soiree, vainqueur, detail, statut, source_url").order("annee", { ascending: false });
+						setPalmares(relu.data ?? []);
+					}
+				} })
+			]
+		})
+	] });
+}
+function DateForme({ onCreer }) {
+	return /* @__PURE__ */ jsxs("form", {
+		className: "mt-4 grid gap-2",
+		onSubmit: (evenement) => {
+			evenement.preventDefault();
+			const champs = new FormData(evenement.currentTarget);
+			const date = String(champs.get("date") ?? "");
+			onCreer({
+				annee: Number(date.slice(0, 4)),
+				nom: String(champs.get("nom") ?? ""),
+				ville: String(champs.get("ville") ?? ""),
+				date_soiree: date,
+				heure: String(champs.get("heure") ?? "") || null,
+				statut: "previsionnelle"
+			});
+		},
+		children: [/* @__PURE__ */ jsxs("div", {
+			className: "grid gap-2 tablette:grid-cols-2",
+			children: [
+				/* @__PURE__ */ jsx("input", {
+					name: "nom",
+					required: true,
+					placeholder: "Nom",
+					className: CHAMP$1
+				}),
+				/* @__PURE__ */ jsx("input", {
+					name: "ville",
+					required: true,
+					placeholder: "Ville",
+					className: CHAMP$1
+				}),
+				/* @__PURE__ */ jsx("input", {
+					name: "date",
+					type: "date",
+					required: true,
+					className: CHAMP$1
+				}),
+				/* @__PURE__ */ jsx("input", {
+					name: "heure",
+					type: "time",
+					className: CHAMP$1
+				})
+			]
+		}), /* @__PURE__ */ jsx("button", {
+			className: BOUTON$1,
+			children: "Ajouter une date"
+		})]
+	});
+}
+function PalmaresForme({ onCreer }) {
+	return /* @__PURE__ */ jsxs("form", {
+		className: "mt-4 grid gap-2",
+		onSubmit: (evenement) => {
+			evenement.preventDefault();
+			const champs = new FormData(evenement.currentTarget);
+			onCreer({
+				annee: Number(champs.get("annee")),
+				evenement: String(champs.get("evenement") ?? ""),
+				ville: String(champs.get("ville") ?? ""),
+				vainqueur: String(champs.get("vainqueur") ?? ""),
+				statut: "a_confirmer"
+			});
+		},
+		children: [/* @__PURE__ */ jsxs("div", {
+			className: "grid gap-2 tablette:grid-cols-2",
+			children: [
+				/* @__PURE__ */ jsx("input", {
+					name: "annee",
+					type: "number",
+					required: true,
+					placeholder: "Année",
+					className: CHAMP$1
+				}),
+				/* @__PURE__ */ jsx("input", {
+					name: "evenement",
+					required: true,
+					placeholder: "Soirée",
+					className: CHAMP$1
+				}),
+				/* @__PURE__ */ jsx("input", {
+					name: "ville",
+					required: true,
+					placeholder: "Ville",
+					className: CHAMP$1
+				}),
+				/* @__PURE__ */ jsx("input", {
+					name: "vainqueur",
+					required: true,
+					placeholder: "Vainqueur",
+					className: CHAMP$1
+				})
+			]
+		}), /* @__PURE__ */ jsx("button", {
+			className: BOUTON$1,
+			children: "Ajouter un résultat"
+		})]
+	});
+}
+//#endregion
+//#region app/routes/compte.tsx
+var compte_exports = /* @__PURE__ */ __exportAll({
+	default: () => compte_default,
+	meta: () => meta$3
+});
+function meta$3() {
+	return [{ title: "Mon compte · Olympiade des Manades" }, {
+		name: "robots",
+		content: "noindex"
+	}];
+}
+var compte_default = UNSAFE_withComponentProps(function Compte() {
+	const { session, chargement, prenom } = useSession();
+	const naviguer = useNavigate();
+	const [confirmation, setConfirmation] = useState(false);
+	const [erreur, setErreur] = useState(null);
+	const [enCours, setEnCours] = useState(false);
+	async function supprimer() {
+		if (!session?.access_token || enCours) return;
+		setEnCours(true);
+		setErreur(null);
+		try {
+			if (!(await fetch("/api/compte", {
+				method: "DELETE",
+				headers: { Authorization: `Bearer ${session.access_token}` }
+			})).ok) {
+				setErreur("La suppression n’a pas abouti. Un compte organisateur ou juge se retire avec l’organisateur.");
+				return;
+			}
+			await (await supabase()).auth.signOut();
+			naviguer("/");
+		} catch {
+			setErreur("La suppression n’a pas abouti.");
+		} finally {
+			setEnCours(false);
+		}
+	}
+	return /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx(TitrePage, {
+		surtitre: "Compte",
+		titre: "Supprimer mon compte",
+		children: /* @__PURE__ */ jsx("p", { children: "Cette action efface le compte spectateur, ses notes et ses avis. Elle est irréversible." })
+	}), /* @__PURE__ */ jsxs("div", {
+		className: "mx-auto max-w-xl px-4 pt-6",
+		children: [
+			chargement ? /* @__PURE__ */ jsx("p", {
+				role: "status",
+				children: "Vérification…"
+			}) : null,
+			!chargement && !session ? /* @__PURE__ */ jsx("p", { children: "Connectez-vous pour supprimer votre compte." }) : null,
+			session ? /* @__PURE__ */ jsxs("section", {
+				className: "rounded-[22px] border border-trait bg-creme p-5",
+				children: [
+					/* @__PURE__ */ jsxs("p", { children: [
+						"Compte de ",
+						prenom || "ce spectateur",
+						"."
+					] }),
+					confirmation ? /* @__PURE__ */ jsx("button", {
+						type: "button",
+						className: "mt-4 inline-flex min-h-12 items-center rounded-xl bg-encre px-4 font-semibold text-sable",
+						disabled: enCours,
+						onClick: () => void supprimer(),
+						children: enCours ? "Suppression…" : "Confirmer la suppression"
+					}) : /* @__PURE__ */ jsx("button", {
+						type: "button",
+						className: "mt-4 inline-flex min-h-12 items-center rounded-xl border border-trait px-4 font-semibold",
+						onClick: () => setConfirmation(true),
+						children: "Supprimer mon compte"
+					}),
+					erreur ? /* @__PURE__ */ jsx("p", {
+						className: "mt-3 text-sm text-rouge-alerte",
+						children: erreur
+					}) : null
+				]
+			}) : null
+		]
+	})] });
+});
+//#endregion
+//#region app/routes/ecran.tsx
+var ecran_exports = /* @__PURE__ */ __exportAll({
+	default: () => ecran_default,
+	meta: () => meta$2
+});
+function meta$2() {
+	return [{ title: "Écran · Olympiade des Manades" }, {
+		name: "robots",
+		content: "noindex"
+	}];
+}
+function estInstantane(valeur) {
+	if (!valeur || typeof valeur !== "object") return false;
+	const etat = valeur.etat;
+	return etat === "hors-soiree" || etat === "ouvert";
+}
+var ecran_default = UNSAFE_withComponentProps(function Ecran() {
+	const { slug = "" } = useParams();
+	const contexte = useInstantanePublic();
+	const [cible, setCible] = useState(null);
+	useEffect(() => {
+		let arrete = false;
+		async function lire() {
+			try {
+				const reponse = await fetch(`/api/etat-soiree?slug=${encodeURIComponent(slug)}`, { cache: "no-store" });
+				if (!reponse.ok) return;
+				const corps = await reponse.json();
+				if (!arrete && estInstantane(corps)) setCible(corps);
+			} catch {}
+		}
+		lire();
+		const minuteur = setInterval(() => void lire(), 8e3);
+		return () => {
+			arrete = true;
+			clearInterval(minuteur);
+		};
+	}, [slug]);
+	const instantane = cible ?? contexte;
+	const soiree = instantane.soiree?.slug === slug ? instantane.soiree : null;
+	const ouvert = soiree && instantane.etat === "ouvert";
+	const [origine, setOrigine] = useState("");
+	useEffect(() => {
+		setOrigine(window.location.origin);
+	}, []);
+	const urlVote = origine ? `${origine}/noter` : "";
+	return /* @__PURE__ */ jsxs("div", {
+		className: "min-h-dvh bg-encre px-6 py-8 text-sable",
+		children: [/* @__PURE__ */ jsxs("div", {
+			className: "flex flex-wrap items-end justify-between gap-4",
+			children: [/* @__PURE__ */ jsx("p", {
+				className: "text-sm font-bold tracking-[.2em] text-or-clair uppercase",
+				children: "Olympiade des Manades"
+			}), /* @__PURE__ */ jsx("button", {
+				type: "button",
+				className: "inline-flex min-h-12 items-center rounded-xl bg-sable px-4 font-semibold text-encre",
+				onClick: () => void document.documentElement.requestFullscreen?.(),
+				children: "Plein écran"
+			})]
+		}), instantane.source === "fige" ? /* @__PURE__ */ jsx("h1", {
+			className: "mt-10 font-display text-5xl",
+			children: "L’affichage public n’est pas activé."
+		}) : !soiree ? /* @__PURE__ */ jsx("h1", {
+			className: "mt-10 font-display text-5xl",
+			children: "En attente de la soirée."
+		}) : /* @__PURE__ */ jsxs(Fragment, { children: [
+			/* @__PURE__ */ jsx("h1", {
+				className: "mt-6 font-display text-5xl tablette:text-7xl",
+				children: soiree.nom
+			}),
+			soiree.messagePublic && (soiree.statut === "reportee" || soiree.statut === "annulee") ? /* @__PURE__ */ jsx("p", {
+				className: "mt-6 max-w-4xl text-3xl",
+				children: soiree.messagePublic
+			}) : null,
+			/* @__PURE__ */ jsx("p", {
+				className: "mt-8 font-display text-4xl tablette:text-6xl",
+				children: soiree.epreuveEnCours ?? "Épreuve à venir"
+			}),
+			/* @__PURE__ */ jsx("p", {
+				className: "mt-3 text-3xl",
+				children: soiree.manadeEnPiste ? soiree.manadeEnPiste : "Manade à venir"
+			}),
+			ouvert ? /* @__PURE__ */ jsx("p", {
+				className: "mt-6 text-4xl font-bold text-or-clair",
+				children: "Votez maintenant !"
+			}) : null,
+			/* @__PURE__ */ jsxs("div", {
+				className: "mt-8 inline-block rounded-2xl bg-white p-4 text-encre",
+				children: [urlVote ? /* @__PURE__ */ jsx(CodeQr, {
+					valeur: urlVote,
+					libelle: "QR code pour noter les manades",
+					taille: 280
+				}) : /* @__PURE__ */ jsx("p", {
+					className: "text-2xl",
+					children: "QR code de vote"
+				}), /* @__PURE__ */ jsx("p", {
+					className: "mt-3 max-w-xs text-lg font-semibold text-encre",
+					children: "Votez maintenant sur votre téléphone"
+				})]
+			}),
+			/* @__PURE__ */ jsx("p", {
+				className: "mt-4 break-all text-xl",
+				children: urlVote || "/noter"
+			}),
+			soiree.classements ? /* @__PURE__ */ jsx("div", {
+				className: "mt-10 text-encre",
+				children: /* @__PURE__ */ jsx(ClassementCalcule, { classements: soiree.classements })
+			}) : /* @__PURE__ */ jsx("p", {
+				className: "mt-10 text-2xl",
+				children: "Le classement sera révélé au moment de la remise des prix."
+			})
+		] })]
+	});
+});
+//#endregion
+//#region app/routes/jury.tsx
+var jury_exports = /* @__PURE__ */ __exportAll({
+	default: () => jury_default,
+	meta: () => meta$1
+});
+function meta$1() {
+	return [{ title: "Jury · Olympiade des Manades" }, {
+		name: "robots",
+		content: "noindex"
+	}];
+}
+var jury_default = UNSAFE_withComponentProps(function Jury() {
+	const { session, chargement } = useSession();
+	const [passages, setPassages] = useState(null);
+	const [erreur, setErreur] = useState(null);
+	const [info, setInfo] = useState(null);
+	useEffect(() => {
+		if (!session) return;
+		let actif = true;
+		(async () => {
+			const client = await supabase();
+			const profil = await client.from("profils").select("role").eq("id", session.user.id).maybeSingle();
+			if (!actif) return;
+			if (profil.error || profil.data?.role !== "juge" && profil.data?.role !== "admin") {
+				setErreur("Cet écran est réservé aux juges de la soirée.");
+				setPassages([]);
+				return;
+			}
+			const soirees = ((await client.from("soiree_juges").select("soiree_id").eq("juge_id", session.user.id)).data ?? []).map((lien) => lien.soiree_id);
+			if (!soirees.length) {
+				setPassages([]);
+				return;
+			}
+			const epreuves = await client.from("epreuves").select("id, nom, soiree_id, notee").in("soiree_id", soirees).eq("notee", true);
+			const reglages = await client.from("soirees").select("id, bareme_jury").in("id", soirees);
+			const baremes = new Map((reglages.data ?? []).map((soiree) => [soiree.id, soiree.bareme_jury]));
+			const epreuveIds = (epreuves.data ?? []).map((epreuve) => epreuve.id);
+			const liste = epreuveIds.length ? await client.from("passages").select("id, epreuve_id, manade_id, statut_jury").in("epreuve_id", epreuveIds).eq("statut_jury", "ouvert") : { data: [] };
+			const manadeIds = [...new Set((liste.data ?? []).map((passage) => passage.manade_id))];
+			const manades = manadeIds.length ? await client.from("manades").select("id, nom").in("id", manadeIds) : { data: [] };
+			const noms = new Map((manades.data ?? []).map((manade) => [manade.id, manade.nom]));
+			const epreuveParId = new Map((epreuves.data ?? []).map((epreuve) => [epreuve.id, epreuve]));
+			const notes = await client.from("notes_jury").select("passage_id, note").eq("juge_id", session.user.id);
+			const deja = new Map((notes.data ?? []).map((note) => [note.passage_id, Number(note.note)]));
+			if (!actif) return;
+			setPassages((liste.data ?? []).map((passage) => {
+				const epreuve = epreuveParId.get(passage.epreuve_id);
+				return {
+					id: passage.id,
+					manade: noms.get(passage.manade_id) ?? "Manade",
+					epreuve: epreuve?.nom ?? "Épreuve",
+					bareme: baremes.get(epreuve?.soiree_id ?? "") ?? 20,
+					note: deja.get(passage.id) ?? null
+				};
+			}));
+		})().catch(() => {
+			if (actif) setErreur("La notation du jury est indisponible.");
+		});
+		return () => {
+			actif = false;
+		};
+	}, [session]);
+	async function noter(passage, note) {
+		if (!session) return;
+		setErreur(null);
+		setInfo(null);
+		const { error } = await (await supabase()).from("notes_jury").upsert({
+			passage_id: passage.id,
+			juge_id: session.user.id,
+			note
+		});
+		if (error) setErreur("La note n’a pas été enregistrée. Le passage est peut-être fermé.");
+		else {
+			setInfo("Note enregistrée.");
+			setPassages((avant) => avant?.map((ligne) => ligne.id === passage.id ? {
+				...ligne,
+				note
+			} : ligne) ?? null);
+		}
+	}
+	if (chargement) return /* @__PURE__ */ jsx("p", {
+		className: "px-4 pt-8",
+		role: "status",
+		children: "Vérification…"
+	});
+	if (!session) return /* @__PURE__ */ jsxs("p", {
+		className: "px-4 pt-8",
+		children: ["Ouvrez le lien personnel transmis par l’organisateur. ", /* @__PURE__ */ jsx(Link, {
+			to: "/admin",
+			className: "underline",
+			children: "Connexion organisateur"
+		})]
+	});
+	return /* @__PURE__ */ jsxs("div", {
+		className: "mx-auto grid max-w-xl gap-4 px-4 pt-8 pb-16",
+		children: [
+			/* @__PURE__ */ jsx("h1", {
+				className: "font-display text-4xl",
+				children: "Notation du jury"
+			}),
+			erreur ? /* @__PURE__ */ jsx("p", {
+				role: "alert",
+				className: "text-rouge-alerte",
+				children: erreur
+			}) : null,
+			info ? /* @__PURE__ */ jsx("p", {
+				role: "status",
+				children: info
+			}) : null,
+			!passages ? /* @__PURE__ */ jsx("p", {
+				role: "status",
+				children: "Lecture des passages ouverts…"
+			}) : passages.length ? passages.map((passage) => /* @__PURE__ */ jsxs("section", {
+				className: "rounded-[22px] border border-trait bg-creme p-5",
+				children: [
+					/* @__PURE__ */ jsx("h2", {
+						className: "font-display text-2xl",
+						children: passage.manade
+					}),
+					/* @__PURE__ */ jsxs("p", {
+						className: "text-sm text-encre-2",
+						children: [
+							passage.epreuve,
+							" · sur ",
+							passage.bareme,
+							passage.note != null ? ` · votre note ${passage.note}` : ""
+						]
+					}),
+					/* @__PURE__ */ jsxs("div", {
+						className: "mt-3 flex flex-wrap gap-2",
+						children: [
+							/* @__PURE__ */ jsx("button", {
+								type: "button",
+								className: "inline-flex min-h-12 min-w-12 items-center justify-center rounded-xl border border-trait px-3 font-semibold",
+								onClick: () => void noter(passage, Math.max(0, (passage.note ?? passage.bareme) - .5)),
+								children: "−"
+							}),
+							/* @__PURE__ */ jsxs("button", {
+								type: "button",
+								className: "inline-flex min-h-12 items-center justify-center rounded-xl bg-encre px-4 font-semibold text-sable",
+								onClick: () => void noter(passage, passage.note ?? passage.bareme),
+								children: ["Enregistrer ", passage.note ?? passage.bareme]
+							}),
+							/* @__PURE__ */ jsx("button", {
+								type: "button",
+								className: "inline-flex min-h-12 min-w-12 items-center justify-center rounded-xl border border-trait px-3 font-semibold",
+								onClick: () => void noter(passage, Math.min(passage.bareme, (passage.note ?? 0) + .5)),
+								children: "+"
+							})
+						]
+					})
+				]
+			}, passage.id)) : /* @__PURE__ */ jsx("p", { children: "Aucun passage n’est ouvert pour le jury." })
+		]
+	});
+});
+//#endregion
 //#region app/routes/introuvable.tsx
 var introuvable_exports = /* @__PURE__ */ __exportAll({
 	default: () => introuvable_default,
@@ -2511,8 +5743,8 @@ var introuvable_default = UNSAFE_withComponentProps(function Introuvable() {
 //#region \0virtual:react-router/server-manifest
 var server_manifest_default = {
 	"entry": {
-		"module": "/assets/entry.client-C9mKYTjm.js",
-		"imports": ["/assets/rolldown-runtime-CbXtAM7H.js", "/assets/react-yYLCgfRJ.js"],
+		"module": "/assets/entry.client-kTvsq1ON.js",
+		"imports": ["/assets/rolldown-runtime-CbXtAM7H.js", "/assets/react-pRPD1JoA.js"],
 		"css": []
 	},
 	"routes": {
@@ -2529,11 +5761,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": true,
-			"module": "/assets/root-Cjykoq6b.js",
+			"module": "/assets/root-0vv7Ll28.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
-				"/assets/react-yYLCgfRJ.js",
-				"/assets/app-DMlFfTwB.js"
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-Cec0t5yH.js"
 			],
 			"css": [],
 			"clientActionModule": void 0,
@@ -2554,10 +5786,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/accueil-CxilhvXP.js",
+			"module": "/assets/accueil-CADBLZyK.js",
 			"imports": [
-				"/assets/react-yYLCgfRJ.js",
-				"/assets/app-DMlFfTwB.js",
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-Cec0t5yH.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": [],
@@ -2579,10 +5811,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/classements-C3Oi-pzV.js",
+			"module": "/assets/classements-Dl9vJPdO.js",
 			"imports": [
-				"/assets/react-yYLCgfRJ.js",
-				"/assets/app-DMlFfTwB.js",
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-Cec0t5yH.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": [],
@@ -2604,10 +5836,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/dates-B8zDJbwt.js",
+			"module": "/assets/dates-DqEt3JyB.js",
 			"imports": [
-				"/assets/react-yYLCgfRJ.js",
-				"/assets/app-DMlFfTwB.js",
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-Cec0t5yH.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": [],
@@ -2629,10 +5861,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/contact-DWlU9Iso.js",
+			"module": "/assets/contact-BYOylBOF.js",
 			"imports": [
-				"/assets/react-yYLCgfRJ.js",
-				"/assets/app-DMlFfTwB.js",
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-Cec0t5yH.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": [],
@@ -2654,10 +5886,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/mentions-legales-SRrCNS-T.js",
+			"module": "/assets/mentions-legales-jrzoCKej.js",
 			"imports": [
-				"/assets/react-yYLCgfRJ.js",
-				"/assets/app-DMlFfTwB.js",
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-Cec0t5yH.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": [],
@@ -2679,10 +5911,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/confidentialite-4mCmq41D.js",
+			"module": "/assets/confidentialite-D43w6Fme.js",
 			"imports": [
-				"/assets/react-yYLCgfRJ.js",
-				"/assets/app-DMlFfTwB.js",
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-Cec0t5yH.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": [],
@@ -2704,10 +5936,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/noter-BWqxCHWD.js",
+			"module": "/assets/noter-DirCi2-H.js",
 			"imports": [
-				"/assets/react-yYLCgfRJ.js",
-				"/assets/app-DMlFfTwB.js",
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-Cec0t5yH.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": [],
@@ -2729,12 +5961,12 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/inscription-Cy1HVpz9.js",
+			"module": "/assets/inscription-Cs5OUFhh.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
-				"/assets/react-yYLCgfRJ.js",
-				"/assets/app-DMlFfTwB.js",
-				"/assets/FormulaireInscription-BtWT5cHF.js"
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-Cec0t5yH.js",
+				"/assets/FormulaireInscription-B3360A2G.js"
 			],
 			"css": [],
 			"clientActionModule": void 0,
@@ -2755,12 +5987,12 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/inscription-code-MKnJWPaT.js",
+			"module": "/assets/inscription-code-BlUK3HTx.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
-				"/assets/react-yYLCgfRJ.js",
-				"/assets/app-DMlFfTwB.js",
-				"/assets/FormulaireInscription-BtWT5cHF.js"
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-Cec0t5yH.js",
+				"/assets/FormulaireInscription-B3360A2G.js"
 			],
 			"css": [],
 			"clientActionModule": void 0,
@@ -2781,11 +6013,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-CT24lPL1.js",
+			"module": "/assets/admin-BjtabGbX.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
-				"/assets/react-yYLCgfRJ.js",
-				"/assets/app-DMlFfTwB.js"
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-Cec0t5yH.js"
 			],
 			"css": [],
 			"clientActionModule": void 0,
@@ -2806,11 +6038,286 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-statistiques-Bz_oHV8W.js",
+			"module": "/assets/admin-statistiques-DnNazfSG.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
-				"/assets/react-yYLCgfRJ.js",
-				"/assets/app-DMlFfTwB.js"
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-Cec0t5yH.js"
+			],
+			"css": [],
+			"clientActionModule": void 0,
+			"clientLoaderModule": void 0,
+			"clientMiddlewareModule": void 0,
+			"hydrateFallbackModule": void 0
+		},
+		"routes/admin-participants": {
+			"id": "routes/admin-participants",
+			"parentId": "root",
+			"path": "admin/participants",
+			"index": void 0,
+			"caseSensitive": void 0,
+			"hasAction": false,
+			"hasLoader": false,
+			"hasClientAction": false,
+			"hasClientLoader": false,
+			"hasClientMiddleware": false,
+			"hasDefaultExport": true,
+			"hasErrorBoundary": false,
+			"module": "/assets/admin-participants-C50lme3r.js",
+			"imports": [
+				"/assets/rolldown-runtime-CbXtAM7H.js",
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-Cec0t5yH.js"
+			],
+			"css": [],
+			"clientActionModule": void 0,
+			"clientLoaderModule": void 0,
+			"clientMiddlewareModule": void 0,
+			"hydrateFallbackModule": void 0
+		},
+		"routes/admin-messages": {
+			"id": "routes/admin-messages",
+			"parentId": "root",
+			"path": "admin/messages",
+			"index": void 0,
+			"caseSensitive": void 0,
+			"hasAction": false,
+			"hasLoader": false,
+			"hasClientAction": false,
+			"hasClientLoader": false,
+			"hasClientMiddleware": false,
+			"hasDefaultExport": true,
+			"hasErrorBoundary": false,
+			"module": "/assets/admin-messages-BO44TKtl.js",
+			"imports": [
+				"/assets/rolldown-runtime-CbXtAM7H.js",
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-Cec0t5yH.js"
+			],
+			"css": [],
+			"clientActionModule": void 0,
+			"clientLoaderModule": void 0,
+			"clientMiddlewareModule": void 0,
+			"hydrateFallbackModule": void 0
+		},
+		"routes/admin-juges": {
+			"id": "routes/admin-juges",
+			"parentId": "root",
+			"path": "admin/juges",
+			"index": void 0,
+			"caseSensitive": void 0,
+			"hasAction": false,
+			"hasLoader": false,
+			"hasClientAction": false,
+			"hasClientLoader": false,
+			"hasClientMiddleware": false,
+			"hasDefaultExport": true,
+			"hasErrorBoundary": false,
+			"module": "/assets/admin-juges-DLED8AEF.js",
+			"imports": [
+				"/assets/rolldown-runtime-CbXtAM7H.js",
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-Cec0t5yH.js"
+			],
+			"css": [],
+			"clientActionModule": void 0,
+			"clientLoaderModule": void 0,
+			"clientMiddlewareModule": void 0,
+			"hydrateFallbackModule": void 0
+		},
+		"routes/admin-soirees": {
+			"id": "routes/admin-soirees",
+			"parentId": "root",
+			"path": "admin/soirees",
+			"index": void 0,
+			"caseSensitive": void 0,
+			"hasAction": false,
+			"hasLoader": false,
+			"hasClientAction": false,
+			"hasClientLoader": false,
+			"hasClientMiddleware": false,
+			"hasDefaultExport": true,
+			"hasErrorBoundary": false,
+			"module": "/assets/admin-soirees-BKn_wlIY.js",
+			"imports": [
+				"/assets/rolldown-runtime-CbXtAM7H.js",
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-Cec0t5yH.js"
+			],
+			"css": [],
+			"clientActionModule": void 0,
+			"clientLoaderModule": void 0,
+			"clientMiddlewareModule": void 0,
+			"hydrateFallbackModule": void 0
+		},
+		"routes/admin-soiree": {
+			"id": "routes/admin-soiree",
+			"parentId": "root",
+			"path": "admin/soirees/:soireeId",
+			"index": void 0,
+			"caseSensitive": void 0,
+			"hasAction": false,
+			"hasLoader": false,
+			"hasClientAction": false,
+			"hasClientLoader": false,
+			"hasClientMiddleware": false,
+			"hasDefaultExport": true,
+			"hasErrorBoundary": false,
+			"module": "/assets/admin-soiree-CsCv_ll7.js",
+			"imports": [
+				"/assets/rolldown-runtime-CbXtAM7H.js",
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-Cec0t5yH.js"
+			],
+			"css": [],
+			"clientActionModule": void 0,
+			"clientLoaderModule": void 0,
+			"clientMiddlewareModule": void 0,
+			"hydrateFallbackModule": void 0
+		},
+		"routes/admin-direct": {
+			"id": "routes/admin-direct",
+			"parentId": "root",
+			"path": "admin/soirees/:soireeId/direct",
+			"index": void 0,
+			"caseSensitive": void 0,
+			"hasAction": false,
+			"hasLoader": false,
+			"hasClientAction": false,
+			"hasClientLoader": false,
+			"hasClientMiddleware": false,
+			"hasDefaultExport": true,
+			"hasErrorBoundary": false,
+			"module": "/assets/admin-direct-C0AkRhGX.js",
+			"imports": [
+				"/assets/rolldown-runtime-CbXtAM7H.js",
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-Cec0t5yH.js"
+			],
+			"css": [],
+			"clientActionModule": void 0,
+			"clientLoaderModule": void 0,
+			"clientMiddlewareModule": void 0,
+			"hydrateFallbackModule": void 0
+		},
+		"routes/admin-resultats": {
+			"id": "routes/admin-resultats",
+			"parentId": "root",
+			"path": "admin/soirees/:soireeId/resultats",
+			"index": void 0,
+			"caseSensitive": void 0,
+			"hasAction": false,
+			"hasLoader": false,
+			"hasClientAction": false,
+			"hasClientLoader": false,
+			"hasClientMiddleware": false,
+			"hasDefaultExport": true,
+			"hasErrorBoundary": false,
+			"module": "/assets/admin-resultats-C_Tc58wn.js",
+			"imports": [
+				"/assets/rolldown-runtime-CbXtAM7H.js",
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-Cec0t5yH.js"
+			],
+			"css": [],
+			"clientActionModule": void 0,
+			"clientLoaderModule": void 0,
+			"clientMiddlewareModule": void 0,
+			"hydrateFallbackModule": void 0
+		},
+		"routes/admin-vitrine": {
+			"id": "routes/admin-vitrine",
+			"parentId": "root",
+			"path": "admin/vitrine",
+			"index": void 0,
+			"caseSensitive": void 0,
+			"hasAction": false,
+			"hasLoader": false,
+			"hasClientAction": false,
+			"hasClientLoader": false,
+			"hasClientMiddleware": false,
+			"hasDefaultExport": true,
+			"hasErrorBoundary": false,
+			"module": "/assets/admin-vitrine-BlNTkpZT.js",
+			"imports": [
+				"/assets/rolldown-runtime-CbXtAM7H.js",
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-Cec0t5yH.js"
+			],
+			"css": [],
+			"clientActionModule": void 0,
+			"clientLoaderModule": void 0,
+			"clientMiddlewareModule": void 0,
+			"hydrateFallbackModule": void 0
+		},
+		"routes/compte": {
+			"id": "routes/compte",
+			"parentId": "root",
+			"path": "compte",
+			"index": void 0,
+			"caseSensitive": void 0,
+			"hasAction": false,
+			"hasLoader": false,
+			"hasClientAction": false,
+			"hasClientLoader": false,
+			"hasClientMiddleware": false,
+			"hasDefaultExport": true,
+			"hasErrorBoundary": false,
+			"module": "/assets/compte-BNz_i_fi.js",
+			"imports": [
+				"/assets/rolldown-runtime-CbXtAM7H.js",
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-Cec0t5yH.js"
+			],
+			"css": [],
+			"clientActionModule": void 0,
+			"clientLoaderModule": void 0,
+			"clientMiddlewareModule": void 0,
+			"hydrateFallbackModule": void 0
+		},
+		"routes/ecran": {
+			"id": "routes/ecran",
+			"parentId": "root",
+			"path": "ecran/:slug",
+			"index": void 0,
+			"caseSensitive": void 0,
+			"hasAction": false,
+			"hasLoader": false,
+			"hasClientAction": false,
+			"hasClientLoader": false,
+			"hasClientMiddleware": false,
+			"hasDefaultExport": true,
+			"hasErrorBoundary": false,
+			"module": "/assets/ecran-yM3mdQ7m.js",
+			"imports": [
+				"/assets/rolldown-runtime-CbXtAM7H.js",
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-Cec0t5yH.js"
+			],
+			"css": [],
+			"clientActionModule": void 0,
+			"clientLoaderModule": void 0,
+			"clientMiddlewareModule": void 0,
+			"hydrateFallbackModule": void 0
+		},
+		"routes/jury": {
+			"id": "routes/jury",
+			"parentId": "root",
+			"path": "jury",
+			"index": void 0,
+			"caseSensitive": void 0,
+			"hasAction": false,
+			"hasLoader": false,
+			"hasClientAction": false,
+			"hasClientLoader": false,
+			"hasClientMiddleware": false,
+			"hasDefaultExport": true,
+			"hasErrorBoundary": false,
+			"module": "/assets/jury-BYAxV5O2.js",
+			"imports": [
+				"/assets/rolldown-runtime-CbXtAM7H.js",
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-Cec0t5yH.js"
 			],
 			"css": [],
 			"clientActionModule": void 0,
@@ -2831,10 +6338,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/introuvable-Dhby_Gxv.js",
+			"module": "/assets/introuvable-CVw-rnVa.js",
 			"imports": [
-				"/assets/react-yYLCgfRJ.js",
-				"/assets/app-DMlFfTwB.js",
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-Cec0t5yH.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": [],
@@ -2844,8 +6351,8 @@ var server_manifest_default = {
 			"hydrateFallbackModule": void 0
 		}
 	},
-	"url": "/assets/manifest-e170d748.js",
-	"version": "e170d748",
+	"url": "/assets/manifest-55741db5.js",
+	"version": "55741db5",
 	"sri": void 0
 };
 //#endregion
@@ -2965,6 +6472,94 @@ var routes = {
 		index: void 0,
 		caseSensitive: void 0,
 		module: admin_statistiques_exports
+	},
+	"routes/admin-participants": {
+		id: "routes/admin-participants",
+		parentId: "root",
+		path: "admin/participants",
+		index: void 0,
+		caseSensitive: void 0,
+		module: admin_participants_exports
+	},
+	"routes/admin-messages": {
+		id: "routes/admin-messages",
+		parentId: "root",
+		path: "admin/messages",
+		index: void 0,
+		caseSensitive: void 0,
+		module: admin_messages_exports
+	},
+	"routes/admin-juges": {
+		id: "routes/admin-juges",
+		parentId: "root",
+		path: "admin/juges",
+		index: void 0,
+		caseSensitive: void 0,
+		module: admin_juges_exports
+	},
+	"routes/admin-soirees": {
+		id: "routes/admin-soirees",
+		parentId: "root",
+		path: "admin/soirees",
+		index: void 0,
+		caseSensitive: void 0,
+		module: admin_soirees_exports
+	},
+	"routes/admin-soiree": {
+		id: "routes/admin-soiree",
+		parentId: "root",
+		path: "admin/soirees/:soireeId",
+		index: void 0,
+		caseSensitive: void 0,
+		module: admin_soiree_exports
+	},
+	"routes/admin-direct": {
+		id: "routes/admin-direct",
+		parentId: "root",
+		path: "admin/soirees/:soireeId/direct",
+		index: void 0,
+		caseSensitive: void 0,
+		module: admin_direct_exports
+	},
+	"routes/admin-resultats": {
+		id: "routes/admin-resultats",
+		parentId: "root",
+		path: "admin/soirees/:soireeId/resultats",
+		index: void 0,
+		caseSensitive: void 0,
+		module: admin_resultats_exports
+	},
+	"routes/admin-vitrine": {
+		id: "routes/admin-vitrine",
+		parentId: "root",
+		path: "admin/vitrine",
+		index: void 0,
+		caseSensitive: void 0,
+		module: admin_vitrine_exports
+	},
+	"routes/compte": {
+		id: "routes/compte",
+		parentId: "root",
+		path: "compte",
+		index: void 0,
+		caseSensitive: void 0,
+		module: compte_exports
+	},
+	"routes/ecran": {
+		id: "routes/ecran",
+		parentId: "root",
+		path: "ecran/:slug",
+		index: void 0,
+		caseSensitive: void 0,
+		module: ecran_exports
+	},
+	"routes/jury": {
+		id: "routes/jury",
+		parentId: "root",
+		path: "jury",
+		index: void 0,
+		caseSensitive: void 0,
+		module: jury_exports
 	},
 	"routes/introuvable": {
 		id: "routes/introuvable",

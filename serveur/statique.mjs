@@ -15,6 +15,7 @@ import { supervisionDepuisEnvironnement } from './supervision.mjs';
 import { planningNotationDepuisEnvironnement } from './planning-notation.mjs';
 import { fileNotesDepuisEnvironnement } from './file-notes.mjs';
 import { contactDepuisEnvironnement } from './contact.mjs';
+import { actualitesDepuisEnvironnement } from './actualites.mjs';
 import { creerEtatSoiree, instantaneDepuisEnvironnement } from './instantane.mjs';
 import { jugesDepuisEnvironnement } from './juges.mjs';
 import { complementsDepuisEnvironnement } from './complements.mjs';
@@ -42,6 +43,7 @@ try {
     supervision: supervisionDepuisEnvironnement(process.env),
     planningNotation: planningNotationDepuisEnvironnement(process.env),
     contact: contactDepuisEnvironnement(process.env),
+    actualites: actualitesDepuisEnvironnement(process.env),
     etatSoiree: creerEtatSoiree({
       reel: process.env.ETAT_SOIREE_REEL === 'true',
       lire: (slug) => (instantane ? instantane.lire(slug) : Promise.resolve(null)),

@@ -360,13 +360,14 @@ function repondre(fichiers, req, res) {
  *   supervision?: ReturnType<typeof import('./supervision.mjs').creerSupervision>
  *   planningNotation?: ReturnType<typeof import('./planning-notation.mjs').creerPlanningNotation>
  *   contact?: ReturnType<typeof import('./contact.mjs').creerContact>
+ *   actualites?: ReturnType<typeof import('./actualites.mjs').creerActualites>
  *   etatSoiree?: ReturnType<typeof import('./instantane.mjs').creerEtatSoiree>
  *   juges?: { estRoute: (url: string | undefined) => boolean, repondre: (req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) => Promise<void> }
  *   complements?: { estRoute: (url: string | undefined) => boolean, repondre: (req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) => Promise<void> }
  *   acces?: ReturnType<typeof import('./acces.mjs').accesDepuis>
  * }} options
  */
-export function creerServeur({ racine, supabase, supervision, planningNotation, contact, etatSoiree, juges, complements, acces }) {
+export function creerServeur({ racine, supabase, supervision, planningNotation, contact, actualites, etatSoiree, juges, complements, acces }) {
   const fichiers = indexer(racine, supabase);
   const barriere = acces ?? null;
   const serveur = createServer((req, res) => {
@@ -377,6 +378,14 @@ export function creerServeur({ racine, supabase, supervision, planningNotation, 
     if (contact?.estRoute(req.url)) {
       contact.repondre(req, res).catch((erreur) => {
         journaliserErreur('échec du dépôt de contact', erreur);
+        if (!res.headersSent) texteBrut(req, res, 503, 'Formulaire indisponible\n');
+        else res.destroy();
+      });
+      return;
+    }
+    if (actualites?.estRoute(req.url)) {
+      actualites.repondre(req, res).catch((erreur) => {
+        journaliserErreur('échec du dépôt d’abonnement aux actualités', erreur);
         if (!res.headersSent) texteBrut(req, res, 503, 'Formulaire indisponible\n');
         else res.destroy();
       });
