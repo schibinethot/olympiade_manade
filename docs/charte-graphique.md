@@ -76,7 +76,7 @@ Les trois polices sont sous licence SIL OFL (Google Fonts). En production, les h
 
 - **Logo** : « Olympiade » en Kaushan Script, dégradé couchant, puis « DES MANADES » en Inter 700 capitales, interlettrage 0,32 em, couleur or. En attente du logo officiel de l'événement s'il existe (CDC, question 6)
 - **Affiche** : grande photo en duotone, « ARÈNES DE NÎMES » en Playfair capitales, date en Playfair italique, titre au pinceau incliné de −5°, manades en capitales séparées par des filets. C'est le premier visuel de l'accueil sur ordinateur et le second sur téléphone
-- **Fer de manade** : cercle fin et initiale au pinceau. Ce sont des repères provisoires : les vrais fers ne s'affichent qu'avec l'accord de chaque manade
+- **Fer de manade** : marque à feu répertoriée par le LGRB pour Vinuesa, Gillet, Robert Michel, Lafon et Arlatenco, sans cercle ajouté. Les sources et le statut des accords sont consignés dans [Marques à feu des manades](marques-manades.md). Pour les autres manades, le cercle fin et l’initiale au pinceau restent les repères de repli.
 - **Pastille « En direct »** : point rouge qui pulse, capitales espacées. Seul élément animé en continu, avec le badge TPMGE
 - **Grille de notes du public** : 10 boutons carrés de 52 px minimum, en 2 rangées de 5. Note choisie : dégradé couchant, chiffre en italique, léger agrandissement. Confirmation verte juste dessous
 - **Note du jury** : grand chiffre or (« 16,5 »), boutons − et + de 72 px, règle de 0 à 20, notes rapides de 10 à 20 et bouton « + ½ »
@@ -123,7 +123,7 @@ Le desktop doit rester simple : une action principale par écran, visible sans d
 - **Écrans en direct, jury et organisateur** : ligne discrète « Avec Atch Élevage, partenaire des Olympiades »
 - **Écran géant** : « Partenaire Atch Élevage » en bas à droite
 - **Signature** : badge « Signé TPMGE » (spec agence), lien `https://tpmge.com/#olympiade-des-manades`
-- Logotype Atch : fichiers source dans `atchmesure/docs/brand/atch-logo/` (version encre sur fond clair, écru sur fond sombre). Ne pas redessiner le logo
+- Logotypes Atch : fichiers source dans `/public/marques/atch-elevage.svg`, `/public/marques/atch-taureaux.svg` et `/public/marques/atch-chevaux.svg` (versions sel sur fond sombre). Ne pas redessiner les logos
 
 ## 9. Photos en production
 

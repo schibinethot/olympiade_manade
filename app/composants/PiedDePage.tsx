@@ -23,6 +23,24 @@ const SURTITRE = 'text-[9.5px] leading-none font-bold tracking-[0.2em] text-or-c
 const STYLE_LIEN =
   'inline-flex min-h-12 items-center underline-offset-4 transition-colors hover:text-nuit-txt hover:underline';
 
+const MARQUES_ATCH = [
+  {
+    nom: 'Atch Élevage',
+    logo: '/marques/atch-elevage.svg',
+    domaine: 'https://atch-elevage.com',
+  },
+  {
+    nom: 'Atch Taureaux',
+    logo: '/marques/atch-taureaux.svg',
+    domaine: 'https://atch-taureaux.com',
+  },
+  {
+    nom: 'Atch Chevaux',
+    logo: '/marques/atch-chevaux.svg',
+    domaine: 'https://atch-chevaux.com',
+  },
+] as const;
+
 export function PiedDePage() {
   const { afficherPreferences } = useConsentementCookies();
   return (
@@ -32,31 +50,41 @@ export function PiedDePage() {
         <p className="mt-2.5 max-w-[34ch] text-[13.5px] text-nuit-mute">
           Le public note les manades, en direct, aux côtés du jury. Saison 2027 des Olympiades camarguaises.
         </p>
+        <p className="mt-3 max-w-[34ch] text-[12.5px] leading-[1.45] text-nuit-mute">
+          Conçue en collaboration avec Atch Élevage et TPMGE.
+        </p>
       </div>
 
-      <div className={CARTE}>
+      <div className={`${CARTE} tablette:col-span-full paysage:col-span-2`}>
         <p className={SURTITRE}>Partenaire officiel</p>
-        <p className="inline-flex items-center gap-1.5 text-[11px] leading-none font-bold tracking-[0.16em] uppercase">
-          <img
-            src="/marques/atch-ecru.svg"
-            alt="Atch"
-            width={50}
-            height={20}
-            loading="lazy"
-            decoding="async"
-            className="h-5 w-auto"
-          />
-          Élevage
-        </p>
         <p className="text-[12.5px] leading-[1.45] text-nuit-mute">
           Atch Élevage, sponsor de l’Olympiade des Manades&nbsp;: cheptel, filiation et génétique des chevaux et des
           bovins.
         </p>
-      </div>
-
-      <div className={CARTE}>
-        <p className={SURTITRE}>Application</p>
-        <p className="text-[12.5px] leading-[1.45] text-nuit-mute">Conçue en collaboration avec Atch Élevage et TPMGE.</p>
+        <div className="mt-3 grid gap-3 tablette:grid-cols-3">
+          {MARQUES_ATCH.map((partenaire) => (
+            <a
+              key={partenaire.nom}
+              href={partenaire.domaine}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`Visiter le site ${partenaire.nom}`}
+              className="flex min-h-[128px] flex-col items-center justify-center gap-2 rounded-[14px] bg-[rgba(255,240,220,0.05)] px-3 py-3 text-center transition-colors hover:bg-[rgba(255,240,220,0.1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-or-clair"
+            >
+              <span className="flex h-14 w-full items-end justify-center">
+                <img
+                  src={partenaire.logo}
+                  alt={`Logo ${partenaire.nom}`}
+                  width={120}
+                  loading="lazy"
+                  decoding="async"
+                  className="h-auto w-[120px] max-w-full"
+                />
+              </span>
+              <span className="text-[11px] font-bold tracking-[0.12em] text-nuit-txt uppercase">{partenaire.nom}</span>
+            </a>
+          ))}
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-[var(--trait-nuit)] pt-3 tablette:col-span-full">

@@ -2,7 +2,7 @@ import { Fragment } from 'react';
 import { Link } from 'react-router';
 import { dernierVainqueur } from '../lib/accueil';
 import type { Palmares } from '../lib/donnees';
-import { initialeManade } from './Fer';
+import { initialeManade, marqueManade } from './Fer';
 import { Icone } from './Icone';
 
 type Props = {
@@ -18,6 +18,7 @@ const SURTITRE = 'block font-sans text-[10.5px] leading-[1.25] font-bold trackin
  */
 export function DernierVainqueur({ palmares }: Props) {
   const v = palmares ? dernierVainqueur(palmares) : null;
+  const marque = v ? marqueManade(v.vainqueur) : undefined;
 
   return (
     <section
@@ -26,12 +27,23 @@ export function DernierVainqueur({ palmares }: Props) {
     >
       <div aria-hidden="true" className="grain absolute inset-0" />
       {v ? (
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute -top-10 -right-2.5 font-brush text-[280px] leading-none text-[rgba(226,192,138,.07)]"
-        >
-          {initialeManade(v.vainqueur)}
-        </span>
+        marque ? (
+          <img
+            aria-hidden="true"
+            src={marque}
+            alt=""
+            width={280}
+            height={280}
+            className="pointer-events-none absolute -top-10 -right-2.5 size-[280px] object-contain opacity-[.07] invert mix-blend-screen"
+          />
+        ) : (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-10 -right-2.5 font-brush text-[280px] leading-none text-[rgba(226,192,138,.07)]"
+          >
+            {initialeManade(v.vainqueur)}
+          </span>
+        )
       ) : null}
 
       <div className="relative">

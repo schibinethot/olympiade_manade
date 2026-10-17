@@ -2,9 +2,9 @@ import { EDITION_MANADES } from '../donnees/affiche';
 import { Fer } from './Fer';
 
 /**
- * « Les manades de l'édition 2026 » (maquette : .engagees, « Les manades engagées ce soir »),
- * avec leurs fers provisoires. Sur téléphone, les cinq noms tiennent sur une ligne de cinq colonnes
- * au lieu de défiler à l'horizontale.
+ * « Les manades de l’édition 2026 » (maquette : .engagees, « Les manades engagées ce soir »),
+ * avec leurs marques locales ou l'initiale en repli. Sur téléphone, les cinq noms tiennent sur
+ * une ligne de cinq colonnes au lieu de défiler à l'horizontale.
  */
 export function ManadesEdition() {
   return (

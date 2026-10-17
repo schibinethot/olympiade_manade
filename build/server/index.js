@@ -1,4 +1,4 @@
-import { $ as ManadesEdition, A as LIEN_TEXTE, At as connecterAdmin, B as ONGLET_INACTIF, Bt as validerInscription, C as octets, Ct as Icone, D as CHAMPS_IDENTITE, Dt as useInstantanePublic, E as IdentitePublique, Et as FournisseurEtatSoiree, F as CarteDate, Ft as memoriserDemande, G as anneesClassements, Gt as momentSoiree, H as idOnglet, Ht as verifierTotp, I as useHydrate, It as normaliserCode, J as lireDonneesVitrine, Jt as jourParis, K as resultatsAnnee, Kt as soireeAfficheAccueil, L as ClassementCalcule, Lt as normaliserEmail, M as evenementsDesDates, Mt as demandeValide, N as noteProjections, Nt as demanderCode, O as CreditsPhotos, Ot as MESSAGES_AUTH, P as sectionsDates, Pt as formaterDecompte, Q as SaisonAccueil, R as CLASSE_ONGLET, Rt as oublierDemande, S as nombre, St as Entete, T as NotationPublic, Tt as useMaintenant, U as CarteResultat, Ut as supabase, V as OngletsAnnee, Vt as verifierCode, W as anneeChoisie, Wt as formaterJourMois, X as donneesRelues, Y as lireDonneesVitrineNavigateur, Z as useRelectureApresInteraction, _ as CHAMP$1, _t as CoqueAndroid, a as depuisChampParis, at as Epreuves, b as exporterMesures, bt as TitrePage, c as horairesModele, ct as BlocNoter, d as documentPdf, dt as Affiche, et as InscriptionActualites, f as matriceQr, ft as CreditAffiche, g as CARTE$1, gt as BanniereDeblocage, h as BOUTON_PLEIN, ht as ServiceTravailleur, i as champParis, it as lireOuRepli, j as SectionLegale, jt as demandeEnCours, k as CorpsLegal, kt as commencerEnrolementTotp, l as slugifier, lt as INSCRIPTION_OUVERTE, m as BOUTON$1, mt as PrecisionAccueil, n as ImportPlanning, nt as VerificationHumaine, o as etapesEchange, ot as EPREUVES, p as telechargerFichier, pt as VILLE_AFFICHE, q as DELAI_LECTURE_NAVIGATEUR_MS, qt as soireeDeReference, r as EPREUVES_MODELE, rt as lireCalendrier, s as fenetreDefaut, st as DernierVainqueur, t as etapesReordre, tt as FormulaireContact, u as CodeQr, ut as TEXTE_INSCRIPTIONS_FERMEES, v as CadreAdmin, vt as SuiviPresence, w as useAccesAdmin, wt as useSession, x as latence, xt as PiedDePage, y as useClientAdmin, yt as SuiviNotes, z as ONGLET_ACTIF, zt as traduireErreurAuth } from "./assets/app-DVBcCqU1.js";
+import { $ as lireCalendrier, A as LIEN_TEXTE, At as MESSAGES_AUTH, B as ONGLET_ACTIF, Bt as oublierDemande, C as octets, Ct as useConsentementCookies, D as CHAMPS_IDENTITE, Dt as useMaintenant, E as IdentitePublique, Et as useSession, F as sectionsDates, Ft as demanderCode, G as anneeChoisie, Gt as supabase, H as OngletsAnnee, Ht as validerInscription, I as CarteDate, It as formaterDecompte, J as DELAI_LECTURE_NAVIGATEUR_MS, Jt as presentationAfficheAccueil, K as anneesClassements, Kt as formaterJourMois, L as useHydrate, Lt as memoriserDemande, M as FormulaireContact, Mt as connecterAdmin, N as evenementsDesDates, Nt as demandeEnCours, O as CreditsPhotos, Ot as FournisseurEtatSoiree, P as noteProjections, Pt as demandeValide, Q as useRelectureApresInteraction, R as ClassementCalcule, Rt as normaliserCode, S as nombre, St as ConsentementCookies, T as NotationPublic, Tt as Icone, U as idOnglet, Ut as verifierCode, V as ONGLET_INACTIF, Vt as traduireErreurAuth, W as CarteResultat, Wt as verifierTotp, X as lireDonneesVitrineNavigateur, Xt as jourParis, Y as lireDonneesVitrine, Yt as soireeDeReference, Z as donneesRelues, _ as CHAMP$1, _t as CoqueAndroid, a as depuisChampParis, at as Epreuves, b as exporterMesures, bt as TitrePage, c as horairesModele, ct as BlocNoter, d as documentPdf, dt as Affiche, et as lireOuRepli, f as matriceQr, ft as CreditAffiche, g as CARTE$1, gt as BanniereDeblocage, h as BOUTON_PLEIN, ht as ServiceTravailleur, i as champParis, it as VerificationHumaine, j as SectionLegale, jt as commencerEnrolementTotp, k as CorpsLegal, kt as useInstantanePublic, l as slugifier, lt as INSCRIPTION_OUVERTE, m as BOUTON$1, mt as PrecisionAccueil, n as ImportPlanning, nt as ManadesEdition, o as etapesEchange, ot as EPREUVES, p as telechargerFichier, pt as VILLE_AFFICHE, q as resultatsAnnee, qt as momentSoiree, r as EPREUVES_MODELE, rt as InscriptionActualites, s as fenetreDefaut, st as DernierVainqueur, t as etapesReordre, tt as SaisonAccueil, u as CodeQr, ut as TEXTE_INSCRIPTIONS_FERMEES, v as CadreAdmin, vt as SuiviPresence, w as useAccesAdmin, wt as Entete, x as latence, xt as PiedDePage, y as useClientAdmin, yt as SuiviNotes, z as CLASSE_ONGLET, zt as normaliserEmail } from "./assets/app-DroIrf1q.js";
 import { Link, Links, Meta, Navigate, Outlet, Scripts, ScrollRestoration, ServerRouter, UNSAFE_withComponentProps, UNSAFE_withErrorBoundaryProps, UNSAFE_withHydrateFallbackProps, isRouteErrorResponse, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 import { isbot } from "isbot";
 import { renderToReadableStream } from "react-dom/server";
@@ -50,7 +50,7 @@ async function handleRequest(request, responseStatusCode, responseHeaders, route
 }
 //#endregion
 //#region app/app.css?url
-var app_default = "/assets/app-BktC9TS9.css";
+var app_default = "/assets/app-BwiK28-d.css";
 //#endregion
 //#region app/root.tsx
 var root_exports = /* @__PURE__ */ __exportAll({
@@ -59,7 +59,7 @@ var root_exports = /* @__PURE__ */ __exportAll({
 	Layout: () => Layout,
 	default: () => root_default,
 	links: () => links,
-	meta: () => meta$24
+	meta: () => meta$25
 });
 var police = (fichier) => ({
 	rel: "preload",
@@ -88,7 +88,7 @@ var links = () => [
 		href: "/manifest.webmanifest"
 	}
 ];
-var meta$24 = () => [{ title: "Olympiade des Manades" }, {
+var meta$25 = () => [{ title: "Olympiade des Manades" }, {
 	name: "description",
 	content: "Le public note les manades, en direct, aux côtés du jury."
 }];
@@ -135,12 +135,16 @@ function Coque({ children, generique = false }) {
 	});
 }
 var root_default = UNSAFE_withComponentProps(function App() {
-	return /* @__PURE__ */ jsx(CoqueAndroid, { children: /* @__PURE__ */ jsxs(FournisseurEtatSoiree, { children: [/* @__PURE__ */ jsx(ServiceTravailleur, {}), /* @__PURE__ */ jsxs(Coque, { children: [
-		/* @__PURE__ */ jsx(BanniereDeblocage, {}),
-		/* @__PURE__ */ jsx(SuiviPresence, {}),
-		/* @__PURE__ */ jsx(SuiviNotes, {}),
-		/* @__PURE__ */ jsx(Outlet, {})
-	] })] }) });
+	return /* @__PURE__ */ jsx(CoqueAndroid, { children: /* @__PURE__ */ jsxs(FournisseurEtatSoiree, { children: [
+		/* @__PURE__ */ jsx(ServiceTravailleur, {}),
+		/* @__PURE__ */ jsx(ConsentementCookies, {}),
+		/* @__PURE__ */ jsxs(Coque, { children: [
+			/* @__PURE__ */ jsx(BanniereDeblocage, {}),
+			/* @__PURE__ */ jsx(SuiviPresence, {}),
+			/* @__PURE__ */ jsx(SuiviNotes, {}),
+			/* @__PURE__ */ jsx(Outlet, {})
+		] })
+	] }) });
 });
 var HydrateFallback = UNSAFE_withHydrateFallbackProps(function HydrateFallback() {
 	return /* @__PURE__ */ jsx(Coque, {
@@ -174,9 +178,9 @@ var accueil_exports = /* @__PURE__ */ __exportAll({
 	clientLoader: () => clientLoader$3,
 	default: () => accueil_default,
 	loader: () => loader$2,
-	meta: () => meta$23
+	meta: () => meta$24
 });
-var meta$23 = () => [
+var meta$24 = () => [
 	{ title: "Olympiade des Manades" },
 	{
 		tagName: "link",
@@ -204,14 +208,14 @@ var accueil_default = UNSAFE_withComponentProps(function Accueil({ loaderData })
 	const instantane = useInstantanePublic();
 	useRelectureApresInteraction(loaderData);
 	const soiree = calendrier ? soireeDeReference(calendrier, maintenant) : null;
-	const soireeAffiche = calendrier ? soireeAfficheAccueil(calendrier, VILLE_AFFICHE, maintenant) : null;
+	const affiche = calendrier ? presentationAfficheAccueil(calendrier, VILLE_AFFICHE, maintenant) : null;
 	return /* @__PURE__ */ jsxs(Fragment, { children: [
 		/* @__PURE__ */ jsx(InscriptionActualites, {}),
 		/* @__PURE__ */ jsxs("section", {
 			"aria-label": "À l’affiche",
 			className: "grid gap-x-[18px] gap-y-3.5 px-4 pt-3.5 tablette:grid-cols-[1.12fr_1fr] tablette:px-7 tablette:pt-[22px] paysage:grid-cols-[1.5fr_1fr] paysage:gap-x-[22px] paysage:px-10 paysage:pt-[26px] bureau:px-14 bureau:pt-[30px]",
 			children: [
-				/* @__PURE__ */ jsx(Affiche, { soiree: soireeAffiche }),
+				/* @__PURE__ */ jsx(Affiche, { presentation: affiche }),
 				/* @__PURE__ */ jsx(BlocNoter, {
 					etat: instantane.etat,
 					soiree,
@@ -229,27 +233,12 @@ var accueil_default = UNSAFE_withComponentProps(function Accueil({ loaderData })
 		/* @__PURE__ */ jsx(ManadesEdition, {}),
 		/* @__PURE__ */ jsx(Epreuves, {}),
 		/* @__PURE__ */ jsx(DernierVainqueur, { palmares }),
-		/* @__PURE__ */ jsxs("div", {
-			className: "grid gap-3.5 px-4 pt-9 pb-1 tablette:grid-cols-[1.25fr_1fr] tablette:gap-[18px] tablette:px-7 tablette:pt-11 paysage:px-10 paysage:pt-14 bureau:px-14",
-			children: [/* @__PURE__ */ jsx(SaisonAccueil, {
+		/* @__PURE__ */ jsx("div", {
+			className: "px-4 pt-9 pb-1 tablette:px-7 tablette:pt-11 paysage:px-10 paysage:pt-14 bureau:px-14",
+			children: /* @__PURE__ */ jsx(SaisonAccueil, {
 				calendrier,
 				maintenant
-			}), /* @__PURE__ */ jsxs("section", {
-				"aria-labelledby": "titre-contact",
-				className: "rounded-[22px] border border-trait bg-creme p-5",
-				children: [
-					/* @__PURE__ */ jsx("h2", {
-						id: "titre-contact",
-						className: "font-display text-[21px] leading-[1.2] font-bold",
-						children: "Infos & dates"
-					}),
-					/* @__PURE__ */ jsx("p", {
-						className: "mt-1.5 text-[14px] text-encre-2",
-						children: "Infos, dates, une manade à inscrire, une photo à proposer\xA0: écrivez à l’organisation, elle vous répond."
-					}),
-					/* @__PURE__ */ jsx(FormulaireContact, {})
-				]
-			})]
+			})
 		})
 	] });
 });
@@ -259,10 +248,10 @@ var classements_exports = /* @__PURE__ */ __exportAll({
 	clientLoader: () => clientLoader$2,
 	default: () => classements_default,
 	loader: () => loader$1,
-	meta: () => meta$22,
+	meta: () => meta$23,
 	shouldRevalidate: () => shouldRevalidate
 });
-var meta$22 = () => [{ title: "Classements · Olympiade des Manades" }, {
+var meta$23 = () => [{ title: "Classements · Olympiade des Manades" }, {
 	name: "description",
 	content: "Palmarès des Olympiades des manades : le vainqueur de chaque soirée, avec sa source."
 }];
@@ -427,9 +416,9 @@ var dates_exports = /* @__PURE__ */ __exportAll({
 	clientLoader: () => clientLoader$1,
 	default: () => dates_default,
 	loader: () => loader,
-	meta: () => meta$21
+	meta: () => meta$22
 });
-var meta$21 = () => [{ title: "Dates · Olympiade des Manades" }, {
+var meta$22 = () => [{ title: "Dates · Olympiade des Manades" }, {
 	name: "description",
 	content: "Toutes les soirées d’Olympiades des manades : la saison à venir et les archives des années passées."
 }];
@@ -664,9 +653,9 @@ var dates_default = UNSAFE_withComponentProps(function Dates({ loaderData }) {
 //#region app/routes/contact.tsx
 var contact_exports = /* @__PURE__ */ __exportAll({
 	default: () => contact_default,
-	meta: () => meta$20
+	meta: () => meta$21
 });
-var meta$20 = () => [{ title: "Contact · Olympiade des Manades" }, {
+var meta$21 = () => [{ title: "Contact · Olympiade des Manades" }, {
 	name: "description",
 	content: "Infos, dates, une manade à inscrire, une photo à proposer : écrivez à l’organisation."
 }];
@@ -708,9 +697,9 @@ var contact_default = UNSAFE_withComponentProps(function Contact() {
 //#region app/routes/mentions-legales.tsx
 var mentions_legales_exports = /* @__PURE__ */ __exportAll({
 	default: () => mentions_legales_default,
-	meta: () => meta$19
+	meta: () => meta$20
 });
-var meta$19 = () => [{ title: "Mentions légales · Olympiade des Manades" }, {
+var meta$20 = () => [{ title: "Mentions légales · Olympiade des Manades" }, {
 	name: "description",
 	content: "Éditeur, hébergeurs et crédits du site de l’Olympiade des Manades."
 }];
@@ -810,9 +799,9 @@ var mentions_legales_default = UNSAFE_withComponentProps(function MentionsLegale
 //#region app/routes/confidentialite.tsx
 var confidentialite_exports = /* @__PURE__ */ __exportAll({
 	default: () => confidentialite_default,
-	meta: () => meta$18
+	meta: () => meta$19
 });
-var meta$18 = () => [{ title: "Confidentialité · Olympiade des Manades" }, {
+var meta$19 = () => [{ title: "Confidentialité · Olympiade des Manades" }, {
 	name: "description",
 	content: "Données collectées, finalités, durée de conservation et droits RGPD."
 }];
@@ -822,6 +811,7 @@ var LIEN_CONTACT = /* @__PURE__ */ jsx(Link, {
 	children: "formulaire de contact"
 });
 var confidentialite_default = UNSAFE_withComponentProps(function Confidentialite() {
+	const { afficherPreferences } = useConsentementCookies();
 	return /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx(TitrePage, {
 		surtitre: "Vos données",
 		titre: "Confidentialité"
@@ -835,7 +825,8 @@ var confidentialite_default = UNSAFE_withComponentProps(function Confidentialite
 			id: "donnees",
 			titre: "Données collectées",
 			children: /* @__PURE__ */ jsxs("ul", { children: [
-				/* @__PURE__ */ jsxs("li", { children: [/* @__PURE__ */ jsx("strong", { children: "Visiteurs du site" }), "\xA0: nos hébergeurs traitent des données techniques de connexion (adresse IP, date et heure, pages demandées, type de navigateur) pour assurer le fonctionnement et la sécurité du site. Le serveur conserve aussi des compteurs techniques agrégés (requêtes, erreurs, volume de données et temps de réponse), sans adresse IP ni historique individuel de navigation dans ces compteurs. Nous n’utilisons aucun outil de mesure d’audience publicitaire. Base légale\xA0: intérêt légitime à sécuriser le service (art. 6(1)(f) RGPD). Durée\xA0: celle fixée par chaque hébergeur pour ses journaux techniques."] }),
+				/* @__PURE__ */ jsxs("li", { children: [/* @__PURE__ */ jsx("strong", { children: "Visiteurs du site" }), "\xA0: nos hébergeurs traitent des données techniques de connexion (adresse IP, date et heure, pages demandées, type de navigateur) pour assurer le fonctionnement et la sécurité du site. Le serveur conserve aussi des compteurs techniques agrégés (requêtes, erreurs, volume de données et temps de réponse), sans adresse IP ni historique individuel de navigation dans ces compteurs. Base légale\xA0: intérêt légitime à sécuriser le service (art. 6(1)(f) RGPD). Durée\xA0: celle fixée par chaque hébergeur pour ses journaux techniques."] }),
+				/* @__PURE__ */ jsxs("li", { children: [/* @__PURE__ */ jsx("strong", { children: "Choix relatifs aux cookies" }), "\xA0: à chaque choix, nous enregistrons un identifiant pseudonyme du navigateur, l’adresse IP pseudonymisée, le type de navigateur, la page et la date, ainsi que les catégories acceptées. Ces données servent à prouver votre consentement (art. 7(1) et 6(1)(c) RGPD)."] }),
 				/* @__PURE__ */ jsxs("li", { children: [/* @__PURE__ */ jsx("strong", { children: "Formulaire de contact" }), "\xA0: prénom, email, message et date d’envoi. Les trois champs du formulaire sont obligatoires pour que nous puissions vous répondre. Une vérification anti-robot protège le dépôt. Le serveur utilise temporairement l’adresse de connexion pour limiter les tentatives, sans l’enregistrer avec votre message."] }),
 				/* @__PURE__ */ jsxs("li", { children: [/* @__PURE__ */ jsx("strong", { children: "Inscription au vote" }), "\xA0: prénom et email, puis un code reçu par email pour vous connecter."] }),
 				/* @__PURE__ */ jsxs("li", { children: [/* @__PURE__ */ jsx("strong", { children: "Abonnement aux actualités" }), "\xA0: adresse email, date et texte du consentement, recueillis dans l’encart de l’accueil. La case d’accord est décochée par défaut. Cette inscription est indépendante du compte de vote et protégée par une vérification anti-robot."] }),
@@ -868,6 +859,7 @@ var confidentialite_default = UNSAFE_withComponentProps(function Confidentialite
 				/* @__PURE__ */ jsx("li", { children: "Abonnement aux actualités\xA0: adresse et consentement conservés jusqu’à votre demande de retrait ou l’arrêt de la liste d’information." }),
 				/* @__PURE__ */ jsx("li", { children: "Comptes spectateurs inactifs\xA0: supprimés après 24 mois d’inactivité." }),
 				/* @__PURE__ */ jsx("li", { children: "Mesures techniques agrégées et derniers signaux d’activité\xA0: conservation de 30 jours." }),
+				/* @__PURE__ */ jsx("li", { children: "Preuves de vos choix relatifs aux cookies\xA0: conservées 12 mois, puis supprimées." }),
 				/* @__PURE__ */ jsx("li", { children: "Messages de contact\xA0: conservés le temps nécessaire pour vous répondre, puis supprimés. La durée exacte sera fixée avec l’organisateur." })
 			] })
 		}),
@@ -875,7 +867,38 @@ var confidentialite_default = UNSAFE_withComponentProps(function Confidentialite
 			id: "traceurs",
 			titre: "Traceurs et stockage local",
 			children: [
-				/* @__PURE__ */ jsx("p", { children: "Aucun cookie publicitaire, aucun outil de mesure d’audience. Les formulaires utilisent Cloudflare Turnstile pour la vérification anti-robot." }),
+				/* @__PURE__ */ jsx("p", { children: "Les formulaires utilisent Cloudflare Turnstile pour la vérification anti-robot." }),
+				/* @__PURE__ */ jsxs("p", { children: [
+					/* @__PURE__ */ jsx("strong", { children: "Traceurs nécessaires" }),
+					"\xA0: le cookie ",
+					/* @__PURE__ */ jsx("code", { children: "cc_cookie" }),
+					" conserve votre choix de consentement, au plus 13\xA0mois. Le cookie ",
+					/* @__PURE__ */ jsx("code", { children: "olympiade_acces" }),
+					" ouvre l’accès à la préversion du site. L’identifiant ",
+					/* @__PURE__ */ jsx("code", { children: "cc_visitor_id" }),
+					", conservé dans le stockage local, relie votre choix à sa preuve sans vous identifier."
+				] }),
+				/* @__PURE__ */ jsxs("p", { children: [
+					/* @__PURE__ */ jsx("strong", { children: "Mesure d’audience" }),
+					"\xA0: avec votre accord, des traceurs Google Analytics (",
+					/* @__PURE__ */ jsx("code", { children: "_ga" }),
+					", ",
+					/* @__PURE__ */ jsx("code", { children: "_ga_*" }),
+					", ",
+					/* @__PURE__ */ jsx("code", { children: "_gid" }),
+					") mesurent la fréquentation du site. Aucun cookie de mesure n’est déposé sans votre consentement explicite."
+				] }),
+				/* @__PURE__ */ jsxs("p", { children: [/* @__PURE__ */ jsx("strong", { children: "Publicité et réseaux sociaux" }), "\xA0: avec votre accord, des traceurs publicitaires (Meta Pixel, Google Ads) permettent de mesurer l’efficacité de nos campagnes. Aucun cookie publicitaire n’est déposé sans votre consentement explicite."] }),
+				/* @__PURE__ */ jsxs("p", { children: [
+					"Vous pouvez modifier votre choix à tout moment en cliquant sur «\xA0",
+					/* @__PURE__ */ jsx("button", {
+						type: "button",
+						onClick: afficherPreferences,
+						className: LIEN_TEXTE,
+						children: "Gérer les cookies"
+					}),
+					"\xA0». Refuser est aussi simple qu’accepter et ne limite pas l’accès au site. À l’expiration de votre choix, il vous est demandé à nouveau."
+				] }),
 				/* @__PURE__ */ jsx("p", { children: "Lorsque vous vous inscrivez, une donnée de session est enregistrée dans votre navigateur pour vous reconnaître. Elle est strictement nécessaire au service, ne sert à aucun suivi et est supprimée à votre déconnexion." }),
 				/* @__PURE__ */ jsx("p", { children: "Vos notes en attente d’envoi sont conservées sur cet appareil pour reprendre en cas de coupure, séparément pour chaque compte. Elles sont envoyées lorsque vous revenez sur le site avec le même compte et une connexion. Les confirmations locales sont conservées au plus 7 jours et les refus au plus 30 jours, avec nettoyage à l’utilisation. Les reçus serveur restent associés à votre compte pour éviter les doublons lors des reprises. Effacer les données du navigateur supprime les notes qui n’ont pas encore été reçues par le serveur." })
 			]
@@ -935,9 +958,9 @@ var confidentialite_default = UNSAFE_withComponentProps(function Confidentialite
 var noter_exports = /* @__PURE__ */ __exportAll({
 	clientLoader: () => clientLoader,
 	default: () => noter_default,
-	meta: () => meta$17
+	meta: () => meta$18
 });
-var meta$17 = () => [{ title: "Noter les manades · Olympiade des Manades" }, {
+var meta$18 = () => [{ title: "Noter les manades · Olympiade des Manades" }, {
 	name: "robots",
 	content: "noindex"
 }];
@@ -1321,9 +1344,9 @@ function FormulaireInscription({ initial }) {
 //#region app/routes/inscription.tsx
 var inscription_exports = /* @__PURE__ */ __exportAll({
 	default: () => inscription_default,
-	meta: () => meta$16
+	meta: () => meta$17
 });
-var meta$16 = () => [
+var meta$17 = () => [
 	{ title: "Inscription · Olympiade des Manades" },
 	{
 		name: "description",
@@ -1653,9 +1676,9 @@ function FormulaireCode({ demande }) {
 //#region app/routes/inscription-code.tsx
 var inscription_code_exports = /* @__PURE__ */ __exportAll({
 	default: () => inscription_code_default,
-	meta: () => meta$15
+	meta: () => meta$16
 });
-var meta$15 = () => [{ title: "Code reçu · Olympiade des Manades" }, {
+var meta$16 = () => [{ title: "Code reçu · Olympiade des Manades" }, {
 	name: "robots",
 	content: "noindex"
 }];
@@ -1733,9 +1756,9 @@ var inscription_code_default = UNSAFE_withComponentProps(function InscriptionCod
 //#region app/routes/admin.tsx
 var admin_exports = /* @__PURE__ */ __exportAll({
 	default: () => admin_default,
-	meta: () => meta$14
+	meta: () => meta$15
 });
-var meta$14 = () => [{ title: "Administration · Olympiade des Manades" }, {
+var meta$15 = () => [{ title: "Administration · Olympiade des Manades" }, {
 	name: "robots",
 	content: "noindex"
 }];
@@ -1969,9 +1992,9 @@ var admin_default = UNSAFE_withComponentProps(function Admin() {
 //#region app/routes/admin-statistiques.tsx
 var admin_statistiques_exports = /* @__PURE__ */ __exportAll({
 	default: () => admin_statistiques_default,
-	meta: () => meta$13
+	meta: () => meta$14
 });
-var meta$13 = () => [{ title: "Statistiques et charge · Administration" }, {
+var meta$14 = () => [{ title: "Statistiques et charge · Administration" }, {
 	name: "robots",
 	content: "noindex"
 }];
@@ -2589,6 +2612,721 @@ function Courbe({ mesures: toutes, indicateur }) {
 			className: "text-xs text-encre-2",
 			children: indicateur === "requests" ? "Le trafic du site inclut les fichiers et les pages. Les votes sont envoyés directement à la base." : "Comptes connectés ayant signalé leur présence depuis moins de 2 minutes, tous appareils confondus."
 		})]
+	});
+}
+//#endregion
+//#region app/routes/admin-cookies.tsx
+/**
+* Administration du module de consentement cookies.
+*
+* Onglets :
+* - Réglages : textes et catégories de la bannière (lecture/écriture via Supabase sous RLS)
+* - Statistiques : taux mesure/publicité sur 7/30/90/365 jours
+* - Journal : 50 entrées par page, plus récent d'abord, purge > 365 jours
+*
+* @see plan-consentement-cookies.md section « Admin »
+*/
+var admin_cookies_exports = /* @__PURE__ */ __exportAll({
+	default: () => admin_cookies_default,
+	meta: () => meta$13
+});
+var LIBELLE_ACTION = {
+	accept_all: "Tout accepté",
+	reject_all: "Tout refusé",
+	custom: "Personnalisé"
+};
+var TAILLE_PAGE_JOURNAL = 50;
+function meta$13() {
+	return [{ title: "Cookies · Administration" }, {
+		name: "robots",
+		content: "noindex"
+	}];
+}
+var admin_cookies_default = UNSAFE_withComponentProps(function AdminCookies() {
+	return /* @__PURE__ */ jsx(CadreAdmin, {
+		surtitre: "Configuration",
+		titre: "Consentement cookies",
+		children: /* @__PURE__ */ jsx(Contenu$3, {})
+	});
+});
+function Contenu$3() {
+	const [onglet, setOnglet] = useState("reglages");
+	const styleOnglet = (actif) => `${BOUTON$1} ${actif ? "bg-encre text-sable" : ""}`;
+	return /* @__PURE__ */ jsxs("div", {
+		className: "grid gap-5",
+		children: [
+			/* @__PURE__ */ jsxs("nav", {
+				"aria-label": "Onglets cookies",
+				className: "flex flex-wrap gap-2",
+				children: [
+					/* @__PURE__ */ jsx("button", {
+						type: "button",
+						className: styleOnglet(onglet === "reglages"),
+						onClick: () => setOnglet("reglages"),
+						children: "Réglages"
+					}),
+					/* @__PURE__ */ jsx("button", {
+						type: "button",
+						className: styleOnglet(onglet === "statistiques"),
+						onClick: () => setOnglet("statistiques"),
+						children: "Statistiques"
+					}),
+					/* @__PURE__ */ jsx("button", {
+						type: "button",
+						className: styleOnglet(onglet === "journal"),
+						onClick: () => setOnglet("journal"),
+						children: "Journal"
+					})
+				]
+			}),
+			onglet === "reglages" && /* @__PURE__ */ jsx(OngletReglages, {}),
+			onglet === "statistiques" && /* @__PURE__ */ jsx(OngletStatistiques, {}),
+			onglet === "journal" && /* @__PURE__ */ jsx(OngletJournal, {})
+		]
+	});
+}
+function OngletReglages() {
+	const { client, erreurClient } = useClientAdmin();
+	const [params, setParams] = useState(null);
+	const [erreur, setErreur] = useState(null);
+	const [enCours, setEnCours] = useState(false);
+	const [confirmation, setConfirmation] = useState(null);
+	useEffect(() => {
+		if (!client) return;
+		let actif = true;
+		(async () => {
+			const { data, error } = await client.from("parametres_cookies").select("*").eq("id", 1).single();
+			if (!actif) return;
+			if (error) setErreur("Les réglages sont indisponibles.");
+			else setParams(data);
+		})();
+		return () => {
+			actif = false;
+		};
+	}, [client]);
+	async function enregistrer() {
+		if (!client || !params || enCours) return;
+		setEnCours(true);
+		setErreur(null);
+		const { error } = await client.from("parametres_cookies").update({
+			titre: params.titre,
+			description: params.description,
+			texte_tout_accepter: params.texte_tout_accepter,
+			texte_refuser: params.texte_refuser,
+			texte_personnaliser: params.texte_personnaliser,
+			texte_enregistrer: params.texte_enregistrer,
+			url_confidentialite: params.url_confidentialite,
+			mesure_active: params.mesure_active,
+			mesure_titre: params.mesure_titre,
+			mesure_description: params.mesure_description,
+			publicite_active: params.publicite_active,
+			publicite_titre: params.publicite_titre,
+			publicite_description: params.publicite_description,
+			duree_consentement_jours: params.duree_consentement_jours
+		}).eq("id", 1);
+		setEnCours(false);
+		if (error) setErreur("L’enregistrement a échoué. Réessayez.");
+		else setConfirmation("Paramètres enregistrés.");
+	}
+	function modif(cle, valeur) {
+		setParams((avant) => avant ? {
+			...avant,
+			[cle]: valeur
+		} : avant);
+		setConfirmation(null);
+	}
+	if (erreurClient) return /* @__PURE__ */ jsx("p", {
+		role: "alert",
+		className: "text-rouge-alerte",
+		children: erreurClient
+	});
+	if (!params && !erreur) return /* @__PURE__ */ jsx("p", {
+		role: "status",
+		children: "Lecture des réglages…"
+	});
+	if (erreur && !params) return /* @__PURE__ */ jsx("p", {
+		role: "alert",
+		className: "text-rouge-alerte",
+		children: erreur
+	});
+	if (!params) return null;
+	return /* @__PURE__ */ jsxs("div", {
+		className: "grid gap-5",
+		children: [
+			/* @__PURE__ */ jsxs("section", {
+				className: CARTE$1,
+				"aria-labelledby": "titre-textes",
+				children: [/* @__PURE__ */ jsx("h2", {
+					id: "titre-textes",
+					className: "font-display text-2xl",
+					children: "Textes du bandeau"
+				}), /* @__PURE__ */ jsxs("div", {
+					className: "mt-4 grid gap-4",
+					children: [
+						/* @__PURE__ */ jsxs("div", {
+							className: "grid gap-1.5",
+							children: [/* @__PURE__ */ jsx("label", {
+								htmlFor: "titre",
+								className: "text-sm font-semibold",
+								children: "Titre"
+							}), /* @__PURE__ */ jsx("input", {
+								id: "titre",
+								className: CHAMP$1,
+								value: params.titre,
+								maxLength: 80,
+								onChange: (e) => modif("titre", e.target.value)
+							})]
+						}),
+						/* @__PURE__ */ jsxs("div", {
+							className: "grid gap-1.5",
+							children: [/* @__PURE__ */ jsx("label", {
+								htmlFor: "description",
+								className: "text-sm font-semibold",
+								children: "Description"
+							}), /* @__PURE__ */ jsx("textarea", {
+								id: "description",
+								className: `${CHAMP$1} min-h-[5rem] py-2`,
+								value: params.description,
+								maxLength: 600,
+								onChange: (e) => modif("description", e.target.value)
+							})]
+						}),
+						/* @__PURE__ */ jsx("div", {
+							className: "grid grid-cols-2 gap-4 tablette:grid-cols-4",
+							children: [
+								["texte_tout_accepter", "Tout accepter"],
+								["texte_refuser", "Tout refuser"],
+								["texte_personnaliser", "Personnaliser"],
+								["texte_enregistrer", "Enregistrer"]
+							].map(([cle, libelle]) => /* @__PURE__ */ jsxs("div", {
+								className: "grid gap-1.5",
+								children: [/* @__PURE__ */ jsx("label", {
+									htmlFor: cle,
+									className: "text-sm font-semibold",
+									children: libelle
+								}), /* @__PURE__ */ jsx("input", {
+									id: cle,
+									className: CHAMP$1,
+									value: params[cle],
+									maxLength: 80,
+									onChange: (e) => modif(cle, e.target.value)
+								})]
+							}, cle))
+						}),
+						/* @__PURE__ */ jsxs("div", {
+							className: "grid gap-1.5",
+							children: [/* @__PURE__ */ jsx("label", {
+								htmlFor: "url_confidentialite",
+								className: "text-sm font-semibold",
+								children: "URL Confidentialité"
+							}), /* @__PURE__ */ jsx("input", {
+								id: "url_confidentialite",
+								className: CHAMP$1,
+								value: params.url_confidentialite,
+								maxLength: 200,
+								onChange: (e) => modif("url_confidentialite", e.target.value)
+							})]
+						})
+					]
+				})]
+			}),
+			/* @__PURE__ */ jsxs("section", {
+				className: CARTE$1,
+				"aria-labelledby": "titre-categories",
+				children: [/* @__PURE__ */ jsx("h2", {
+					id: "titre-categories",
+					className: "font-display text-2xl",
+					children: "Catégories"
+				}), /* @__PURE__ */ jsxs("div", {
+					className: "mt-4 grid gap-6",
+					children: [/* @__PURE__ */ jsxs("div", {
+						className: "grid gap-3",
+						children: [/* @__PURE__ */ jsxs("label", {
+							className: "flex items-center gap-3 text-sm font-semibold",
+							children: [/* @__PURE__ */ jsx("input", {
+								type: "checkbox",
+								className: "h-4 w-4",
+								checked: params.mesure_active,
+								onChange: (e) => modif("mesure_active", e.target.checked)
+							}), "Mesure d'audience active"]
+						}), params.mesure_active && /* @__PURE__ */ jsxs("div", {
+							className: "grid gap-3 pl-4 border-l-2 border-trait",
+							children: [/* @__PURE__ */ jsxs("div", {
+								className: "grid gap-1.5",
+								children: [/* @__PURE__ */ jsx("label", {
+									htmlFor: "mesure_titre",
+									className: "text-sm font-semibold",
+									children: "Titre"
+								}), /* @__PURE__ */ jsx("input", {
+									id: "mesure_titre",
+									className: "min-h-12 w-full rounded-xl border border-trait bg-sable px-3",
+									value: params.mesure_titre,
+									maxLength: 80,
+									onChange: (e) => modif("mesure_titre", e.target.value)
+								})]
+							}), /* @__PURE__ */ jsxs("div", {
+								className: "grid gap-1.5",
+								children: [/* @__PURE__ */ jsx("label", {
+									htmlFor: "mesure_description",
+									className: "text-sm font-semibold",
+									children: "Description"
+								}), /* @__PURE__ */ jsx("textarea", {
+									id: "mesure_description",
+									className: `min-h-12 w-full rounded-xl border border-trait bg-sable px-3 min-h-[4rem] py-2`,
+									value: params.mesure_description,
+									maxLength: 600,
+									onChange: (e) => modif("mesure_description", e.target.value)
+								})]
+							})]
+						})]
+					}), /* @__PURE__ */ jsxs("div", {
+						className: "grid gap-3",
+						children: [/* @__PURE__ */ jsxs("label", {
+							className: "flex items-center gap-3 text-sm font-semibold",
+							children: [/* @__PURE__ */ jsx("input", {
+								type: "checkbox",
+								className: "h-4 w-4",
+								checked: params.publicite_active,
+								onChange: (e) => modif("publicite_active", e.target.checked)
+							}), "Publicité active"]
+						}), params.publicite_active && /* @__PURE__ */ jsxs("div", {
+							className: "grid gap-3 pl-4 border-l-2 border-trait",
+							children: [/* @__PURE__ */ jsxs("div", {
+								className: "grid gap-1.5",
+								children: [/* @__PURE__ */ jsx("label", {
+									htmlFor: "publicite_titre",
+									className: "text-sm font-semibold",
+									children: "Titre"
+								}), /* @__PURE__ */ jsx("input", {
+									id: "publicite_titre",
+									className: "min-h-12 w-full rounded-xl border border-trait bg-sable px-3",
+									value: params.publicite_titre,
+									maxLength: 80,
+									onChange: (e) => modif("publicite_titre", e.target.value)
+								})]
+							}), /* @__PURE__ */ jsxs("div", {
+								className: "grid gap-1.5",
+								children: [/* @__PURE__ */ jsx("label", {
+									htmlFor: "publicite_description",
+									className: "text-sm font-semibold",
+									children: "Description"
+								}), /* @__PURE__ */ jsx("textarea", {
+									id: "publicite_description",
+									className: `min-h-12 w-full rounded-xl border border-trait bg-sable px-3 min-h-[4rem] py-2`,
+									value: params.publicite_description,
+									maxLength: 600,
+									onChange: (e) => modif("publicite_description", e.target.value)
+								})]
+							})]
+						})]
+					})]
+				})]
+			}),
+			/* @__PURE__ */ jsxs("section", {
+				className: CARTE$1,
+				"aria-labelledby": "titre-duree",
+				children: [/* @__PURE__ */ jsx("h2", {
+					id: "titre-duree",
+					className: "font-display text-2xl",
+					children: "Durée de validité"
+				}), /* @__PURE__ */ jsxs("div", {
+					className: "mt-4 grid gap-1.5",
+					children: [
+						/* @__PURE__ */ jsx("label", {
+							htmlFor: "duree",
+							className: "text-sm font-semibold",
+							children: "Durée (jours, 1 à 395)"
+						}),
+						/* @__PURE__ */ jsx("input", {
+							id: "duree",
+							type: "number",
+							min: 1,
+							max: 395,
+							className: `${CHAMP$1} w-32`,
+							value: params.duree_consentement_jours,
+							onChange: (e) => modif("duree_consentement_jours", Math.min(395, Math.max(1, parseInt(e.target.value) || 1)))
+						}),
+						/* @__PURE__ */ jsx("p", {
+							className: "text-sm text-encre-2",
+							children: "Recommandé\xA0: 365 jours (13\xA0mois CNIL)."
+						})
+					]
+				})]
+			}),
+			/* @__PURE__ */ jsxs("div", {
+				className: "flex flex-wrap items-center gap-3",
+				children: [
+					erreur ? /* @__PURE__ */ jsx("p", {
+						role: "alert",
+						className: "text-rouge-alerte",
+						children: erreur
+					}) : null,
+					confirmation ? /* @__PURE__ */ jsx("p", {
+						role: "status",
+						className: "text-ok",
+						children: confirmation
+					}) : null,
+					/* @__PURE__ */ jsx("button", {
+						type: "button",
+						className: BOUTON_PLEIN,
+						disabled: enCours,
+						onClick: () => void enregistrer(),
+						children: enCours ? "Enregistrement…" : "Enregistrer les réglages"
+					})
+				]
+			})
+		]
+	});
+}
+function OngletStatistiques() {
+	const { client, erreurClient } = useClientAdmin();
+	const [periode, setPeriode] = useState("30");
+	const [stats, setStats] = useState(null);
+	const [chargement, setChargement] = useState(false);
+	const [erreur, setErreur] = useState(null);
+	useEffect(() => {
+		if (!client) return;
+		let actif = true;
+		setChargement(true);
+		setErreur(null);
+		setStats(null);
+		(async () => {
+			try {
+				const depuis = (/* @__PURE__ */ new Date(Date.now() - parseInt(periode) * 24 * 60 * 60 * 1e3)).toISOString();
+				const [{ count: total }, { count: accept_all }, { count: reject_all }, { count: custom }, { count: tauxMesure }, { count: tauxPublicite }] = await Promise.all([
+					client.from("consentements_cookies").select("id", {
+						count: "exact",
+						head: true
+					}).gte("cree_le", depuis),
+					client.from("consentements_cookies").select("id", {
+						count: "exact",
+						head: true
+					}).gte("cree_le", depuis).eq("action", "accept_all"),
+					client.from("consentements_cookies").select("id", {
+						count: "exact",
+						head: true
+					}).gte("cree_le", depuis).eq("action", "reject_all"),
+					client.from("consentements_cookies").select("id", {
+						count: "exact",
+						head: true
+					}).gte("cree_le", depuis).eq("action", "custom"),
+					client.from("consentements_cookies").select("id", {
+						count: "exact",
+						head: true
+					}).gte("cree_le", depuis).eq("mesure_acceptee", true),
+					client.from("consentements_cookies").select("id", {
+						count: "exact",
+						head: true
+					}).gte("cree_le", depuis).eq("publicite_acceptee", true)
+				]);
+				if (!actif) return;
+				const t = total ?? 0;
+				setStats({
+					total: t,
+					accept_all: accept_all ?? 0,
+					reject_all: reject_all ?? 0,
+					custom: custom ?? 0,
+					tauxMesure: t > 0 ? Math.round((tauxMesure ?? 0) / t * 100) : 0,
+					tauxPublicite: t > 0 ? Math.round((tauxPublicite ?? 0) / t * 100) : 0
+				});
+			} catch {
+				if (actif) setErreur("Les statistiques sont indisponibles.");
+			} finally {
+				if (actif) setChargement(false);
+			}
+		})();
+		return () => {
+			actif = false;
+		};
+	}, [client, periode]);
+	if (erreurClient) return /* @__PURE__ */ jsx("p", {
+		role: "alert",
+		className: "text-rouge-alerte",
+		children: erreurClient
+	});
+	return /* @__PURE__ */ jsxs("div", {
+		className: "grid gap-5",
+		children: [
+			/* @__PURE__ */ jsxs("div", {
+				className: "flex flex-wrap items-center gap-3",
+				children: [/* @__PURE__ */ jsx("span", {
+					className: "text-sm font-semibold",
+					children: "Période\xA0:"
+				}), [
+					"7",
+					"30",
+					"90",
+					"365"
+				].map((p) => /* @__PURE__ */ jsxs("button", {
+					type: "button",
+					className: `${BOUTON$1} ${periode === p ? "bg-encre text-sable" : ""}`,
+					onClick: () => setPeriode(p),
+					children: [p, "\xA0j"]
+				}, p))]
+			}),
+			chargement ? /* @__PURE__ */ jsx("p", {
+				role: "status",
+				children: "Calcul des statistiques…"
+			}) : null,
+			erreur ? /* @__PURE__ */ jsx("p", {
+				role: "alert",
+				className: "text-rouge-alerte",
+				children: erreur
+			}) : null,
+			stats ? /* @__PURE__ */ jsx("div", {
+				className: "grid gap-4 tablette:grid-cols-2 paysage:grid-cols-3",
+				children: [
+					{
+						libelle: "Total",
+						valeur: stats.total
+					},
+					{
+						libelle: "Tout accepté",
+						valeur: stats.accept_all
+					},
+					{
+						libelle: "Tout refusé",
+						valeur: stats.reject_all
+					},
+					{
+						libelle: "Personnalisé",
+						valeur: stats.custom
+					},
+					{
+						libelle: "Taux mesure",
+						valeur: `${stats.tauxMesure} %`
+					},
+					{
+						libelle: "Taux publicité",
+						valeur: `${stats.tauxPublicite} %`
+					}
+				].map(({ libelle, valeur }) => /* @__PURE__ */ jsxs("div", {
+					className: CARTE$1,
+					children: [/* @__PURE__ */ jsx("p", {
+						className: "text-xs font-bold tracking-[.18em] text-or-ink uppercase",
+						children: libelle
+					}), /* @__PURE__ */ jsx("p", {
+						className: "mt-2 font-display text-4xl",
+						children: valeur
+					})]
+				}, libelle))
+			}) : null
+		]
+	});
+}
+function OngletJournal() {
+	const { client, erreurClient } = useClientAdmin();
+	const [lignes, setLignes] = useState(null);
+	const [total, setTotal] = useState(0);
+	const [page, setPage] = useState(0);
+	const [erreur, setErreur] = useState(null);
+	const [revision, setRevision] = useState(0);
+	const [enPurge, setEnPurge] = useState(false);
+	const [confirmationPurge, setConfirmationPurge] = useState(false);
+	useEffect(() => {
+		if (!client) return;
+		let actif = true;
+		setLignes(null);
+		setErreur(null);
+		(async () => {
+			try {
+				const { data, error, count } = await client.from("consentements_cookies").select("id,visiteur_id,ip_hachee,agent_utilisateur,consentement_donne,mesure_acceptee,publicite_acceptee,action,url_page,provenance,cree_le", { count: "exact" }).order("cree_le", { ascending: false }).range(page * TAILLE_PAGE_JOURNAL, (page + 1) * TAILLE_PAGE_JOURNAL - 1);
+				if (!actif) return;
+				if (error) throw error;
+				setLignes(data ?? []);
+				setTotal(count ?? 0);
+			} catch {
+				if (actif) setErreur("Le journal est indisponible.");
+			}
+		})();
+		return () => {
+			actif = false;
+		};
+	}, [
+		client,
+		page,
+		revision
+	]);
+	async function purger() {
+		if (!client || enPurge) return;
+		setEnPurge(true);
+		setErreur(null);
+		const limite = (/* @__PURE__ */ new Date(Date.now() - 31536e6)).toISOString();
+		try {
+			const { error } = await client.from("consentements_cookies").delete().lt("cree_le", limite);
+			if (error) throw error;
+			setConfirmationPurge(false);
+			setPage(0);
+			setRevision((v) => v + 1);
+		} catch {
+			setErreur("La purge a échoué. Réessayez.");
+		} finally {
+			setEnPurge(false);
+		}
+	}
+	if (erreurClient) return /* @__PURE__ */ jsx("p", {
+		role: "alert",
+		className: "text-rouge-alerte",
+		children: erreurClient
+	});
+	return /* @__PURE__ */ jsxs("div", {
+		className: "grid gap-5",
+		children: [
+			/* @__PURE__ */ jsxs("div", {
+				className: "flex flex-wrap items-center justify-between gap-3",
+				children: [/* @__PURE__ */ jsx("p", {
+					className: "text-sm text-encre-2",
+					children: "Consentements enregistrés pour audit RGPD."
+				}), confirmationPurge ? /* @__PURE__ */ jsxs("div", {
+					className: "flex flex-wrap items-center gap-2",
+					children: [
+						/* @__PURE__ */ jsx("span", {
+							className: "text-sm",
+							children: "Supprimer toutes les entrées de plus d'un an\xA0?"
+						}),
+						/* @__PURE__ */ jsx("button", {
+							type: "button",
+							className: `${BOUTON$1} text-rouge-alerte`,
+							disabled: enPurge,
+							onClick: () => void purger(),
+							children: enPurge ? "Purge…" : "Confirmer la purge"
+						}),
+						/* @__PURE__ */ jsx("button", {
+							type: "button",
+							className: BOUTON$1,
+							disabled: enPurge,
+							onClick: () => setConfirmationPurge(false),
+							children: "Annuler"
+						})
+					]
+				}) : /* @__PURE__ */ jsx("button", {
+					type: "button",
+					className: `${BOUTON$1} text-rouge-alerte`,
+					onClick: () => setConfirmationPurge(true),
+					children: "Purger (>\xA0365 jours)"
+				})]
+			}),
+			erreur ? /* @__PURE__ */ jsx("p", {
+				role: "alert",
+				className: "text-rouge-alerte",
+				children: erreur
+			}) : null,
+			!lignes && !erreur ? /* @__PURE__ */ jsx("p", {
+				role: "status",
+				children: "Lecture du journal…"
+			}) : null,
+			lignes?.length === 0 ? /* @__PURE__ */ jsx("p", {
+				className: CARTE$1,
+				children: "Aucune entrée dans le journal."
+			}) : null,
+			lignes?.length ? /* @__PURE__ */ jsx("div", {
+				className: `${CARTE$1} overflow-x-auto`,
+				children: /* @__PURE__ */ jsxs("table", {
+					className: "w-full text-sm",
+					"aria-label": "Journal des consentements",
+					children: [/* @__PURE__ */ jsx("thead", { children: /* @__PURE__ */ jsxs("tr", {
+						className: "border-b border-trait text-left text-xs font-bold tracking-[.14em] text-encre-2 uppercase",
+						children: [
+							/* @__PURE__ */ jsx("th", {
+								className: "pb-2 pr-4 whitespace-nowrap",
+								children: "Date"
+							}),
+							/* @__PURE__ */ jsx("th", {
+								className: "pb-2 pr-4 whitespace-nowrap",
+								children: "Action"
+							}),
+							/* @__PURE__ */ jsx("th", {
+								className: "pb-2 pr-4 whitespace-nowrap",
+								children: "Mesure"
+							}),
+							/* @__PURE__ */ jsx("th", {
+								className: "pb-2 pr-4 whitespace-nowrap",
+								children: "Publicité"
+							}),
+							/* @__PURE__ */ jsx("th", {
+								className: "pb-2 pr-4",
+								children: "Page"
+							}),
+							/* @__PURE__ */ jsx("th", {
+								className: "pb-2 pr-4",
+								children: "Provenance"
+							}),
+							/* @__PURE__ */ jsx("th", {
+								className: "pb-2",
+								children: "Visiteur"
+							})
+						]
+					}) }), /* @__PURE__ */ jsx("tbody", { children: lignes.map((ligne) => /* @__PURE__ */ jsxs("tr", {
+						className: "border-b border-trait last:border-0",
+						children: [
+							/* @__PURE__ */ jsx("td", {
+								className: "py-3 pr-4 whitespace-nowrap text-encre-2",
+								children: new Date(ligne.cree_le).toLocaleString("fr-FR", {
+									dateStyle: "short",
+									timeStyle: "short"
+								})
+							}),
+							/* @__PURE__ */ jsx("td", {
+								className: "py-3 pr-4",
+								children: /* @__PURE__ */ jsx("span", {
+									className: `inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${ligne.action === "accept_all" ? "bg-ok/10 text-ok" : ligne.action === "reject_all" ? "bg-rouge/10 text-rouge-alerte" : "bg-ambre/15 text-or-ink"}`,
+									children: LIBELLE_ACTION[ligne.action]
+								})
+							}),
+							/* @__PURE__ */ jsx("td", {
+								className: "py-3 pr-4",
+								children: ligne.mesure_acceptee ? "✓" : "–"
+							}),
+							/* @__PURE__ */ jsx("td", {
+								className: "py-3 pr-4",
+								children: ligne.publicite_acceptee ? "✓" : "–"
+							}),
+							/* @__PURE__ */ jsx("td", {
+								className: "py-3 pr-4 max-w-[200px] truncate text-encre-2",
+								children: ligne.url_page ?? "–"
+							}),
+							/* @__PURE__ */ jsx("td", {
+								className: "py-3 pr-4 text-encre-2",
+								children: ligne.provenance ?? "–"
+							}),
+							/* @__PURE__ */ jsxs("td", {
+								className: "py-3 font-mono text-xs text-encre-2",
+								children: [ligne.visiteur_id.substring(0, 8), "…"]
+							})
+						]
+					}, ligne.id)) })]
+				})
+			}) : null,
+			total > TAILLE_PAGE_JOURNAL ? /* @__PURE__ */ jsxs("nav", {
+				"aria-label": "Pages du journal",
+				className: "flex items-center justify-between gap-3",
+				children: [
+					/* @__PURE__ */ jsx("button", {
+						type: "button",
+						className: BOUTON$1,
+						disabled: page === 0,
+						onClick: () => setPage((v) => v - 1),
+						children: "← Précédente"
+					}),
+					/* @__PURE__ */ jsxs("span", {
+						className: "text-sm",
+						children: [
+							"Page ",
+							page + 1,
+							" sur ",
+							Math.ceil(total / TAILLE_PAGE_JOURNAL)
+						]
+					}),
+					/* @__PURE__ */ jsx("button", {
+						type: "button",
+						className: BOUTON$1,
+						disabled: (page + 1) * TAILLE_PAGE_JOURNAL >= total,
+						onClick: () => setPage((v) => v + 1),
+						children: "Suivante →"
+					})
+				]
+			}) : null
+		]
 	});
 }
 //#endregion
@@ -5974,13 +6712,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": true,
-			"module": "/assets/root-CSAM897z.js",
+			"module": "/assets/root-DDPQFpPj.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-FVk_bu1X.js"
+				"/assets/app-sbJyZWG0.js"
 			],
-			"css": [],
+			"css": ["/assets/app-Wssnm6MA.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -5999,13 +6737,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/accueil-Bfq47t1t.js",
+			"module": "/assets/accueil-BGyXMOZo.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-FVk_bu1X.js",
+				"/assets/app-sbJyZWG0.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
-			"css": [],
+			"css": ["/assets/app-Wssnm6MA.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6024,13 +6762,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/classements-DhW6HpK3.js",
+			"module": "/assets/classements-8dMf9h2n.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-FVk_bu1X.js",
+				"/assets/app-sbJyZWG0.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
-			"css": [],
+			"css": ["/assets/app-Wssnm6MA.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6049,13 +6787,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/dates-C2xo9EZ0.js",
+			"module": "/assets/dates-50DcFCGm.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-FVk_bu1X.js",
+				"/assets/app-sbJyZWG0.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
-			"css": [],
+			"css": ["/assets/app-Wssnm6MA.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6074,13 +6812,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/contact-boriV3xb.js",
+			"module": "/assets/contact-KTENYF44.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-FVk_bu1X.js",
+				"/assets/app-sbJyZWG0.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
-			"css": [],
+			"css": ["/assets/app-Wssnm6MA.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6099,13 +6837,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/mentions-legales-CghS-49G.js",
+			"module": "/assets/mentions-legales-BtnDVnGn.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-FVk_bu1X.js",
+				"/assets/app-sbJyZWG0.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
-			"css": [],
+			"css": ["/assets/app-Wssnm6MA.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6124,13 +6862,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/confidentialite-HZ_5Yabt.js",
+			"module": "/assets/confidentialite-D_e4lcdT.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-FVk_bu1X.js",
+				"/assets/app-sbJyZWG0.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
-			"css": [],
+			"css": ["/assets/app-Wssnm6MA.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6149,13 +6887,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/noter-tT_CsyXc.js",
+			"module": "/assets/noter-BLQ1ZBXm.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-FVk_bu1X.js",
+				"/assets/app-sbJyZWG0.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
-			"css": [],
+			"css": ["/assets/app-Wssnm6MA.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6174,14 +6912,14 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/inscription-CX47jffG.js",
+			"module": "/assets/inscription-oykHstWx.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-FVk_bu1X.js",
-				"/assets/FormulaireInscription-BXc-XieS.js"
+				"/assets/app-sbJyZWG0.js",
+				"/assets/FormulaireInscription-QFstpOiF.js"
 			],
-			"css": [],
+			"css": ["/assets/app-Wssnm6MA.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6200,14 +6938,14 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/inscription-code-Bpl6lnhL.js",
+			"module": "/assets/inscription-code-DJgRj8f2.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-FVk_bu1X.js",
-				"/assets/FormulaireInscription-BXc-XieS.js"
+				"/assets/app-sbJyZWG0.js",
+				"/assets/FormulaireInscription-QFstpOiF.js"
 			],
-			"css": [],
+			"css": ["/assets/app-Wssnm6MA.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6226,13 +6964,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-C8UR13ce.js",
+			"module": "/assets/admin-2bzHcxNq.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-FVk_bu1X.js"
+				"/assets/app-sbJyZWG0.js"
 			],
-			"css": [],
+			"css": ["/assets/app-Wssnm6MA.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6251,13 +6989,38 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-statistiques-DZSSk4mI.js",
+			"module": "/assets/admin-statistiques-DBo6GgVr.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-FVk_bu1X.js"
+				"/assets/app-sbJyZWG0.js"
 			],
-			"css": [],
+			"css": ["/assets/app-Wssnm6MA.css"],
+			"clientActionModule": void 0,
+			"clientLoaderModule": void 0,
+			"clientMiddlewareModule": void 0,
+			"hydrateFallbackModule": void 0
+		},
+		"routes/admin-cookies": {
+			"id": "routes/admin-cookies",
+			"parentId": "root",
+			"path": "admin/cookies",
+			"index": void 0,
+			"caseSensitive": void 0,
+			"hasAction": false,
+			"hasLoader": false,
+			"hasClientAction": false,
+			"hasClientLoader": false,
+			"hasClientMiddleware": false,
+			"hasDefaultExport": true,
+			"hasErrorBoundary": false,
+			"module": "/assets/admin-cookies-BuMdO-qr.js",
+			"imports": [
+				"/assets/rolldown-runtime-CbXtAM7H.js",
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-sbJyZWG0.js"
+			],
+			"css": ["/assets/app-Wssnm6MA.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6276,13 +7039,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-participants-K3tr_NmG.js",
+			"module": "/assets/admin-participants-BUC5R5jq.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-FVk_bu1X.js"
+				"/assets/app-sbJyZWG0.js"
 			],
-			"css": [],
+			"css": ["/assets/app-Wssnm6MA.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6301,13 +7064,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-messages-BkWICCKX.js",
+			"module": "/assets/admin-messages-D_4kIqZt.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-FVk_bu1X.js"
+				"/assets/app-sbJyZWG0.js"
 			],
-			"css": [],
+			"css": ["/assets/app-Wssnm6MA.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6326,13 +7089,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-abonnes-BupyeJ_I.js",
+			"module": "/assets/admin-abonnes-BpTV3pJJ.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-FVk_bu1X.js"
+				"/assets/app-sbJyZWG0.js"
 			],
-			"css": [],
+			"css": ["/assets/app-Wssnm6MA.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6351,13 +7114,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-juges-CZ6yhmbu.js",
+			"module": "/assets/admin-juges-CDtKHcF-.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-FVk_bu1X.js"
+				"/assets/app-sbJyZWG0.js"
 			],
-			"css": [],
+			"css": ["/assets/app-Wssnm6MA.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6376,13 +7139,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-soirees-DxxHr1pc.js",
+			"module": "/assets/admin-soirees-DhFqzxVH.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-FVk_bu1X.js"
+				"/assets/app-sbJyZWG0.js"
 			],
-			"css": [],
+			"css": ["/assets/app-Wssnm6MA.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6401,13 +7164,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-soiree-SE6oSBhZ.js",
+			"module": "/assets/admin-soiree-1TcD3FFH.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-FVk_bu1X.js"
+				"/assets/app-sbJyZWG0.js"
 			],
-			"css": [],
+			"css": ["/assets/app-Wssnm6MA.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6426,13 +7189,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-direct-C8ila1IP.js",
+			"module": "/assets/admin-direct-Bl9lTh2Z.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-FVk_bu1X.js"
+				"/assets/app-sbJyZWG0.js"
 			],
-			"css": [],
+			"css": ["/assets/app-Wssnm6MA.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6451,13 +7214,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-resultats-DLzdxPEG.js",
+			"module": "/assets/admin-resultats-BICZFZvE.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-FVk_bu1X.js"
+				"/assets/app-sbJyZWG0.js"
 			],
-			"css": [],
+			"css": ["/assets/app-Wssnm6MA.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6476,13 +7239,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-vitrine-C-_A0SYq.js",
+			"module": "/assets/admin-vitrine-C96tl8aH.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-FVk_bu1X.js"
+				"/assets/app-sbJyZWG0.js"
 			],
-			"css": [],
+			"css": ["/assets/app-Wssnm6MA.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6501,13 +7264,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/compte-B7nAinAN.js",
+			"module": "/assets/compte-1_5CnO5B.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-FVk_bu1X.js"
+				"/assets/app-sbJyZWG0.js"
 			],
-			"css": [],
+			"css": ["/assets/app-Wssnm6MA.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6526,13 +7289,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/ecran-BOi1rITH.js",
+			"module": "/assets/ecran-CRRlQXD-.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-FVk_bu1X.js"
+				"/assets/app-sbJyZWG0.js"
 			],
-			"css": [],
+			"css": ["/assets/app-Wssnm6MA.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6551,13 +7314,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/jury-pGlTP8Ee.js",
+			"module": "/assets/jury-XyXdfohV.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-FVk_bu1X.js"
+				"/assets/app-sbJyZWG0.js"
 			],
-			"css": [],
+			"css": ["/assets/app-Wssnm6MA.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6576,21 +7339,21 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/introuvable-oUiJMPNm.js",
+			"module": "/assets/introuvable-WdL3amqa.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-FVk_bu1X.js",
+				"/assets/app-sbJyZWG0.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
-			"css": [],
+			"css": ["/assets/app-Wssnm6MA.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
 			"hydrateFallbackModule": void 0
 		}
 	},
-	"url": "/assets/manifest-2fd5d69e.js",
-	"version": "2fd5d69e",
+	"url": "/assets/manifest-ad301990.js",
+	"version": "ad301990",
 	"sri": void 0
 };
 //#endregion
@@ -6710,6 +7473,14 @@ var routes = {
 		index: void 0,
 		caseSensitive: void 0,
 		module: admin_statistiques_exports
+	},
+	"routes/admin-cookies": {
+		id: "routes/admin-cookies",
+		parentId: "root",
+		path: "admin/cookies",
+		index: void 0,
+		caseSensitive: void 0,
+		module: admin_cookies_exports
 	},
 	"routes/admin-participants": {
 		id: "routes/admin-participants",
