@@ -146,7 +146,8 @@ function Contenu() {
               role="tab"
               id={`onglet-cookies-${o.cle}`}
               aria-selected={actif}
-              aria-controls={`panneau-cookies-${o.cle}`}
+              // Seul le panneau actif est rendu : l'onglet inactif ne pointe vers aucun élément absent.
+              aria-controls={actif ? `panneau-cookies-${o.cle}` : undefined}
               tabIndex={actif ? 0 : -1}
               onClick={() => activer(o.cle)}
               onKeyDown={(e) => onTouche(e, i)}

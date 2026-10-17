@@ -8,26 +8,27 @@
  *     en MP4 H.264 yuv420p faststart (≤ 3 Mo, sans son)
  *   - affiche de la vidéo (parcours-affiche.webp)
  *
- * Pré-requis : serveur de prod local sur http://localhost:4180
- * (lancer scripts/serveur.sh ou l'équivalent du scratchpad), ffmpeg,
- * cwebp et avifenc disponibles dans le PATH.
+ * Pré-requis : serveur de prod local sur http://localhost:4180 (`pnpm build`, puis
+ * `PORT=4180 pnpm start`), ffmpeg, cwebp et avifenc dans le PATH (ou FFMPEG, CWEBP,
+ * AVIFENC pour d'autres chemins).
  *
  * Lancer : node scripts/aide-cookies.mjs
  */
 
-import { chromium, devices } from '/Users/tpmge/Dev/olympiade_manade-cookies/node_modules/@playwright/test/index.mjs';
+import { chromium, devices } from '@playwright/test';
 import { mkdirSync, readdirSync, renameSync, rmSync, statSync, unlinkSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { argv, exit } from 'node:process';
+import { fileURLToPath } from 'node:url';
+import { argv, env, exit } from 'node:process';
 
 const BASE = 'http://localhost:4180';
-const SORTIE = '/Users/tpmge/Dev/olympiade_manade-cookies/public/aide/cookies';
+const SORTIE = fileURLToPath(new URL('../public/aide/cookies/', import.meta.url));
 const TMP = join(tmpdir(), 'aide-cookies-' + Date.now());
-const FFMPEG = '/opt/homebrew/bin/ffmpeg';
-const CWEBP = '/opt/homebrew/bin/cwebp';
-const AVIFENC = '/opt/homebrew/bin/avifenc';
+const FFMPEG = env.FFMPEG ?? 'ffmpeg';
+const CWEBP = env.CWEBP ?? 'cwebp';
+const AVIFENC = env.AVIFENC ?? 'avifenc';
 
 mkdirSync(SORTIE, { recursive: true });
 mkdirSync(TMP, { recursive: true });

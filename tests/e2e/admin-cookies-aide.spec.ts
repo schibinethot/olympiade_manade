@@ -101,6 +101,18 @@ test.describe('onglet Comment ça marche', () => {
     await expect(page.getByRole('tab', { name: /Comment ça marche/i })).toHaveAttribute('aria-selected', 'false');
   });
 
+  test('?onglet inconnu ouvre l’aide, et seul l’onglet actif pointe vers un panneau', async ({ page }) => {
+    await ouvrirAdmin(page);
+    await page.goto('/admin/cookies?onglet=inconnu');
+    const aide = page.getByRole('tab', { name: /Comment ça marche/i });
+    await expect(aide).toHaveAttribute('aria-selected', 'true');
+    await expect(aide).toHaveAttribute('aria-controls', 'panneau-cookies-aide');
+    await expect(page.locator('#panneau-cookies-aide')).toBeVisible();
+    for (const nom of ['Réglages', 'Statistiques', 'Journal']) {
+      await expect(page.getByRole('tab', { name: nom })).not.toHaveAttribute('aria-controls', /.+/);
+    }
+  });
+
   test('flèches droite / gauche naviguent entre onglets et déplacent le focus', async ({ page }) => {
     await ouvrirAdmin(page);
     await page.goto('/admin/cookies');
@@ -165,6 +177,7 @@ test.describe('onglet Comment ça marche', () => {
     await page.goto('/admin/cookies');
     await expect(page.getByRole('tablist', { name: /Onglets cookies/i })).toBeVisible({ timeout: 8000 });
     const { violations } = await new AxeBuilder({ page })
+      .include('[role="tablist"]')
       .include('[role="tabpanel"]')
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'])
       .analyze();
