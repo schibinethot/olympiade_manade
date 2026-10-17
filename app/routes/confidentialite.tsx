@@ -52,8 +52,15 @@ export default function Confidentialite() {
             </li>
             <li>
               <strong>Abonnement aux actualités</strong>&nbsp;: adresse email, date et texte du consentement, recueillis
-              dans l’encart de l’accueil. La case d’accord est décochée par défaut. Cette inscription est indépendante
-              du compte de vote et protégée par une vérification anti-robot.
+              dans l’encart de l’accueil. La case d’accord est décochée par défaut et une vérification anti-robot protège
+              l’inscription. Un email de confirmation vous est envoyé&nbsp;: vous devez cliquer sur son bouton pour valider
+              votre adresse. Sans confirmation, l’adresse est supprimée 30 jours après l’envoi de cet email. Une même
+              adresse inscrite comme spectatrice ou spectateur et abonnée aux actualités n’a qu’une seule fiche d’envoi.
+            </li>
+            <li>
+              <strong>Emails de la séquence</strong>&nbsp;: la ou les dates que vous suivez, l’accord horodaté (date et
+              texte) pour les annonces des prochaines dates, et un journal des envois (date, type d’email, résultat),
+              conservé 12 mois.
             </li>
             <li>
               <strong>Disponibilité du service</strong>&nbsp;: lorsque vous êtes connecté et que l’application est visible,
@@ -71,22 +78,25 @@ export default function Confidentialite() {
               adressées (art. 6(1)(f) RGPD).
             </li>
             <li>
-              Donner accès au vote et envoyer les notifications liées à la soirée&nbsp;: votre consentement, recueilli par une
-              case à cocher à l’inscription (art. 6(1)(a) RGPD). Vous pouvez le retirer à tout moment.
+              Donner accès au vote et envoyer les notifications push de la soirée (alertes du navigateur)&nbsp;: votre
+              consentement, recueilli par une case à cocher à l’inscription (art. 6(1)(a) RGPD). Vous pouvez le retirer à
+              tout moment. Ces notifications sont distinctes des rappels par email décrits ci-dessous.
             </li>
             <li>
-              <strong>Emails liés à votre date et annonces des prochaines dates</strong>&nbsp;: confirmation de votre
-              adresse, rappels de la date que vous suivez (une semaine avant, la veille, le jour même, le lendemain)
-              et, si vous l’avez demandé, annonce des prochaines dates. Base légale&nbsp;: votre consentement pour les
+              <strong>Emails liés à votre date et annonces des prochaines dates</strong>&nbsp;: l’email qui vous
+              demande de confirmer votre adresse (il part avant la confirmation, à la suite de votre demande
+              d’inscription), un email de bienvenue, les rappels de la date que vous suivez (une semaine avant, la veille,
+              le jour même, le lendemain), les messages de l’organisateur aux inscrits d’une date et, si vous l’avez
+              demandé, l’annonce des prochaines dates. Base légale&nbsp;: votre consentement pour les
               annonces (art. 6(1)(a) RGPD) et l’exécution du service que vous avez demandé pour les rappels de la date
               suivie (art. 6(1)(b) RGPD). Chaque email contient un lien de désinscription&nbsp;: un clic suffit, sans
-              connexion, pour arrêter seulement les annonces ou ne plus rien recevoir. Votre adresse n’est utilisée
-              pour ces envois qu’une fois confirmée.
+              connexion, pour arrêter seulement les annonces ou ne plus rien recevoir. Les rappels et
+              messages ne sont envoyés qu’une fois votre adresse confirmée.
             </li>
           </ul>
           <p>Aucune newsletter sans case dédiée, décochée par défaut.</p>
           <p>Avec votre accord, l’organisation peut vous adresser les actualités, dates, informations pratiques,
-            ouverture des votes, notations et résultats de l’Olympiade des Manades. Vous pouvez retirer cet accord via le {LIEN_CONTACT}.</p>
+            ouverture des votes, notations et résultats de l’Olympiade des Manades. Vous pouvez retirer cet accord à tout moment, par le lien de désinscription présent dans chaque email ou via le {LIEN_CONTACT}.</p>
           <p>Aucune décision fondée exclusivement sur un traitement automatisé ne vous concerne.</p>
         </SectionLegale>
 
@@ -100,6 +110,10 @@ export default function Confidentialite() {
         <SectionLegale id="duree" titre="Durée de conservation">
           <ul>
             <li>Abonnement aux actualités&nbsp;: adresse et consentement conservés jusqu’à votre demande de retrait ou l’arrêt de la liste d’information.</li>
+            <li>
+              Adresse désinscrite&nbsp;: conservée sans limite de durée, réduite à l’adresse et à la date de désinscription,
+              dans une liste d’opposition qui sert uniquement à ne plus vous écrire. Elle est supprimée sur demande d’effacement.
+            </li>
             <li>Journal des emails envoyés (date, type d’email, résultat)&nbsp;: 12 mois, puis supprimé.</li>
             <li>Adresses jamais confirmées&nbsp;: supprimées 30 jours après l’envoi de l’email de confirmation.</li>
             <li>Comptes spectateurs inactifs&nbsp;: supprimés après 24 mois d’inactivité.</li>

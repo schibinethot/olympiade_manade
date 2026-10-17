@@ -1,3 +1,4 @@
+import { CONSENTEMENT_ANNONCES_TEXTE } from '../../serveur/gabarits-emails.mjs';
 import { expect, test, type Page } from '../outils/test-e2e';
 import { simulerTurnstile } from '../outils/turnstile';
 
@@ -58,7 +59,7 @@ test('inscription complète : prénom, email, consentement, code collé, arrivé
 
   await page.goto('/inscription');
   await page.getByLabel('Prénom').fill('Léa');
-  await page.getByLabel('Email').fill('  Lea@Exemple.FR ');
+  await page.getByLabel('Email', { exact: true }).fill('  Lea@Exemple.FR ');
   await attendreTurnstile(page);
   await page.getByRole('button', { name: 'Recevoir mon code' }).click();
   await expect(page.getByText(/accepter la politique de confidentialité/)).toBeVisible();
@@ -89,14 +90,15 @@ test('la case annonces est décochée et facultative, et son état part avec la 
     demandes.push(route.request().postDataJSON());
     await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
   });
-  const LIBELLE_ANNONCES = 'Recevoir aussi l’annonce des prochaines dates (facultatif)';
+  const LIBELLE_ANNONCES = CONSENTEMENT_ANNONCES_TEXTE;
   await page.goto('/inscription');
-  await expect(page.getByLabel(LIBELLE_ANNONCES)).toBeVisible();
+  await expect(page.getByRole('checkbox', { name: LIBELLE_ANNONCES, exact: true })).toBeVisible();
+  await expect(page.getByLabel(LIBELLE_ANNONCES)).toHaveAccessibleDescription('Facultatif');
   await expect(page.getByLabel(LIBELLE_ANNONCES)).not.toBeChecked();
   await expect(page.getByText('Votre prénom et votre email servent à l’inscription, au vote du public et aux rappels de votre date. Chaque email contient un lien de désinscription.')).toBeVisible();
 
   await page.getByLabel('Prénom').fill('Léa');
-  await page.getByLabel('Email').fill('lea@exemple.fr');
+  await page.getByLabel('Email', { exact: true }).fill('lea@exemple.fr');
   await page.getByLabel(/J’accepte la politique de confidentialité/).check();
   await attendreTurnstile(page);
   await page.getByRole('button', { name: 'Recevoir mon code' }).click();
@@ -105,7 +107,7 @@ test('la case annonces est décochée et facultative, et son état part avec la 
 
   await page.goto('/inscription');
   await page.getByLabel('Prénom').fill('Léa');
-  await page.getByLabel('Email').fill('lea@exemple.fr');
+  await page.getByLabel('Email', { exact: true }).fill('lea@exemple.fr');
   await page.getByLabel(/J’accepte la politique de confidentialité/).check();
   await page.getByLabel(LIBELLE_ANNONCES).check();
   await attendreTurnstile(page);
@@ -125,7 +127,7 @@ test('un code refusé affiche un message clair et laisse réessayer', async ({ p
   );
   await page.goto('/inscription');
   await page.getByLabel('Prénom').fill('Léa');
-  await page.getByLabel('Email').fill('lea@exemple.fr');
+  await page.getByLabel('Email', { exact: true }).fill('lea@exemple.fr');
   await page.getByLabel(/J’accepte la politique de confidentialité/).check();
   await attendreTurnstile(page);
   await page.getByRole('button', { name: 'Recevoir mon code' }).click();
@@ -145,7 +147,7 @@ test('Turnstile indisponible ferme l’envoi OTP avant tout appel Auth', async (
   });
   await page.goto('/inscription');
   await page.getByLabel('Prénom').fill('Léa');
-  await page.getByLabel('Email').fill('lea@exemple.fr');
+  await page.getByLabel('Email', { exact: true }).fill('lea@exemple.fr');
   await page.getByLabel(/J’accepte la politique de confidentialité/).check();
   await page.getByRole('button', { name: 'Recevoir mon code' }).click();
   await expect(page.getByText(/vérification anti-robot/i).first()).toBeVisible();
@@ -160,7 +162,7 @@ test('Turnstile indisponible ferme l’envoi OTP avant tout appel Auth', async (
 /** Remplit le formulaire d'inscription et demande le code. */
 async function demanderUnCode(page: Page, email = 'lea@exemple.fr') {
   await page.getByLabel('Prénom').fill('Léa');
-  await page.getByLabel('Email').fill(email);
+  await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByLabel(/J’accepte la politique de confidentialité/).check();
   await attendreTurnstile(page);
   await page.getByRole('button', { name: 'Recevoir mon code' }).click();
@@ -284,7 +286,7 @@ test('un double envoi ne demande qu’un code et ne vérifie qu’une fois (verr
   });
   await page.goto('/inscription');
   await page.getByLabel('Prénom').fill('Léa');
-  await page.getByLabel('Email').fill('lea@exemple.fr');
+  await page.getByLabel('Email', { exact: true }).fill('lea@exemple.fr');
   await page.getByLabel(/J’accepte la politique de confidentialité/).check();
   await attendreTurnstile(page);
   await page.evaluate(() => {
@@ -340,7 +342,7 @@ test('« Changer d’email » ramène au formulaire, déjà rempli', async ({ pa
   await page.getByRole('link', { name: 'Changer d’email' }).click();
   await expect(page).toHaveURL(/\/inscription$/);
   await expect(page.getByLabel('Prénom')).toHaveValue('Léa');
-  await expect(page.getByLabel('Email')).toHaveValue('lea@exemple.fr');
+  await expect(page.getByLabel('Email', { exact: true })).toHaveValue('lea@exemple.fr');
 });
 
 test('ouverture directe de /inscription et /inscription/code par leur adresse (repli monopage)', async ({ page }) => {

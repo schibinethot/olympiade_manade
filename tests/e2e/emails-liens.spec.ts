@@ -5,7 +5,7 @@ import { expect, test, type Page } from '../outils/test-e2e';
 // au chargement ; l'action n'est envoyée qu'au clic (les antivirus et messageries ouvrent les liens).
 
 type Corps = { jeton: string; action: string };
-type Etat = { type: 'confirmation' | 'desinscription' | 'je_viens'; date?: { nom: string; ville: string; date: string }; abonne: boolean; annonces: boolean };
+type Etat = { type: 'confirmation' | 'desinscription' | 'je_viens'; date?: { nom: string; ville: string; date: string }; abonne: boolean; annonces: boolean; desinscrit: boolean };
 
 const DATE = { nom: 'Soirée des arènes', ville: 'Saintes-Maries-de-la-Mer', date: '2027-07-24' };
 
@@ -21,7 +21,7 @@ async function simuler(page: Page, etat: Etat, actions: { statut?: number; json?
 }
 
 test('confirmation : aucune écriture avant le clic, puis le succès', async ({ page }) => {
-  const corps = await simuler(page, { type: 'confirmation', abonne: true, annonces: true });
+  const corps = await simuler(page, { type: 'confirmation', abonne: true, annonces: true, desinscrit: false });
   await page.goto('/emails/confirmation?j=jeton-1');
   await expect(page.getByRole('button', { name: 'Confirmer mon adresse' })).toBeVisible();
   expect(corps).toEqual([{ jeton: 'jeton-1', action: 'decrire' }]);
@@ -32,14 +32,14 @@ test('confirmation : aucune écriture avant le clic, puis le succès', async ({ 
 });
 
 test('confirmation déjà faite : succès neutre', async ({ page }) => {
-  await simuler(page, { type: 'confirmation', abonne: true, annonces: true }, { json: { ok: true, etat: 'deja_fait' } });
+  await simuler(page, { type: 'confirmation', abonne: true, annonces: true, desinscrit: false }, { json: { ok: true, etat: 'deja_fait' } });
   await page.goto('/emails/confirmation?j=jeton-1');
   await page.getByRole('button', { name: 'Confirmer mon adresse' }).click();
   await expect(page.getByText('Votre adresse est déjà confirmée.')).toBeVisible();
 });
 
 test('désinscription : chaque bouton envoie son action', async ({ page }) => {
-  const corps = await simuler(page, { type: 'desinscription', abonne: true, annonces: true });
+  const corps = await simuler(page, { type: 'desinscription', abonne: true, annonces: true, desinscrit: false });
   await page.goto('/emails/desinscription?j=jeton-2');
   await expect(page.getByRole('button', { name: 'Ne plus rien recevoir' })).toBeVisible();
   expect(corps).toEqual([{ jeton: 'jeton-2', action: 'decrire' }]);
@@ -53,8 +53,46 @@ test('désinscription : chaque bouton envoie son action', async ({ page }) => {
   expect(corps.at(-1)).toEqual({ jeton: 'jeton-2', action: 'desinscrire' });
 });
 
+test('désinscription d’un spectateur non abonné aux actualités : les deux boutons, chacun envoie son action', async ({ page }) => {
+  const corps = await simuler(page, { type: 'desinscription', abonne: false, annonces: true, desinscrit: false });
+  await page.goto('/emails/desinscription?j=jeton-2');
+  await expect(page.getByRole('button', { name: 'Arrêter seulement les annonces' })).toBeVisible();
+  await page.getByRole('button', { name: 'Ne plus rien recevoir' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Vous ne recevrez plus aucun email' })).toBeVisible();
+  expect(corps.at(-1)).toEqual({ jeton: 'jeton-2', action: 'desinscrire' });
+});
+
+test('désinscription sans annonces : un seul bouton et pas d’intro à deux choix', async ({ page }) => {
+  await simuler(page, { type: 'desinscription', abonne: true, annonces: false, desinscrit: false });
+  await page.goto('/emails/desinscription?j=jeton-2');
+  await expect(page.getByRole('button', { name: 'Ne plus rien recevoir' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Arrêter seulement les annonces' })).toHaveCount(0);
+  await expect(page.getByText('Choisissez ce que vous souhaitez continuer à recevoir.')).toHaveCount(0);
+});
+
+test('déjà désinscrit : aucun bouton, le message est affiché', async ({ page }) => {
+  await simuler(page, { type: 'desinscription', abonne: false, annonces: false, desinscrit: true });
+  await page.goto('/emails/desinscription?j=jeton-2');
+  await expect(page.getByRole('status').filter({ hasText: 'Vous ne recevez déjà plus d’emails de l’Olympiade des Manades.' })).toBeVisible();
+  await expect(page.getByRole('main').getByRole('button')).toHaveCount(0);
+});
+
+test('le jeton quitte l’adresse mais un rechargement fonctionne, et le résultat reçoit le focus', async ({ page }) => {
+  const corps = await simuler(page, { type: 'confirmation', abonne: true, annonces: true, desinscrit: false });
+  await page.goto('/emails/confirmation?j=jeton-secret');
+  await expect(page.getByRole('button', { name: 'Confirmer mon adresse' })).toBeVisible();
+  expect(page.url()).not.toContain('jeton-secret');
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Confirmer mon adresse' })).toBeVisible();
+  expect(corps.every((c) => c.jeton === 'jeton-secret')).toBe(true);
+  await page.getByRole('button', { name: 'Confirmer mon adresse' }).click();
+  const succes = page.getByText('Merci, votre adresse est confirmée.');
+  await expect(succes).toBeVisible();
+  await expect(page.locator('p:focus')).toContainText('Merci, votre adresse est confirmée.');
+});
+
 test('je viens : le bouton porte la date et la ville, l’action part au clic', async ({ page }) => {
-  const corps = await simuler(page, { type: 'je_viens', date: DATE, abonne: true, annonces: false });
+  const corps = await simuler(page, { type: 'je_viens', date: DATE, abonne: true, annonces: false, desinscrit: false });
   await page.goto('/emails/je-viens?j=jeton-3');
   const bouton = page.getByRole('button', { name: /Je viens le samedi 24 juillet 2027 à Saintes-Maries-de-la-Mer/ });
   await expect(bouton).toBeVisible();
@@ -69,12 +107,15 @@ test('jeton expiré : message dédié, aucun bouton d’action', async ({ page }
   await page.goto('/emails/confirmation?j=vieux');
   await expect(page.getByRole('alert').filter({ hasText: 'Ce lien a expiré' })).toBeVisible();
   await expect(page.getByRole('main').getByRole('button')).toHaveCount(0);
+  await expect(page.getByRole('alert').getByRole('link', { name: 'Retour au formulaire d’inscription' })).toHaveAttribute('href', '/#actualites');
+  await expect(page.getByRole('alert').getByText(/Inscrivez-vous à nouveau depuis l’accueil/)).toBeVisible();
 });
 
 test('jeton invalide : message dédié', async ({ page }) => {
   await page.route('**/api/emails/lien', (route) => route.fulfill({ status: 400, json: { error: 'invalide' } }));
   await page.goto('/emails/desinscription?j=faux');
   await expect(page.getByRole('alert').filter({ hasText: 'Ce lien n’est pas valide' })).toBeVisible();
+  await expect(page.getByRole('alert').getByRole('link', { name: 'Nous contacter' })).toHaveAttribute('href', '/contact');
 });
 
 test('jeton absent : message dédié, sans appel au serveur', async ({ page }) => {
@@ -95,7 +136,7 @@ test('échec de l’action : le bouton reste disponible pour réessayer', async 
   let echec = true;
   await page.route('**/api/emails/lien', async (route) => {
     const { action } = route.request().postDataJSON() as Corps;
-    if (action === 'decrire') return route.fulfill({ json: { ok: true, etat: { type: 'confirmation', abonne: true, annonces: true } } });
+    if (action === 'decrire') return route.fulfill({ json: { ok: true, etat: { type: 'confirmation', abonne: true, annonces: true, desinscrit: false } } });
     if (echec) return route.fulfill({ status: 429, json: { error: 'trop' } });
     return route.fulfill({ json: { ok: true, etat: 'fait' } });
   });
@@ -108,9 +149,9 @@ test('échec de l’action : le bouton reste disponible pour réessayer', async 
 });
 
 const PAGES: [string, Etat, string][] = [
-  ['/emails/confirmation?j=a', { type: 'confirmation', abonne: true, annonces: true }, 'Confirmer mon adresse'],
-  ['/emails/desinscription?j=a', { type: 'desinscription', abonne: true, annonces: true }, 'Ne plus rien recevoir'],
-  ['/emails/je-viens?j=a', { type: 'je_viens', date: DATE, abonne: true, annonces: false }, 'Je viens le'],
+  ['/emails/confirmation?j=a', { type: 'confirmation', abonne: true, annonces: true, desinscrit: false }, 'Confirmer mon adresse'],
+  ['/emails/desinscription?j=a', { type: 'desinscription', abonne: true, annonces: true, desinscrit: false }, 'Ne plus rien recevoir'],
+  ['/emails/je-viens?j=a', { type: 'je_viens', date: DATE, abonne: true, annonces: false, desinscrit: false }, 'Je viens le'],
 ];
 
 for (const [chemin, etat, bouton] of PAGES) {

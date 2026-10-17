@@ -73,7 +73,7 @@ export function InscriptionActualites() {
   }
 
   return (
-    <section aria-labelledby={`${id}-titre`} className="mx-4 mt-3.5 rounded-[22px] border border-or/45 bg-creme p-5 tablette:mx-7 tablette:mt-[22px] paysage:mx-10 paysage:mt-[26px] paysage:grid paysage:grid-cols-[.9fr_1.1fr] paysage:items-center paysage:gap-8 paysage:px-7 bureau:mx-14">
+    <section id="actualites" aria-labelledby={`${id}-titre`} className="mx-4 mt-3.5 rounded-[22px] border border-or/45 bg-creme p-5 tablette:mx-7 tablette:mt-[22px] paysage:mx-10 paysage:mt-[26px] paysage:grid paysage:grid-cols-[.9fr_1.1fr] paysage:items-center paysage:gap-8 paysage:px-7 bureau:mx-14">
       <div>
         <p className="flex items-center gap-2 text-[11px] font-bold tracking-[.16em] text-or-ink uppercase">
           <Icone nom="mail" className="size-4" /> Gardez le lien

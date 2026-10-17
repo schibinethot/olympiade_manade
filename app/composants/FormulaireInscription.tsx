@@ -9,6 +9,7 @@ import {
   type ChampsInscription,
   type ErreursInscription,
 } from '../lib/auth';
+import { CONSENTEMENT_ANNONCES_TEXTE } from '../../serveur/gabarits-emails.mjs';
 import { Icone } from './Icone';
 import { VerificationHumaine } from './VerificationHumaine';
 
@@ -188,7 +189,7 @@ export function FormulaireInscription({ initial }: Props) {
         <div className="col-start-2">{erreur('consentement')}</div>
       </div>
 
-      {/* Annonce des prochaines dates : facultative, jamais cochée d'office. */}
+      {/* Annonce des prochaines dates : facultative, jamais cochée d'office. Le libellé est le texte enregistré comme preuve du consentement. */}
       <div className="grid grid-cols-[22px_1fr] gap-x-2.5 text-[13px] leading-[1.45] text-encre-2">
         <span className="relative mt-px grid size-[22px] place-items-center">
           <input
@@ -197,13 +198,17 @@ export function FormulaireInscription({ initial }: Props) {
             type="checkbox"
             checked={annonces}
             onChange={(e) => setAnnonces(e.target.checked)}
+            aria-describedby={`${id}-annonces-aide`}
             className="peer size-[22px] cursor-pointer appearance-none rounded-[7px] border-[1.5px] border-[#958a77] bg-creme checked:border-encre checked:bg-encre"
           />
           <Icone nom="valide" className="pointer-events-none absolute size-[15px] text-sable opacity-0 peer-checked:opacity-100" />
         </span>
         <label htmlFor={`${id}-annonces`} className="cursor-pointer">
-          Recevoir aussi l’annonce des prochaines dates (facultatif)
+          {CONSENTEMENT_ANNONCES_TEXTE}
         </label>
+        <p id={`${id}-annonces-aide`} className="col-start-2 text-[12px]">
+          Facultatif
+        </p>
       </div>
 
       <div className="grid gap-2.5">

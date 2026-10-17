@@ -1,22 +1,24 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { useSearchParams } from 'react-router';
+import { useEffect, useRef, useState, type ReactNode, type Ref } from 'react';
 import { formaterDateLongue } from '../lib/dates';
 import {
   appelerLien,
   decrireLien,
   ErreurLien,
   MESSAGES_LIEN,
+  recupererJeton,
   type ActionLien,
   type EtatLien,
+  type NatureEchec,
   type TypeLien,
 } from '../lib/lienEmail';
 import { Icone } from './Icone';
 import { TitrePage } from './TitrePage';
 
 const BOUTON =
-  'inline-flex min-h-12 w-full items-center justify-center rounded-[13px] px-5 text-[15px] font-semibold transition-[filter] disabled:cursor-wait disabled:opacity-60 tablette:w-auto';
+  'inline-flex min-h-12 w-full items-center justify-center rounded-[13px] px-5 py-3 text-[15px] leading-snug font-semibold text-balance transition-[filter] aria-busy:cursor-wait aria-busy:opacity-60 disabled:cursor-wait disabled:opacity-60 tablette:w-auto';
 const BOUTON_PRINCIPAL = `${BOUTON} bg-encre text-creme hover:brightness-125`;
 const BOUTON_SECONDAIRE = `${BOUTON} border border-encre bg-transparent text-encre hover:bg-lin`;
+const LIEN = 'font-semibold text-rouge underline underline-offset-2 hover:text-encre';
 
 const ENTETES: Record<TypeLien, { surtitre: string; titre: string; intro: string }> = {
   confirmation: {
@@ -31,51 +33,62 @@ const ENTETES: Record<TypeLien, { surtitre: string; titre: string; intro: string
   },
   je_viens: {
     surtitre: 'Votre venue',
-    titre: 'Vous venez\u00a0?',
+    titre: 'Vous venez ?',
     intro: 'Un clic suffit pour nous le dire.',
   },
 };
 
+const DEJA_DESINSCRIT = 'Vous ne recevez déjà plus d’emails de l’Olympiade des Manades.';
+
 type Chargement =
+  | { phase: 'jeton' }
   | { phase: 'chargement' }
-  | { phase: 'erreur'; message: string }
+  | { phase: 'erreur'; nature: NatureEchec }
   | { phase: 'pret'; etat: EtatLien };
 
 /**
  * Page d'un lien signé d'email. Elle lit l'état du lien à l'ouverture (aucune écriture) puis envoie
  * l'action choisie au clic. Un lien d'un autre type que la page est traité comme invalide.
+ * Le résultat (succès ou erreur définitive) est annoncé et reçoit le focus.
  */
 export function LienEmail({ type }: { type: TypeLien }) {
-  const [params] = useSearchParams();
-  const jeton = params.get('j')?.trim() ?? '';
-  const [chargement, setChargement] = useState<Chargement>({ phase: 'chargement' });
+  const [jeton, setJeton] = useState<string | null>(null);
+  const [chargement, setChargement] = useState<Chargement>({ phase: 'jeton' });
   const [envoi, setEnvoi] = useState<ActionLien | null>(null);
   const [echec, setEchec] = useState('');
-  const [succes, setSucces] = useState<string | null>(null);
+  const [succes, setSucces] = useState<ReactNode>(null);
+  const [aAgi, setAAgi] = useState(false);
+  const resultat = useRef<HTMLParagraphElement>(null);
   const entete = ENTETES[type];
 
+  // Le jeton est lu dans l'adresse puis retiré de l'adresse (voir recupererJeton).
+  useEffect(() => setJeton(recupererJeton(window.location.pathname)), []);
+
   useEffect(() => {
+    if (jeton === null) return;
     if (!jeton) {
-      setChargement({ phase: 'erreur', message: MESSAGES_LIEN.invalide });
+      setChargement({ phase: 'erreur', nature: 'invalide' });
       return;
     }
     const controle = new AbortController();
     setChargement({ phase: 'chargement' });
     decrireLien(jeton, controle.signal).then(
-      (etat) =>
-        setChargement(
-          etat.type === type ? { phase: 'pret', etat } : { phase: 'erreur', message: MESSAGES_LIEN.invalide },
-        ),
+      (etat) => setChargement(etat.type === type ? { phase: 'pret', etat } : { phase: 'erreur', nature: 'invalide' }),
       (erreur: unknown) => {
         if (controle.signal.aborted) return;
-        setChargement({ phase: 'erreur', message: erreur instanceof ErreurLien ? erreur.message : MESSAGES_LIEN.indisponible });
+        setChargement({ phase: 'erreur', nature: erreur instanceof ErreurLien ? erreur.nature : 'indisponible' });
       },
     );
     return () => controle.abort();
   }, [jeton, type]);
 
+  const erreurDefinitive = chargement.phase === 'erreur';
+  useEffect(() => {
+    if (aAgi && (succes || erreurDefinitive)) resultat.current?.focus();
+  }, [aAgi, succes, erreurDefinitive]);
+
   async function agir(action: ActionLien, etat: EtatLien) {
-    if (envoi) return;
+    if (envoi || !jeton) return;
     setEnvoi(action);
     setEchec('');
     try {
@@ -83,32 +96,18 @@ export function LienEmail({ type }: { type: TypeLien }) {
       setSucces(messageSucces(action, etat, reponse === 'deja_fait'));
     } catch (erreur) {
       const echecLien = erreur instanceof ErreurLien ? erreur : new ErreurLien('indisponible');
-      if (echecLien.definitif) setChargement({ phase: 'erreur', message: echecLien.message });
+      if (echecLien.definitif) setChargement({ phase: 'erreur', nature: echecLien.nature });
       else setEchec(echecLien.message);
     } finally {
+      setAAgi(true);
       setEnvoi(null);
     }
   }
 
-  function corps(): ReactNode {
-    if (chargement.phase === 'chargement') {
-      return <p role="status" className="text-[15px] text-encre-2">Vérification du lien…</p>;
-    }
-    if (chargement.phase === 'erreur') {
-      return <Message role="alert" icone="alerte" message={chargement.message} />;
-    }
-    const { etat } = chargement;
-    if (succes) return <Message role="status" icone="valide" message={succes} reussi />;
-    if (type === 'desinscription' && !etat.abonne) {
-      return <Message role="status" icone="valide" message="Vous ne recevez déjà plus d’emails de l’Olympiade des Manades." reussi />;
-    }
-    return (
-      <>
-        <div className="flex flex-col gap-3 tablette:flex-row tablette:flex-wrap">{boutons(etat)}</div>
-        <div role="alert">{echec ? <Message icone="alerte" message={echec} /> : null}</div>
-      </>
-    );
-  }
+  const pret = chargement.phase === 'pret' ? chargement.etat : null;
+  const dejaDesinscrit = pret !== null && type === 'desinscription' && pret.desinscrit;
+  const montreBoutons = pret !== null && !succes && !dejaDesinscrit;
+  const deuxChoix = type === 'desinscription' && montreBoutons && pret.annonces;
 
   function boutons(etat: EtatLien): ReactNode {
     if (type === 'confirmation') {
@@ -143,32 +142,72 @@ export function LienEmail({ type }: { type: TypeLien }) {
   return (
     <>
       <TitrePage surtitre={entete.surtitre} titre={entete.titre}>
-        <p>{entete.intro}</p>
+        {type === 'desinscription' && !deuxChoix ? null : <p>{entete.intro}</p>}
       </TitrePage>
       <div className="px-4 pt-6 pb-10 tablette:px-7 paysage:px-10 bureau:px-14">
         <div
-          className="grid max-w-[560px] gap-4 rounded-[22px] border border-trait bg-creme p-5 tablette:p-7"
+          className="max-w-[560px] rounded-[22px] border border-trait bg-creme p-5 tablette:p-7"
           aria-busy={chargement.phase === 'chargement' || envoi !== null}
         >
-          {corps()}
+          <div role="status">
+            {chargement.phase === 'jeton' || chargement.phase === 'chargement' ? (
+              <p className="text-[15px] text-encre-2">Vérification du lien…</p>
+            ) : null}
+            {succes ? <Message icone="valide" reussi refMessage={resultat}>{succes}</Message> : null}
+            {dejaDesinscrit && !succes ? <Message icone="valide" reussi>{DEJA_DESINSCRIT}</Message> : null}
+          </div>
+          {montreBoutons ? (
+            <div className="flex flex-col gap-3 tablette:flex-row tablette:flex-wrap">{boutons(pret)}</div>
+          ) : null}
+          <div role="alert">
+            {chargement.phase === 'erreur' ? (
+              <Message icone="alerte" refMessage={resultat}>
+                {messageErreur(chargement.nature, type)}
+              </Message>
+            ) : null}
+            {echec ? <Message icone="alerte" marge>{echec}</Message> : null}
+          </div>
         </div>
       </div>
     </>
   );
 }
 
-function messageSucces(action: ActionLien, etat: EtatLien, dejaFait: boolean): string {
+function messageErreur(nature: NatureEchec, type: TypeLien): ReactNode {
+  if (nature === 'indisponible') return MESSAGES_LIEN.indisponible;
+  if (nature === 'expire' && type === 'confirmation') {
+    return (
+      <span>
+        Ce lien a expiré. Inscrivez-vous à nouveau depuis l’accueil : un nouveau lien vous sera envoyé.{' '}
+        <a href="/#actualites" className={LIEN}>Retour au formulaire d’inscription</a>
+      </span>
+    );
+  }
+  return (
+    <span>
+      {MESSAGES_LIEN[nature]}{' '}
+      <a href="/contact" className={LIEN}>Nous contacter</a>
+    </span>
+  );
+}
+
+function messageSucces(action: ActionLien, etat: EtatLien, dejaFait: boolean): ReactNode {
   switch (action) {
     case 'confirmer':
       return dejaFait ? 'Votre adresse est déjà confirmée.' : 'Merci, votre adresse est confirmée.';
     case 'arreter_annonces':
-      return 'C’est fait\u00a0: vous ne recevrez plus les annonces des prochaines dates. Les rappels de votre date continuent.';
+      return 'C’est fait : vous ne recevrez plus les annonces des prochaines dates. Les rappels de votre date continuent.';
     case 'desinscrire':
-      return 'C’est fait\u00a0: vous ne recevrez plus aucun email de l’Olympiade des Manades.';
+      return 'C’est fait : vous ne recevrez plus aucun email de l’Olympiade des Manades.';
     case 'je_viens':
-      return etat.date
-        ? `Merci, c’est noté\u00a0: à bientôt le ${formaterDateLongue(etat.date.date)} à ${etat.date.ville}.`
-        : 'Merci, c’est noté\u00a0: à bientôt\u00a0!';
+      return etat.date ? (
+        <>
+          Merci, c’est noté : à bientôt le {formaterDateLongue(etat.date.date)} à{' '}
+          <span className="whitespace-nowrap">{etat.date.ville}</span>.
+        </>
+      ) : (
+        'Merci, c’est noté : à bientôt !'
+      );
     default:
       return 'C’est fait.';
   }
@@ -182,17 +221,34 @@ function Bouton({ action, courante, onClick, principal, children }: {
   children: ReactNode;
 }) {
   return (
-    <button type="button" onClick={onClick} disabled={courante !== null} className={principal ? BOUTON_PRINCIPAL : BOUTON_SECONDAIRE}>
-      {courante === action ? 'Envoi…' : children}
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={courante !== null}
+      aria-busy={courante === action || undefined}
+      className={principal ? BOUTON_PRINCIPAL : BOUTON_SECONDAIRE}
+    >
+      {children}
     </button>
   );
 }
 
-function Message({ role, icone, message, reussi }: { role?: 'alert' | 'status'; icone: 'alerte' | 'valide'; message: string; reussi?: boolean }) {
+function Message({ icone, reussi, marge, refMessage, children }: {
+  icone: 'alerte' | 'valide';
+  reussi?: boolean;
+  /** Message sous les boutons : la marge est portée par le message, pas par la région vide. */
+  marge?: boolean;
+  refMessage?: Ref<HTMLParagraphElement>;
+  children: ReactNode;
+}) {
   return (
-    <p role={role} className={`flex items-start gap-3 text-[15px] leading-relaxed font-semibold ${reussi ? 'text-encre' : 'text-rouge-alerte'}`}>
+    <p
+      ref={refMessage}
+      tabIndex={refMessage ? -1 : undefined}
+      className={`flex items-start gap-3 text-[15px] leading-relaxed font-semibold ${marge ? 'mt-4' : ''} ${reussi ? 'text-encre' : 'text-rouge-alerte'}`}
+    >
       <Icone nom={icone} className={`mt-0.5 size-5 shrink-0 ${reussi ? 'text-ok' : ''}`} />
-      {message}
+      <span>{children}</span>
     </p>
   );
 }
