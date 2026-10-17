@@ -122,8 +122,6 @@ const FIN_DES_SOIREES_MS = 6 * HEURE_MS;
 const ENCART_JOURS_MAX = 7;
 
 const ETAPES_DE_DATE = /** @type {const} */ (['j_moins_7', 'veille', 'jour_j', 'lendemain', 'prochaines_dates']);
-/** Étapes 2 à 4 : suspendues quand la soirée liée est annulée ou reportée. */
-const RAPPELS = new Set(['j_moins_7', 'veille', 'jour_j']);
 const SANS_ECHEANCE = new Set(['confirmation', 'bienvenue', 'message']);
 /** Statuts qui occupent le plafond (et la fenêtre des annonces). */
 const STATUTS_COMPTES = new Set(['envoye', 'simule', 'en_attente']);
@@ -388,8 +386,9 @@ function issueEtape(etape, date, rattachement, instant, situation, ctx) {
     if (ctx.prochaines.length === 0) return 'aucune_date';
   } else if (date.statut === 'annulee') {
     return 'date_annulee';
-  } else if (date.statut !== 'confirmee' || (RAPPELS.has(etape) && soireeSuspendue(date))) {
-    // Date redevenue prévisionnelle, ou soirée liée annulée ou reportée : suspendue.
+  } else if (date.statut !== 'confirmee' || soireeSuspendue(date)) {
+    // Étapes 2 à 5 suspendues : date redevenue prévisionnelle, ou soirée liée annulée ou reportée
+    // (pas de rappel, ni de « merci » le lendemain, pour une soirée qui n'a pas lieu).
     return 'rien';
   }
   if (ctx.maintenant > instant + FENETRE_ENVOI_MS) return 'fenetre_depassee';

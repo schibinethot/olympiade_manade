@@ -323,16 +323,22 @@ describe('calculerEnvois : parcours sur le calendrier 2027', () => {
     ]);
   });
 
-  it('soirée liée reportée alors que la date est confirmée : aucun J-7, aucune veille, aucun jour J', () => {
+  it('soirée liée reportée ou annulée alors que la date est confirmée : ni J-7, ni veille, ni jour J, ni lendemain', () => {
+    for (const statut of ['reportee', 'annulee'] as const) {
+      const etat = inscrit(SOMMIERES, '2027-07-22 12:00');
+      etat.dates = [marsillargues(), sommieres({ soiree: { slug: 'sommieres-2027', statut } }), bezouce()];
+      // Étapes 2 à 5 suspendues : rien n'est envoyé ni enregistré, pas de « merci » pour une soirée qui n'a pas eu lieu.
+      expect(simuler(etat, '2027-07-22 12:00', '2027-08-02 12:00')).toEqual(['2027-07-22 12:00 · bienvenue · part']);
+    }
+  });
+
+  it('soirée de nouveau publiée dans la fenêtre du lendemain : le lendemain repart', () => {
     const etat = inscrit(SOMMIERES, '2027-07-22 12:00');
+    etat.envois.push(envoi('bienvenue', null, iso('2027-07-22 12:00')));
     etat.dates = [marsillargues(), sommieres({ soiree: { slug: 'sommieres-2027', statut: 'reportee' } }), bezouce()];
-    const journal = simuler(etat, '2027-07-22 12:00', '2027-08-02 12:00');
-    expect(journal.filter((ligne) => /j_moins_7|veille|jour_j/.test(ligne))).toEqual([]);
-    // Les étapes 2 à 4 seulement : le lendemain n'est pas concerné par la suspension.
-    expect(journal).toEqual([
-      '2027-07-22 12:00 · bienvenue · part',
-      '2027-08-01 10:00 · lendemain Sommières · part',
-    ]);
+    expect(calculerEnvois(etat, ete('2027-08-01 10:00'))).toEqual({ aEnvoyer: [], sautes: [] });
+    etat.dates = [marsillargues(), sommieres(), bezouce()];
+    expect(calculerEnvois(etat, ete('2027-08-01 10:00')).aEnvoyer.map(decrireCourt)).toEqual(['lendemain Sommières']);
   });
 
   it('date prévisionnelle : rappels suspendus sans rien enregistrer, repris si elle redevient confirmée', () => {
