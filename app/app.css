@@ -188,8 +188,26 @@
    sur le cavalier, sans texte dessus. Ratios mesurés au pixel le plus clair : voir le rapport de la
    Task 3. */
 .voile-affiche {
+  background-image: linear-gradient(
+    0deg,
+    rgba(66, 19, 7, 0.78) 0%,
+    rgba(66, 19, 7, 0.62) 20%,
+    rgba(66, 19, 7, 0.46) 38%,
+    rgba(66, 19, 7, 0.2) 52%,
+    rgba(66, 19, 7, 0) 62%
+  );
+}
+/* Date affichée en haut à droite : voile renforcé en haut et lueur sous la date (maquette ~75 % / 18 %). */
+.voile-affiche--avec-date {
   background-image:
     linear-gradient(180deg, rgba(58, 17, 6, 0.74) 0%, rgba(58, 17, 6, 0.52) 15%, rgba(58, 17, 6, 0.2) 27%, rgba(58, 17, 6, 0) 37%),
+    linear-gradient(0deg, rgba(66, 19, 7, 0.78) 0%, rgba(66, 19, 7, 0.62) 20%, rgba(66, 19, 7, 0.46) 38%, rgba(66, 19, 7, 0.2) 52%, rgba(66, 19, 7, 0) 62%),
+    radial-gradient(70% 50% at 75% 18%, rgba(255, 226, 180, 0.22), transparent 65%);
+}
+/* Pas de date : assombrissement léger en haut pour « Arènes de Nîmes », lumière au centre sur le cavalier. */
+.voile-affiche--sans-date {
+  background-image:
+    linear-gradient(180deg, rgba(58, 17, 6, 0.68) 0%, rgba(58, 17, 6, 0.38) 14%, rgba(58, 17, 6, 0) 30%),
     linear-gradient(0deg, rgba(66, 19, 7, 0.78) 0%, rgba(66, 19, 7, 0.62) 20%, rgba(66, 19, 7, 0.46) 38%, rgba(66, 19, 7, 0.2) 52%, rgba(66, 19, 7, 0) 62%),
     radial-gradient(60% 42% at 62% 44%, rgba(255, 226, 180, 0.22), transparent 70%);
 }

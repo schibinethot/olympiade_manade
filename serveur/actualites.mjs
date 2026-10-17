@@ -2,11 +2,9 @@
 // Collecte des consentements aux actualités. La clé service_role reste dans ce processus ; aucun
 // compte n'est créé et aucun email n'est envoyé depuis cet endpoint.
 
+import { isIP } from 'node:net';
 import {
-  ADRESSES_MAX_DEFAUT,
   FENETRE_MS,
-  GLOBAL_MAX_DEFAUT,
-  IP_MAX_DEFAUT,
   LIMITE_JETON,
   avecDelai,
   creerLimiteurFormulaire,
@@ -24,10 +22,31 @@ import {
 
 const CHEMIN = '/api/actualites';
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const IP_MAX_DEFAUT = 3;
+const GLOBAL_MAX_DEFAUT = 1_000;
+const ADRESSES_MAX_DEFAUT = 10_000;
 export const CONSENTEMENT_ACTUALITES_VERSION = '2026-10-17';
 export const CONSENTEMENT_ACTUALITES_TEXTE =
   'J’accepte de recevoir par email les actualités, informations pratiques, résultats et notations de l’Olympiade des Manades.';
 const SOURCE = 'accueil';
+
+/**
+ * Railway documente X-Real-IP comme l'adresse cliente fixée par son ingress. Cette confiance reste
+ * opt-in : hors Railway, un client pourrait fournir lui-même cet en-tête. Si l'en-tête attendu est
+ * absent ou invalide, l'adresse socket regroupe prudemment le trafic du proxy sous une seule limite.
+ * @param {import('node:http').IncomingMessage} req
+ * @param {boolean} trustRailwayProxy
+ */
+export function ipClientActualites(req, trustRailwayProxy) {
+  if (trustRailwayProxy) {
+    const valeur = req.headers['x-real-ip'];
+    if (typeof valeur === 'string') {
+      const ip = valeur.trim().replace(/^\[(.*)\]$/, '$1');
+      if (isIP(ip)) return ip.toLowerCase();
+    }
+  }
+  return ipClient(req, false);
+}
 
 /** @param {unknown} corps */
 export function validerCorpsActualites(corps) {
@@ -56,7 +75,7 @@ export function validerCorpsActualites(corps) {
 
 /**
  * @typedef {{ supabaseUrl?: string | null, serviceRoleKey?: string | null, turnstileSecret?: string | null,
- *   publicOrigin?: string | null, trustProxy?: boolean, ipLimit?: number, globalLimit?: number,
+ *   publicOrigin?: string | null, trustRailwayProxy?: boolean, ipLimit?: number, globalLimit?: number,
  *   maxIpEntries?: number, fetchFn?: typeof fetch, now?: () => number }} OptionsActualites
  */
 
@@ -66,7 +85,7 @@ export function creerActualites(options = {}) {
   const publicOrigin = originePublique(options.publicOrigin);
   const serviceRoleKey = typeof options.serviceRoleKey === 'string' && options.serviceRoleKey.trim() ? options.serviceRoleKey : null;
   const turnstileSecret = typeof options.turnstileSecret === 'string' && options.turnstileSecret.trim() ? options.turnstileSecret : null;
-  const trustProxy = options.trustProxy === true;
+  const trustRailwayProxy = options.trustRailwayProxy === true;
   const demander = options.fetchFn ?? fetch;
   const limiterTentatives = creerLimiteurFormulaire({
     maintenant: options.now,
@@ -76,7 +95,7 @@ export function creerActualites(options = {}) {
   });
   const limiterDepots = creerLimiteurGlobalFormulaire({
     maintenant: options.now,
-    limite: entierBorne(options.globalLimit, GLOBAL_MAX_DEFAUT, 1, 1_000),
+    limite: entierBorne(options.globalLimit, GLOBAL_MAX_DEFAUT, 1, 100_000),
   });
   const configure = !!(supabaseUrl && serviceRoleKey && turnstileSecret && publicOrigin);
 
@@ -98,7 +117,7 @@ export function creerActualites(options = {}) {
     const valide = validerCorpsActualites(brut);
     if (!valide.valide) return repondreJson(req, res, 400, { error: valide.erreur });
 
-    const ip = ipClient(req, trustProxy);
+    const ip = ipClientActualites(req, trustRailwayProxy);
     if (!limiterTentatives.accepter(ip)) {
       return repondreJson(req, res, 429, { error: 'Trop de demandes. Réessayez plus tard.' }, { 'Retry-After': String(Math.ceil(FENETRE_MS / 1000)) });
     }
@@ -173,9 +192,9 @@ export function actualitesDepuisEnvironnement(env) {
     serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
     turnstileSecret: env.TURNSTILE_SECRET_KEY,
     publicOrigin: env.CONTACT_ORIGIN,
-    trustProxy: env.CONTACT_TRUST_PROXY === 'true',
-    ipLimit: Number(env.CONTACT_RATE_IP_LIMIT),
-    globalLimit: Number(env.CONTACT_RATE_GLOBAL_LIMIT),
-    maxIpEntries: Number(env.CONTACT_RATE_MAX_IPS),
+    trustRailwayProxy: env.ACTUALITES_TRUST_RAILWAY_PROXY === 'true',
+    ipLimit: Number(env.ACTUALITES_RATE_IP_LIMIT),
+    globalLimit: Number(env.ACTUALITES_RATE_GLOBAL_LIMIT),
+    maxIpEntries: Number(env.ACTUALITES_RATE_MAX_IPS),
   });
 }

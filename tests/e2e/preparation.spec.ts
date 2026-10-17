@@ -44,3 +44,26 @@ test('un administrateur AAL2 consulte les listes vides', async ({ page }) => {
   await page.goto('/admin/participants');
   await expect(page.getByText('Aucun compte pour le moment.')).toBeVisible();
 });
+
+test('un administrateur consulte un abonné et confirme son retrait', async ({ page }) => {
+  await ouvrirSession(page);
+  let retire = false;
+  await page.route('**/rest/v1/abonnements_actualites*', (route) => {
+    if (route.request().method() === 'DELETE') {
+      retire = true;
+      expect(new URL(route.request().url()).searchParams.get('id')).toBe('eq.abonne-test');
+      return route.fulfill({ json: [{ id: 'abonne-test' }] });
+    }
+    return route.fulfill({ headers: { 'content-range': retire ? '*/0' : '0-0/1', 'access-control-expose-headers': 'content-range' }, json: retire ? [] : [
+      { id: 'abonne-test', email: 'lea@example.test', consentement_le: '2026-10-17T08:00:00Z' },
+    ] });
+  });
+  await page.goto('/admin/abonnes');
+  await expect(page.getByText('lea@example.test', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '1 abonné', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Retirer lea@example.test' }).click();
+  expect(retire).toBe(false);
+  await page.getByRole('button', { name: 'Confirmer le retrait' }).click();
+  await expect(page.getByText('Aucune inscription pour le moment.')).toBeVisible();
+  expect(retire).toBe(true);
+});

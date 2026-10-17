@@ -1,4 +1,4 @@
-import { $ as ManadesEdition, A as LIEN_TEXTE, At as demandeEnCours, B as ONGLET_INACTIF, Bt as verifierCode, C as octets, Ct as useSession, D as CHAMPS_IDENTITE, Dt as MESSAGES_AUTH, E as IdentitePublique, Et as useInstantanePublic, F as CarteDate, Ft as normaliserCode, G as anneesClassements, Gt as prochaineSoireeA, H as idOnglet, Ht as supabase, I as useHydrate, It as normaliserEmail, J as lireDonneesVitrine, K as resultatsAnnee, Kt as soireeDeReference, L as ClassementCalcule, Lt as oublierDemande, M as evenementsDesDates, Mt as demanderCode, N as noteProjections, Nt as formaterDecompte, O as CreditsPhotos, Ot as commencerEnrolementTotp, P as sectionsDates, Pt as memoriserDemande, Q as SaisonAccueil, R as CLASSE_ONGLET, Rt as traduireErreurAuth, S as nombre, St as Icone, T as NotationPublic, Tt as FournisseurEtatSoiree, U as CarteResultat, Ut as formaterJourMois, V as OngletsAnnee, Vt as verifierTotp, W as anneeChoisie, Wt as momentSoiree, X as donneesRelues, Y as lireDonneesVitrineNavigateur, Z as useRelectureApresInteraction, _ as CHAMP$1, _t as SuiviPresence, a as depuisChampParis, at as EPREUVES, b as exporterMesures, bt as PiedDePage, c as horairesModele, ct as INSCRIPTION_OUVERTE, d as documentPdf, dt as CreditAffiche, et as FormulaireContact, f as matriceQr, ft as VILLE_AFFICHE, g as CARTE$1, gt as CoqueAndroid, h as BOUTON_PLEIN, ht as BanniereDeblocage, i as champParis, it as Epreuves, j as SectionLegale, jt as demandeValide, k as CorpsLegal, kt as connecterAdmin, l as slugifier, lt as TEXTE_INSCRIPTIONS_FERMEES, m as BOUTON$1, mt as ServiceTravailleur, n as ImportPlanning, nt as lireCalendrier, o as etapesEchange, ot as DernierVainqueur, p as telechargerFichier, pt as PrecisionAccueil, q as DELAI_LECTURE_NAVIGATEUR_MS, qt as jourParis, r as EPREUVES_MODELE, rt as lireOuRepli, s as fenetreDefaut, st as BlocNoter, t as etapesReordre, tt as VerificationHumaine, u as CodeQr, ut as Affiche, v as CadreAdmin, vt as SuiviNotes, w as useAccesAdmin, wt as useMaintenant, x as latence, xt as Entete, y as useClientAdmin, yt as TitrePage, z as ONGLET_ACTIF, zt as validerInscription } from "./assets/app-DSfVGv7v.js";
+import { $ as ManadesEdition, A as LIEN_TEXTE, At as connecterAdmin, B as ONGLET_INACTIF, Bt as validerInscription, C as octets, Ct as Icone, D as CHAMPS_IDENTITE, Dt as useInstantanePublic, E as IdentitePublique, Et as FournisseurEtatSoiree, F as CarteDate, Ft as memoriserDemande, G as anneesClassements, Gt as momentSoiree, H as idOnglet, Ht as verifierTotp, I as useHydrate, It as normaliserCode, J as lireDonneesVitrine, Jt as jourParis, K as resultatsAnnee, Kt as soireeAfficheAccueil, L as ClassementCalcule, Lt as normaliserEmail, M as evenementsDesDates, Mt as demandeValide, N as noteProjections, Nt as demanderCode, O as CreditsPhotos, Ot as MESSAGES_AUTH, P as sectionsDates, Pt as formaterDecompte, Q as SaisonAccueil, R as CLASSE_ONGLET, Rt as oublierDemande, S as nombre, St as Entete, T as NotationPublic, Tt as useMaintenant, U as CarteResultat, Ut as supabase, V as OngletsAnnee, Vt as verifierCode, W as anneeChoisie, Wt as formaterJourMois, X as donneesRelues, Y as lireDonneesVitrineNavigateur, Z as useRelectureApresInteraction, _ as CHAMP$1, _t as CoqueAndroid, a as depuisChampParis, at as Epreuves, b as exporterMesures, bt as TitrePage, c as horairesModele, ct as BlocNoter, d as documentPdf, dt as Affiche, et as InscriptionActualites, f as matriceQr, ft as CreditAffiche, g as CARTE$1, gt as BanniereDeblocage, h as BOUTON_PLEIN, ht as ServiceTravailleur, i as champParis, it as lireOuRepli, j as SectionLegale, jt as demandeEnCours, k as CorpsLegal, kt as commencerEnrolementTotp, l as slugifier, lt as INSCRIPTION_OUVERTE, m as BOUTON$1, mt as PrecisionAccueil, n as ImportPlanning, nt as VerificationHumaine, o as etapesEchange, ot as EPREUVES, p as telechargerFichier, pt as VILLE_AFFICHE, q as DELAI_LECTURE_NAVIGATEUR_MS, qt as soireeDeReference, r as EPREUVES_MODELE, rt as lireCalendrier, s as fenetreDefaut, st as DernierVainqueur, t as etapesReordre, tt as FormulaireContact, u as CodeQr, ut as TEXTE_INSCRIPTIONS_FERMEES, v as CadreAdmin, vt as SuiviPresence, w as useAccesAdmin, wt as useSession, x as latence, xt as PiedDePage, y as useClientAdmin, yt as SuiviNotes, z as ONGLET_ACTIF, zt as traduireErreurAuth } from "./assets/app-DVBcCqU1.js";
 import { Link, Links, Meta, Navigate, Outlet, Scripts, ScrollRestoration, ServerRouter, UNSAFE_withComponentProps, UNSAFE_withErrorBoundaryProps, UNSAFE_withHydrateFallbackProps, isRouteErrorResponse, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 import { isbot } from "isbot";
 import { renderToReadableStream } from "react-dom/server";
@@ -50,7 +50,7 @@ async function handleRequest(request, responseStatusCode, responseHeaders, route
 }
 //#endregion
 //#region app/app.css?url
-var app_default = "/assets/app-DoZ5tzGl.css";
+var app_default = "/assets/app-BktC9TS9.css";
 //#endregion
 //#region app/root.tsx
 var root_exports = /* @__PURE__ */ __exportAll({
@@ -59,7 +59,7 @@ var root_exports = /* @__PURE__ */ __exportAll({
 	Layout: () => Layout,
 	default: () => root_default,
 	links: () => links,
-	meta: () => meta$23
+	meta: () => meta$24
 });
 var police = (fichier) => ({
 	rel: "preload",
@@ -88,7 +88,7 @@ var links = () => [
 		href: "/manifest.webmanifest"
 	}
 ];
-var meta$23 = () => [{ title: "Olympiade des Manades" }, {
+var meta$24 = () => [{ title: "Olympiade des Manades" }, {
 	name: "description",
 	content: "Le public note les manades, en direct, aux côtés du jury."
 }];
@@ -174,12 +174,24 @@ var accueil_exports = /* @__PURE__ */ __exportAll({
 	clientLoader: () => clientLoader$3,
 	default: () => accueil_default,
 	loader: () => loader$2,
-	meta: () => meta$22
+	meta: () => meta$23
 });
-var meta$22 = () => [{ title: "Olympiade des Manades" }, {
-	name: "description",
-	content: "Les Olympiades camarguaises : le public note les manades, en direct, aux côtés du jury. Saison 2027."
-}];
+var meta$23 = () => [
+	{ title: "Olympiade des Manades" },
+	{
+		tagName: "link",
+		rel: "canonical",
+		href: "https://olympiadedesmanades.fr/"
+	},
+	{
+		property: "og:url",
+		content: "https://olympiadedesmanades.fr/"
+	},
+	{
+		name: "description",
+		content: "Les Olympiades camarguaises : le public note les manades, en direct, aux côtés du jury. Saison 2027."
+	}
+];
 async function loader$2() {
 	return lireDonneesVitrine();
 }
@@ -192,8 +204,9 @@ var accueil_default = UNSAFE_withComponentProps(function Accueil({ loaderData })
 	const instantane = useInstantanePublic();
 	useRelectureApresInteraction(loaderData);
 	const soiree = calendrier ? soireeDeReference(calendrier, maintenant) : null;
-	const soireeAffiche = calendrier ? prochaineSoireeA(calendrier, VILLE_AFFICHE, maintenant) : null;
+	const soireeAffiche = calendrier ? soireeAfficheAccueil(calendrier, VILLE_AFFICHE, maintenant) : null;
 	return /* @__PURE__ */ jsxs(Fragment, { children: [
+		/* @__PURE__ */ jsx(InscriptionActualites, {}),
 		/* @__PURE__ */ jsxs("section", {
 			"aria-label": "À l’affiche",
 			className: "grid gap-x-[18px] gap-y-3.5 px-4 pt-3.5 tablette:grid-cols-[1.12fr_1fr] tablette:px-7 tablette:pt-[22px] paysage:grid-cols-[1.5fr_1fr] paysage:gap-x-[22px] paysage:px-10 paysage:pt-[26px] bureau:px-14 bureau:pt-[30px]",
@@ -246,10 +259,10 @@ var classements_exports = /* @__PURE__ */ __exportAll({
 	clientLoader: () => clientLoader$2,
 	default: () => classements_default,
 	loader: () => loader$1,
-	meta: () => meta$21,
+	meta: () => meta$22,
 	shouldRevalidate: () => shouldRevalidate
 });
-var meta$21 = () => [{ title: "Classements · Olympiade des Manades" }, {
+var meta$22 = () => [{ title: "Classements · Olympiade des Manades" }, {
 	name: "description",
 	content: "Palmarès des Olympiades des manades : le vainqueur de chaque soirée, avec sa source."
 }];
@@ -414,9 +427,9 @@ var dates_exports = /* @__PURE__ */ __exportAll({
 	clientLoader: () => clientLoader$1,
 	default: () => dates_default,
 	loader: () => loader,
-	meta: () => meta$20
+	meta: () => meta$21
 });
-var meta$20 = () => [{ title: "Dates · Olympiade des Manades" }, {
+var meta$21 = () => [{ title: "Dates · Olympiade des Manades" }, {
 	name: "description",
 	content: "Toutes les soirées d’Olympiades des manades : la saison à venir et les archives des années passées."
 }];
@@ -651,9 +664,9 @@ var dates_default = UNSAFE_withComponentProps(function Dates({ loaderData }) {
 //#region app/routes/contact.tsx
 var contact_exports = /* @__PURE__ */ __exportAll({
 	default: () => contact_default,
-	meta: () => meta$19
+	meta: () => meta$20
 });
-var meta$19 = () => [{ title: "Contact · Olympiade des Manades" }, {
+var meta$20 = () => [{ title: "Contact · Olympiade des Manades" }, {
 	name: "description",
 	content: "Infos, dates, une manade à inscrire, une photo à proposer : écrivez à l’organisation."
 }];
@@ -695,9 +708,9 @@ var contact_default = UNSAFE_withComponentProps(function Contact() {
 //#region app/routes/mentions-legales.tsx
 var mentions_legales_exports = /* @__PURE__ */ __exportAll({
 	default: () => mentions_legales_default,
-	meta: () => meta$18
+	meta: () => meta$19
 });
-var meta$18 = () => [{ title: "Mentions légales · Olympiade des Manades" }, {
+var meta$19 = () => [{ title: "Mentions légales · Olympiade des Manades" }, {
 	name: "description",
 	content: "Éditeur, hébergeurs et crédits du site de l’Olympiade des Manades."
 }];
@@ -797,9 +810,9 @@ var mentions_legales_default = UNSAFE_withComponentProps(function MentionsLegale
 //#region app/routes/confidentialite.tsx
 var confidentialite_exports = /* @__PURE__ */ __exportAll({
 	default: () => confidentialite_default,
-	meta: () => meta$17
+	meta: () => meta$18
 });
-var meta$17 = () => [{ title: "Confidentialité · Olympiade des Manades" }, {
+var meta$18 = () => [{ title: "Confidentialité · Olympiade des Manades" }, {
 	name: "description",
 	content: "Données collectées, finalités, durée de conservation et droits RGPD."
 }];
@@ -825,6 +838,7 @@ var confidentialite_default = UNSAFE_withComponentProps(function Confidentialite
 				/* @__PURE__ */ jsxs("li", { children: [/* @__PURE__ */ jsx("strong", { children: "Visiteurs du site" }), "\xA0: nos hébergeurs traitent des données techniques de connexion (adresse IP, date et heure, pages demandées, type de navigateur) pour assurer le fonctionnement et la sécurité du site. Le serveur conserve aussi des compteurs techniques agrégés (requêtes, erreurs, volume de données et temps de réponse), sans adresse IP ni historique individuel de navigation dans ces compteurs. Nous n’utilisons aucun outil de mesure d’audience publicitaire. Base légale\xA0: intérêt légitime à sécuriser le service (art. 6(1)(f) RGPD). Durée\xA0: celle fixée par chaque hébergeur pour ses journaux techniques."] }),
 				/* @__PURE__ */ jsxs("li", { children: [/* @__PURE__ */ jsx("strong", { children: "Formulaire de contact" }), "\xA0: prénom, email, message et date d’envoi. Les trois champs du formulaire sont obligatoires pour que nous puissions vous répondre. Une vérification anti-robot protège le dépôt. Le serveur utilise temporairement l’adresse de connexion pour limiter les tentatives, sans l’enregistrer avec votre message."] }),
 				/* @__PURE__ */ jsxs("li", { children: [/* @__PURE__ */ jsx("strong", { children: "Inscription au vote" }), "\xA0: prénom et email, puis un code reçu par email pour vous connecter."] }),
+				/* @__PURE__ */ jsxs("li", { children: [/* @__PURE__ */ jsx("strong", { children: "Abonnement aux actualités" }), "\xA0: adresse email, date et texte du consentement, recueillis dans l’encart de l’accueil. La case d’accord est décochée par défaut. Cette inscription est indépendante du compte de vote et protégée par une vérification anti-robot."] }),
 				/* @__PURE__ */ jsxs("li", { children: [/* @__PURE__ */ jsx("strong", { children: "Disponibilité du service" }), "\xA0: lorsque vous êtes connecté et que l’application est visible, un signal périodique met à jour la dernière activité de votre compte pour estimer le nombre de comptes actifs. Il ne contient ni la page visitée, ni l’adresse IP, ni le contenu de vos notes. Seuls les administrateurs peuvent consulter les statistiques agrégées."] })
 			] })
 		}),
@@ -834,6 +848,11 @@ var confidentialite_default = UNSAFE_withComponentProps(function Confidentialite
 			children: [
 				/* @__PURE__ */ jsxs("ul", { children: [/* @__PURE__ */ jsx("li", { children: "Répondre à votre message\xA0: intérêt légitime de l’organisation à répondre aux demandes qui lui sont adressées (art. 6(1)(f) RGPD)." }), /* @__PURE__ */ jsx("li", { children: "Donner accès au vote et envoyer les notifications liées à la soirée\xA0: votre consentement, recueilli par une case à cocher à l’inscription (art. 6(1)(a) RGPD). Vous pouvez le retirer à tout moment." })] }),
 				/* @__PURE__ */ jsx("p", { children: "Aucune newsletter sans case dédiée, décochée par défaut." }),
+				/* @__PURE__ */ jsxs("p", { children: [
+					"Avec votre accord, l’organisation peut vous adresser les actualités, dates, informations pratiques, ouverture des votes, notations et résultats de l’Olympiade des Manades. Vous pouvez retirer cet accord via le ",
+					LIEN_CONTACT,
+					"."
+				] }),
 				/* @__PURE__ */ jsx("p", { children: "Aucune décision fondée exclusivement sur un traitement automatisé ne vous concerne." })
 			]
 		}),
@@ -846,6 +865,7 @@ var confidentialite_default = UNSAFE_withComponentProps(function Confidentialite
 			id: "duree",
 			titre: "Durée de conservation",
 			children: /* @__PURE__ */ jsxs("ul", { children: [
+				/* @__PURE__ */ jsx("li", { children: "Abonnement aux actualités\xA0: adresse et consentement conservés jusqu’à votre demande de retrait ou l’arrêt de la liste d’information." }),
 				/* @__PURE__ */ jsx("li", { children: "Comptes spectateurs inactifs\xA0: supprimés après 24 mois d’inactivité." }),
 				/* @__PURE__ */ jsx("li", { children: "Mesures techniques agrégées et derniers signaux d’activité\xA0: conservation de 30 jours." }),
 				/* @__PURE__ */ jsx("li", { children: "Messages de contact\xA0: conservés le temps nécessaire pour vous répondre, puis supprimés. La durée exacte sera fixée avec l’organisateur." })
@@ -915,9 +935,9 @@ var confidentialite_default = UNSAFE_withComponentProps(function Confidentialite
 var noter_exports = /* @__PURE__ */ __exportAll({
 	clientLoader: () => clientLoader,
 	default: () => noter_default,
-	meta: () => meta$16
+	meta: () => meta$17
 });
-var meta$16 = () => [{ title: "Noter les manades · Olympiade des Manades" }, {
+var meta$17 = () => [{ title: "Noter les manades · Olympiade des Manades" }, {
 	name: "robots",
 	content: "noindex"
 }];
@@ -1301,9 +1321,9 @@ function FormulaireInscription({ initial }) {
 //#region app/routes/inscription.tsx
 var inscription_exports = /* @__PURE__ */ __exportAll({
 	default: () => inscription_default,
-	meta: () => meta$15
+	meta: () => meta$16
 });
-var meta$15 = () => [
+var meta$16 = () => [
 	{ title: "Inscription · Olympiade des Manades" },
 	{
 		name: "description",
@@ -1633,9 +1653,9 @@ function FormulaireCode({ demande }) {
 //#region app/routes/inscription-code.tsx
 var inscription_code_exports = /* @__PURE__ */ __exportAll({
 	default: () => inscription_code_default,
-	meta: () => meta$14
+	meta: () => meta$15
 });
-var meta$14 = () => [{ title: "Code reçu · Olympiade des Manades" }, {
+var meta$15 = () => [{ title: "Code reçu · Olympiade des Manades" }, {
 	name: "robots",
 	content: "noindex"
 }];
@@ -1713,9 +1733,9 @@ var inscription_code_default = UNSAFE_withComponentProps(function InscriptionCod
 //#region app/routes/admin.tsx
 var admin_exports = /* @__PURE__ */ __exportAll({
 	default: () => admin_default,
-	meta: () => meta$13
+	meta: () => meta$14
 });
-var meta$13 = () => [{ title: "Administration · Olympiade des Manades" }, {
+var meta$14 = () => [{ title: "Administration · Olympiade des Manades" }, {
 	name: "robots",
 	content: "noindex"
 }];
@@ -1841,6 +1861,11 @@ var admin_default = UNSAFE_withComponentProps(function Admin() {
 					children: "Messages de contact"
 				}),
 				/* @__PURE__ */ jsx(Link, {
+					to: "/admin/abonnes",
+					className: "inline-flex min-h-12 items-center rounded-xl border border-trait px-5 font-semibold",
+					children: "Abonnés aux actualités"
+				}),
+				/* @__PURE__ */ jsx(Link, {
 					to: "/admin/statistiques",
 					className: "inline-flex min-h-12 items-center rounded-xl bg-encre px-5 font-semibold text-sable",
 					children: "Statistiques et charge →"
@@ -1944,9 +1969,9 @@ var admin_default = UNSAFE_withComponentProps(function Admin() {
 //#region app/routes/admin-statistiques.tsx
 var admin_statistiques_exports = /* @__PURE__ */ __exportAll({
 	default: () => admin_statistiques_default,
-	meta: () => meta$12
+	meta: () => meta$13
 });
-var meta$12 = () => [{ title: "Statistiques et charge · Administration" }, {
+var meta$13 = () => [{ title: "Statistiques et charge · Administration" }, {
 	name: "robots",
 	content: "noindex"
 }];
@@ -2570,14 +2595,14 @@ function Courbe({ mesures: toutes, indicateur }) {
 //#region app/routes/admin-participants.tsx
 var admin_participants_exports = /* @__PURE__ */ __exportAll({
 	default: () => admin_participants_default,
-	meta: () => meta$11
+	meta: () => meta$12
 });
 var ROLES = {
 	admin: "Administrateur",
 	juge: "Juge",
 	spectateur: "Spectateur"
 };
-function meta$11() {
+function meta$12() {
 	return [{ title: "Participants · Administration" }, {
 		name: "robots",
 		content: "noindex"
@@ -2587,10 +2612,10 @@ var admin_participants_default = UNSAFE_withComponentProps(function Participants
 	return /* @__PURE__ */ jsx(CadreAdmin, {
 		surtitre: "Préparation",
 		titre: "Participants",
-		children: /* @__PURE__ */ jsx(Liste$1, {})
+		children: /* @__PURE__ */ jsx(Liste$2, {})
 	});
 });
-function Liste$1() {
+function Liste$2() {
 	const { client, session, erreurClient } = useClientAdmin();
 	const [lignes, setLignes] = useState(null);
 	const [erreur, setErreur] = useState(null);
@@ -2692,9 +2717,9 @@ function Liste$1() {
 //#region app/routes/admin-messages.tsx
 var admin_messages_exports = /* @__PURE__ */ __exportAll({
 	default: () => admin_messages_default,
-	meta: () => meta$10
+	meta: () => meta$11
 });
-function meta$10() {
+function meta$11() {
 	return [{ title: "Messages · Administration" }, {
 		name: "robots",
 		content: "noindex"
@@ -2704,10 +2729,10 @@ var admin_messages_default = UNSAFE_withComponentProps(function Messages() {
 	return /* @__PURE__ */ jsx(CadreAdmin, {
 		surtitre: "Préparation",
 		titre: "Messages de contact",
-		children: /* @__PURE__ */ jsx(Liste, {})
+		children: /* @__PURE__ */ jsx(Liste$1, {})
 	});
 });
-function Liste() {
+function Liste$1() {
 	const { client, erreurClient } = useClientAdmin();
 	const [lignes, setLignes] = useState(null);
 	const [erreur, setErreur] = useState(null);
@@ -2796,6 +2821,194 @@ function Liste() {
 					})
 				]
 			}, message.id))
+		]
+	});
+}
+//#endregion
+//#region app/routes/admin-abonnes.tsx
+var admin_abonnes_exports = /* @__PURE__ */ __exportAll({
+	default: () => admin_abonnes_default,
+	meta: () => meta$10
+});
+var TAILLE_PAGE = 50;
+function meta$10() {
+	return [{ title: "Abonnés · Administration" }, {
+		name: "robots",
+		content: "noindex"
+	}];
+}
+var admin_abonnes_default = UNSAFE_withComponentProps(function Abonnes() {
+	return /* @__PURE__ */ jsx(CadreAdmin, {
+		surtitre: "Actualités",
+		titre: "Abonnés aux actualités",
+		children: /* @__PURE__ */ jsx(Liste, {})
+	});
+});
+function Liste() {
+	const { client, erreurClient } = useClientAdmin();
+	const [lignes, setLignes] = useState(null);
+	const [total, setTotal] = useState(0);
+	const [page, setPage] = useState(0);
+	const [revision, setRevision] = useState(0);
+	const [erreur, setErreur] = useState(null);
+	const [confirmation, setConfirmation] = useState(null);
+	const [enCours, setEnCours] = useState(false);
+	useEffect(() => {
+		if (!client) return;
+		let actif = true;
+		setLignes(null);
+		setErreur(null);
+		(async () => {
+			try {
+				const { data, error, count } = await client.from("abonnements_actualites").select("id,email,consentement_le", { count: "exact" }).order("consentement_le", { ascending: false }).order("id").range(page * TAILLE_PAGE, (page + 1) * TAILLE_PAGE - 1);
+				if (!actif) return;
+				if (error) throw error;
+				setLignes(data ?? []);
+				setTotal(count ?? 0);
+			} catch {
+				if (actif) setErreur("La liste des abonnés est indisponible.");
+			}
+		})();
+		return () => {
+			actif = false;
+		};
+	}, [
+		client,
+		page,
+		revision
+	]);
+	async function retirer(id) {
+		if (!client || enCours) return;
+		setEnCours(true);
+		setErreur(null);
+		try {
+			const { data, error } = await client.from("abonnements_actualites").delete().eq("id", id).select("id");
+			if (error || !data?.length) throw error ?? /* @__PURE__ */ new Error("Suppression non confirmée");
+			setConfirmation(null);
+			if (lignes?.length === 1 && page > 0) setPage((valeur) => valeur - 1);
+			else setRevision((valeur) => valeur + 1);
+		} catch {
+			setErreur("Le retrait n’a pas pu être confirmé. Réessayez.");
+		} finally {
+			setEnCours(false);
+		}
+	}
+	return /* @__PURE__ */ jsxs("section", {
+		className: `${CARTE$1} min-w-0`,
+		"aria-label": "Liste des abonnés",
+		children: [
+			/* @__PURE__ */ jsx("p", {
+				className: "text-sm text-encre-2",
+				children: "Adresses recueillies sur l’accueil pour les actualités, informations pratiques, résultats et notations. Aucun envoi automatique n’est déclenché par une inscription."
+			}),
+			/* @__PURE__ */ jsx("div", {
+				role: "alert",
+				children: erreurClient || erreur ? /* @__PURE__ */ jsx("p", {
+					className: "mt-4 text-rouge-alerte",
+					children: erreurClient || erreur
+				}) : null
+			}),
+			!lignes && !erreur && !erreurClient ? /* @__PURE__ */ jsx("p", {
+				role: "status",
+				className: "mt-4",
+				children: "Lecture des abonnés…"
+			}) : null,
+			erreur ? /* @__PURE__ */ jsx("button", {
+				className: `${BOUTON$1} mt-3`,
+				onClick: () => setRevision((valeur) => valeur + 1),
+				children: "Réessayer"
+			}) : null,
+			lignes ? /* @__PURE__ */ jsxs(Fragment, { children: [
+				/* @__PURE__ */ jsxs("h2", {
+					className: "mt-5 font-display text-2xl",
+					children: [
+						total,
+						" abonné",
+						total > 1 ? "s" : ""
+					]
+				}),
+				!lignes.length ? /* @__PURE__ */ jsx("p", {
+					className: "mt-3",
+					children: "Aucune inscription pour le moment."
+				}) : /* @__PURE__ */ jsx("ul", {
+					className: "mt-3 divide-y divide-trait",
+					children: lignes.map((abonne) => /* @__PURE__ */ jsxs("li", {
+						className: "flex flex-wrap items-center justify-between gap-3 py-4",
+						children: [/* @__PURE__ */ jsxs("div", {
+							className: "min-w-0",
+							children: [/* @__PURE__ */ jsx("p", {
+								className: "font-semibold break-all",
+								children: abonne.email
+							}), /* @__PURE__ */ jsxs("p", {
+								className: "mt-1 text-xs text-encre-2",
+								children: ["Consentement reçu le ", /* @__PURE__ */ jsx("time", {
+									dateTime: abonne.consentement_le,
+									children: new Date(abonne.consentement_le).toLocaleString("fr-FR")
+								})]
+							})]
+						}), confirmation === abonne.id ? /* @__PURE__ */ jsxs("div", {
+							className: "flex flex-wrap items-center gap-2",
+							children: [
+								/* @__PURE__ */ jsx("span", {
+									className: "text-sm",
+									children: "Retirer cette adresse\xA0?"
+								}),
+								/* @__PURE__ */ jsx("button", {
+									className: BOUTON$1,
+									disabled: enCours,
+									onClick: () => void retirer(abonne.id),
+									children: enCours ? "Retrait…" : "Confirmer le retrait"
+								}),
+								/* @__PURE__ */ jsx("button", {
+									className: BOUTON$1,
+									disabled: enCours,
+									onClick: () => setConfirmation(null),
+									children: "Annuler"
+								})
+							]
+						}) : /* @__PURE__ */ jsx("button", {
+							className: BOUTON$1,
+							disabled: enCours,
+							onClick: () => setConfirmation(abonne.id),
+							"aria-label": `Retirer ${abonne.email}`,
+							children: "Retirer"
+						})]
+					}, abonne.id))
+				}),
+				total > TAILLE_PAGE ? /* @__PURE__ */ jsxs("nav", {
+					"aria-label": "Pages des abonnés",
+					className: "mt-4 flex items-center justify-between gap-3",
+					children: [
+						/* @__PURE__ */ jsx("button", {
+							className: BOUTON$1,
+							disabled: page === 0 || enCours,
+							onClick: () => {
+								setConfirmation(null);
+								setPage((valeur) => valeur - 1);
+							},
+							children: "Précédente"
+						}),
+						/* @__PURE__ */ jsxs("span", {
+							className: "text-sm",
+							children: [
+								"Page ",
+								page + 1,
+								" sur ",
+								Math.ceil(total / TAILLE_PAGE)
+							]
+						}),
+						/* @__PURE__ */ jsx("button", {
+							className: BOUTON$1,
+							disabled: (page + 1) * TAILLE_PAGE >= total || enCours,
+							onClick: () => {
+								setConfirmation(null);
+								setPage((valeur) => valeur + 1);
+							},
+							children: "Suivante"
+						})
+					]
+				}) : null
+			] }) : null
 		]
 	});
 }
@@ -5761,11 +5974,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": true,
-			"module": "/assets/root-0vv7Ll28.js",
+			"module": "/assets/root-CSAM897z.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-Cec0t5yH.js"
+				"/assets/app-FVk_bu1X.js"
 			],
 			"css": [],
 			"clientActionModule": void 0,
@@ -5786,10 +5999,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/accueil-CADBLZyK.js",
+			"module": "/assets/accueil-Bfq47t1t.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-Cec0t5yH.js",
+				"/assets/app-FVk_bu1X.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": [],
@@ -5811,10 +6024,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/classements-Dl9vJPdO.js",
+			"module": "/assets/classements-DhW6HpK3.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-Cec0t5yH.js",
+				"/assets/app-FVk_bu1X.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": [],
@@ -5836,10 +6049,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/dates-DqEt3JyB.js",
+			"module": "/assets/dates-C2xo9EZ0.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-Cec0t5yH.js",
+				"/assets/app-FVk_bu1X.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": [],
@@ -5861,10 +6074,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/contact-BYOylBOF.js",
+			"module": "/assets/contact-boriV3xb.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-Cec0t5yH.js",
+				"/assets/app-FVk_bu1X.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": [],
@@ -5886,10 +6099,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/mentions-legales-jrzoCKej.js",
+			"module": "/assets/mentions-legales-CghS-49G.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-Cec0t5yH.js",
+				"/assets/app-FVk_bu1X.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": [],
@@ -5911,10 +6124,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/confidentialite-D43w6Fme.js",
+			"module": "/assets/confidentialite-HZ_5Yabt.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-Cec0t5yH.js",
+				"/assets/app-FVk_bu1X.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": [],
@@ -5936,10 +6149,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/noter-DirCi2-H.js",
+			"module": "/assets/noter-tT_CsyXc.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-Cec0t5yH.js",
+				"/assets/app-FVk_bu1X.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": [],
@@ -5961,12 +6174,12 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/inscription-Cs5OUFhh.js",
+			"module": "/assets/inscription-CX47jffG.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-Cec0t5yH.js",
-				"/assets/FormulaireInscription-B3360A2G.js"
+				"/assets/app-FVk_bu1X.js",
+				"/assets/FormulaireInscription-BXc-XieS.js"
 			],
 			"css": [],
 			"clientActionModule": void 0,
@@ -5987,12 +6200,12 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/inscription-code-BlUK3HTx.js",
+			"module": "/assets/inscription-code-Bpl6lnhL.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-Cec0t5yH.js",
-				"/assets/FormulaireInscription-B3360A2G.js"
+				"/assets/app-FVk_bu1X.js",
+				"/assets/FormulaireInscription-BXc-XieS.js"
 			],
 			"css": [],
 			"clientActionModule": void 0,
@@ -6013,11 +6226,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-BjtabGbX.js",
+			"module": "/assets/admin-C8UR13ce.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-Cec0t5yH.js"
+				"/assets/app-FVk_bu1X.js"
 			],
 			"css": [],
 			"clientActionModule": void 0,
@@ -6038,11 +6251,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-statistiques-DnNazfSG.js",
+			"module": "/assets/admin-statistiques-DZSSk4mI.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-Cec0t5yH.js"
+				"/assets/app-FVk_bu1X.js"
 			],
 			"css": [],
 			"clientActionModule": void 0,
@@ -6063,11 +6276,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-participants-C50lme3r.js",
+			"module": "/assets/admin-participants-K3tr_NmG.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-Cec0t5yH.js"
+				"/assets/app-FVk_bu1X.js"
 			],
 			"css": [],
 			"clientActionModule": void 0,
@@ -6088,11 +6301,36 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-messages-BO44TKtl.js",
+			"module": "/assets/admin-messages-BkWICCKX.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-Cec0t5yH.js"
+				"/assets/app-FVk_bu1X.js"
+			],
+			"css": [],
+			"clientActionModule": void 0,
+			"clientLoaderModule": void 0,
+			"clientMiddlewareModule": void 0,
+			"hydrateFallbackModule": void 0
+		},
+		"routes/admin-abonnes": {
+			"id": "routes/admin-abonnes",
+			"parentId": "root",
+			"path": "admin/abonnes",
+			"index": void 0,
+			"caseSensitive": void 0,
+			"hasAction": false,
+			"hasLoader": false,
+			"hasClientAction": false,
+			"hasClientLoader": false,
+			"hasClientMiddleware": false,
+			"hasDefaultExport": true,
+			"hasErrorBoundary": false,
+			"module": "/assets/admin-abonnes-BupyeJ_I.js",
+			"imports": [
+				"/assets/rolldown-runtime-CbXtAM7H.js",
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-FVk_bu1X.js"
 			],
 			"css": [],
 			"clientActionModule": void 0,
@@ -6113,11 +6351,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-juges-DLED8AEF.js",
+			"module": "/assets/admin-juges-CZ6yhmbu.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-Cec0t5yH.js"
+				"/assets/app-FVk_bu1X.js"
 			],
 			"css": [],
 			"clientActionModule": void 0,
@@ -6138,11 +6376,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-soirees-BKn_wlIY.js",
+			"module": "/assets/admin-soirees-DxxHr1pc.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-Cec0t5yH.js"
+				"/assets/app-FVk_bu1X.js"
 			],
 			"css": [],
 			"clientActionModule": void 0,
@@ -6163,11 +6401,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-soiree-CsCv_ll7.js",
+			"module": "/assets/admin-soiree-SE6oSBhZ.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-Cec0t5yH.js"
+				"/assets/app-FVk_bu1X.js"
 			],
 			"css": [],
 			"clientActionModule": void 0,
@@ -6188,11 +6426,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-direct-C0AkRhGX.js",
+			"module": "/assets/admin-direct-C8ila1IP.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-Cec0t5yH.js"
+				"/assets/app-FVk_bu1X.js"
 			],
 			"css": [],
 			"clientActionModule": void 0,
@@ -6213,11 +6451,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-resultats-C_Tc58wn.js",
+			"module": "/assets/admin-resultats-DLzdxPEG.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-Cec0t5yH.js"
+				"/assets/app-FVk_bu1X.js"
 			],
 			"css": [],
 			"clientActionModule": void 0,
@@ -6238,11 +6476,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-vitrine-BlNTkpZT.js",
+			"module": "/assets/admin-vitrine-C-_A0SYq.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-Cec0t5yH.js"
+				"/assets/app-FVk_bu1X.js"
 			],
 			"css": [],
 			"clientActionModule": void 0,
@@ -6263,11 +6501,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/compte-BNz_i_fi.js",
+			"module": "/assets/compte-B7nAinAN.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-Cec0t5yH.js"
+				"/assets/app-FVk_bu1X.js"
 			],
 			"css": [],
 			"clientActionModule": void 0,
@@ -6288,11 +6526,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/ecran-yM3mdQ7m.js",
+			"module": "/assets/ecran-BOi1rITH.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-Cec0t5yH.js"
+				"/assets/app-FVk_bu1X.js"
 			],
 			"css": [],
 			"clientActionModule": void 0,
@@ -6313,11 +6551,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/jury-BYAxV5O2.js",
+			"module": "/assets/jury-pGlTP8Ee.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-Cec0t5yH.js"
+				"/assets/app-FVk_bu1X.js"
 			],
 			"css": [],
 			"clientActionModule": void 0,
@@ -6338,10 +6576,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/introuvable-CVw-rnVa.js",
+			"module": "/assets/introuvable-oUiJMPNm.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-Cec0t5yH.js",
+				"/assets/app-FVk_bu1X.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": [],
@@ -6351,8 +6589,8 @@ var server_manifest_default = {
 			"hydrateFallbackModule": void 0
 		}
 	},
-	"url": "/assets/manifest-55741db5.js",
-	"version": "55741db5",
+	"url": "/assets/manifest-2fd5d69e.js",
+	"version": "2fd5d69e",
 	"sri": void 0
 };
 //#endregion
@@ -6488,6 +6726,14 @@ var routes = {
 		index: void 0,
 		caseSensitive: void 0,
 		module: admin_messages_exports
+	},
+	"routes/admin-abonnes": {
+		id: "routes/admin-abonnes",
+		parentId: "root",
+		path: "admin/abonnes",
+		index: void 0,
+		caseSensitive: void 0,
+		module: admin_abonnes_exports
 	},
 	"routes/admin-juges": {
 		id: "routes/admin-juges",

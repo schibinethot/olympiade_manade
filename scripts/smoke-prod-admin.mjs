@@ -5,7 +5,7 @@
  * Override : PROD_URL=https://… node scripts/smoke-prod-admin.mjs
  */
 
-const BASE = (process.env.PROD_URL ?? 'https://olympiademanade-production.up.railway.app').replace(/\/$/, '');
+const BASE = (process.env.PROD_URL ?? 'https://olympiadedesmanades.fr').replace(/\/$/, '');
 
 const pages = ['/admin', '/admin/statistiques'];
 const apis = ['/api/admin/supervision', '/api/admin/supervision?heures=24'];

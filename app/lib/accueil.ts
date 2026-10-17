@@ -83,6 +83,17 @@ export function prochaineSoireeA(calendrier: Calendrier[], ville: string, mainte
 }
 
 /**
+ * Soirée annoncée sur l'affiche d'accueil : la prochaine de la ville de l'affiche, seulement si c'est
+ * aussi la prochaine du calendrier (même événement). Le voile de lisibilité suit cette date.
+ */
+export function soireeAfficheAccueil(calendrier: Calendrier[], villeAffiche: string, maintenant: Date): Calendrier | null {
+  const prochaine = prochaineSoiree(calendrier, maintenant);
+  const surAffiche = prochaineSoireeA(calendrier, villeAffiche, maintenant);
+  if (!prochaine || !surAffiche || prochaine.id !== surAffiche.id) return null;
+  return surAffiche;
+}
+
+/**
  * Soirée de référence du vote, pour la carte « Notez les Olympiades », la page /noter et la pastille
  * de l'en-tête : la prochaine soirée du calendrier, toutes villes confondues, confirmée ou
  * prévisionnelle. Une soirée passée laisse la place à la suivante.

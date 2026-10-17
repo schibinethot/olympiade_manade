@@ -1,5 +1,13 @@
 # Olympiade Manade
 
+## Domaine et inscriptions aux actualités
+
+Le domaine public est **https://olympiadedesmanades.fr**. `CONTACT_ORIGIN` doit correspondre à cette origine ; les redirections Auth sont dans `supabase/config.toml`. Le domaine doit aussi être autorisé dans le widget Cloudflare Turnstile.
+
+L’encart du premier écran collecte une adresse et un accord explicite aux actualités, informations pratiques, notations et résultats. `POST /api/actualites` vérifie le consentement, l’origine et le captcha (`action=actualites`), limite les tentatives et normalise les doublons. Appliquer la migration `20261017130000_abonnements_actualites.sql` et renseigner `SUPABASE_SERVICE_ROLE_KEY`, `TURNSTILE_SECRET_KEY` et `VITE_TURNSTILE_SITE_KEY` (au build) pour activer la collecte. Aucun email n’est envoyé automatiquement et aucun compte de vote n’est créé. La liste et le retrait d’une adresse sont disponibles sur `/admin/abonnes`, après authentification admin avec second facteur. La liste utilise un consentement simple ; la propriété de l’adresse n’est pas vérifiée par email.
+
+La collecte admet par défaut 3 tentatives par adresse IP et 1 000 inscriptions au total par période de 10 minutes (`ACTUALITES_RATE_IP_LIMIT`, `ACTUALITES_RATE_GLOBAL_LIMIT`, `ACTUALITES_RATE_MAX_IPS`). Sur Railway, poser `ACTUALITES_TRUST_RAILWAY_PROXY=true` pour utiliser exclusivement le `X-Real-IP` réécrit par son ingress ([documentation](https://docs.railway.com/networking/public-networking/specs-and-limits)). Ne pas activer cette option sur un serveur directement accessible ; sans elle, seule l’adresse de la connexion est utilisée. Les limites du contact restent séparées.
+
 Le livrable actuel couvre la vitrine hors soirée et, une fois un administrateur connecté, la préparation d’une soirée, son cockpit et les classements calculés. Les inscriptions et la file de notes restent fermées par défaut. Le site public ne sort du mode hors soirée que si `ETAT_SOIREE_REEL=true`.
 
 Le [CDC de référence](docs/CDC-MASTER.md) distingue ce livrable de la cible « app de soirée ». Le modèle implémenté en base est celui du CDC : **note publique entière de 1 à 10**, jury sur **10 ou 20** par demi-point, résultats séparés ou combinés et agrégation par moyenne ou points de place. Le moteur de classement est dans `serveur/classements.mjs`, avec le cas Vinuesa. Les critères personnalisés, étoiles/favoris pour les passages et coefficients par épreuve décrits dans la recherche ne font pas partie de cette implémentation.

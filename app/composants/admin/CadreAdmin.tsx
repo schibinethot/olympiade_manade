@@ -15,6 +15,7 @@ const LIENS = [
   { vers: '/admin/participants', libelle: 'Participants' },
   { vers: '/admin/juges', libelle: 'Juges' },
   { vers: '/admin/messages', libelle: 'Messages' },
+  { vers: '/admin/abonnes', libelle: 'Abonnés' },
   { vers: '/admin/statistiques', libelle: 'Statistiques' },
 ] as const;
 

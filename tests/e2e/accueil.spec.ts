@@ -6,11 +6,13 @@ test.beforeEach(async ({ page }) => { await simulerTurnstile(page); });
 
 // Tests de la fiche complétée par task-3-addendum.md (état « hors soirée »).
 
-test('sur mobile, « Notez les Olympiades », le bouton grisé et la raison sont visibles sans défiler', async ({ page }, info) => {
+test('sur mobile, le vote reste accessible après l’encart des actualités', async ({ page }, info) => {
   test.skip(info.project.name !== 'mobile', 'critère mobile');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Notez les Olympiades' })).toBeInViewport();
+  await expect(page.getByRole('region', { name: 'Toute l’Olympiade, dans votre boîte mail.' })).toBeInViewport();
+  await page.getByRole('region', { name: 'Notez les Olympiades' }).scrollIntoViewIfNeeded();
+  await expect(page.getByRole('heading', { name: 'Notez les Olympiades' })).toBeVisible();
   const bouton = page.getByRole('button', { name: /Je note les manades/ });
   await expect(bouton).toBeInViewport();
   await expect(bouton).toHaveAttribute('aria-disabled', 'true');
@@ -139,7 +141,7 @@ test('le formulaire de contact de l’accueil envoie une seule fois et confirme'
   });
   await page.goto('/');
   await page.getByLabel('Prénom').fill('Léa');
-  await page.getByLabel('Email').fill('lea@exemple.fr');
+  await page.getByLabel('Email', { exact: true }).fill('lea@exemple.fr');
   await page.getByLabel('Message').fill('Bonjour, quelle sera la date à Nîmes en 2027 ?');
   const bouton = page.getByRole('button', { name: 'Envoyer' });
   await bouton.click();
@@ -160,7 +162,7 @@ test('le formulaire de contact refuse un message trop court sans appeler le serv
   });
   await page.goto('/');
   await page.getByLabel('Prénom').fill('Léa');
-  await page.getByLabel('Email').fill('lea@exemple.fr');
+  await page.getByLabel('Email', { exact: true }).fill('lea@exemple.fr');
   await page.getByLabel('Message').fill('Court');
   await page.getByRole('button', { name: 'Envoyer' }).click();
   await expect(page.getByText(/au moins 10 caractères/)).toBeVisible();
@@ -174,7 +176,7 @@ test('le formulaire de contact signale un échec d’envoi', async ({ page }) =>
   );
   await page.goto('/');
   await page.getByLabel('Prénom').fill('Léa');
-  await page.getByLabel('Email').fill('lea@exemple.fr');
+  await page.getByLabel('Email', { exact: true }).fill('lea@exemple.fr');
   await page.getByLabel('Message').fill('Bonjour, quelle sera la date à Nîmes en 2027 ?');
   await page.getByRole('button', { name: 'Envoyer' }).click();
   await expect(page.getByText('Message non enregistré.')).toBeVisible();
@@ -196,7 +198,7 @@ test('le formulaire de contact signale le plafond de messages atteint, une seule
   });
   await page.goto('/');
   await page.getByLabel('Prénom').fill('Léa');
-  await page.getByLabel('Email').fill('lea@exemple.fr');
+  await page.getByLabel('Email', { exact: true }).fill('lea@exemple.fr');
   await page.getByLabel('Message').fill('Bonjour, quelle sera la date à Nîmes en 2027 ?');
   await page.getByRole('button', { name: 'Envoyer' }).click();
   await expect(page.getByText('Trop de demandes. Réessayez plus tard.')).toBeVisible();
@@ -213,9 +215,9 @@ test('le champ piège est transmis au serveur qui répond sans déposer le messa
   });
   await page.goto('/');
   await page.getByLabel('Prénom').fill('Robot');
-  await page.getByLabel('Email').fill('robot@exemple.fr');
+  await page.getByLabel('Email', { exact: true }).fill('robot@exemple.fr');
   await page.getByLabel('Message').fill('Message automatique de plus de dix caractères.');
-  await page.locator('input[name="site_web"]').fill('https://spam.example', { force: true });
+  await page.getByRole('region', { name: 'Infos & dates' }).locator('input[name="site_web"]').fill('https://spam.example', { force: true });
   await page.getByRole('button', { name: 'Envoyer' }).click();
   await expect(page.getByText('Merci, votre message est enregistré. Il n’est pas envoyé par email automatiquement.')).toBeVisible();
   expect(appels).toBe(1);

@@ -50,6 +50,9 @@ type Pages = {
   "/admin/messages": {
     params: {};
   };
+  "/admin/abonnes": {
+    params: {};
+  };
   "/admin/juges": {
     params: {};
   };
@@ -95,7 +98,7 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/classements" | "/dates" | "/contact" | "/mentions-legales" | "/confidentialite" | "/noter" | "/inscription" | "/inscription/code" | "/admin" | "/admin/statistiques" | "/admin/participants" | "/admin/messages" | "/admin/juges" | "/admin/soirees" | "/admin/soirees/:soireeId" | "/admin/soirees/:soireeId/direct" | "/admin/soirees/:soireeId/resultats" | "/admin/vitrine" | "/compte" | "/ecran/:slug" | "/jury" | "/*";
+    page: "/" | "/classements" | "/dates" | "/contact" | "/mentions-legales" | "/confidentialite" | "/noter" | "/inscription" | "/inscription/code" | "/admin" | "/admin/statistiques" | "/admin/participants" | "/admin/messages" | "/admin/abonnes" | "/admin/juges" | "/admin/soirees" | "/admin/soirees/:soireeId" | "/admin/soirees/:soireeId/direct" | "/admin/soirees/:soireeId/resultats" | "/admin/vitrine" | "/compte" | "/ecran/:slug" | "/jury" | "/*";
   };
   "routes/accueil.tsx": {
     id: "routes/accueil";
@@ -148,6 +151,10 @@ type RouteFiles = {
   "routes/admin-messages.tsx": {
     id: "routes/admin-messages";
     page: "/admin/messages";
+  };
+  "routes/admin-abonnes.tsx": {
+    id: "routes/admin-abonnes";
+    page: "/admin/abonnes";
   };
   "routes/admin-juges.tsx": {
     id: "routes/admin-juges";
@@ -206,6 +213,7 @@ type RouteModules = {
   "routes/admin-statistiques": typeof import("./app/routes/admin-statistiques.tsx");
   "routes/admin-participants": typeof import("./app/routes/admin-participants.tsx");
   "routes/admin-messages": typeof import("./app/routes/admin-messages.tsx");
+  "routes/admin-abonnes": typeof import("./app/routes/admin-abonnes.tsx");
   "routes/admin-juges": typeof import("./app/routes/admin-juges.tsx");
   "routes/admin-soirees": typeof import("./app/routes/admin-soirees.tsx");
   "routes/admin-soiree": typeof import("./app/routes/admin-soiree.tsx");

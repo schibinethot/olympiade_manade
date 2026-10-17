@@ -44,6 +44,11 @@ export default function Confidentialite() {
               <strong>Inscription au vote</strong>&nbsp;: prénom et email, puis un code reçu par email pour vous connecter.
             </li>
             <li>
+              <strong>Abonnement aux actualités</strong>&nbsp;: adresse email, date et texte du consentement, recueillis
+              dans l’encart de l’accueil. La case d’accord est décochée par défaut. Cette inscription est indépendante
+              du compte de vote et protégée par une vérification anti-robot.
+            </li>
+            <li>
               <strong>Disponibilité du service</strong>&nbsp;: lorsque vous êtes connecté et que l’application est visible,
               un signal périodique met à jour la dernière activité de votre compte pour estimer le nombre de comptes actifs.
               Il ne contient ni la page visitée, ni l’adresse IP, ni le contenu de vos notes. Seuls les administrateurs
@@ -64,6 +69,8 @@ export default function Confidentialite() {
             </li>
           </ul>
           <p>Aucune newsletter sans case dédiée, décochée par défaut.</p>
+          <p>Avec votre accord, l’organisation peut vous adresser les actualités, dates, informations pratiques,
+            ouverture des votes, notations et résultats de l’Olympiade des Manades. Vous pouvez retirer cet accord via le {LIEN_CONTACT}.</p>
           <p>Aucune décision fondée exclusivement sur un traitement automatisé ne vous concerne.</p>
         </SectionLegale>
 
@@ -76,6 +83,7 @@ export default function Confidentialite() {
 
         <SectionLegale id="duree" titre="Durée de conservation">
           <ul>
+            <li>Abonnement aux actualités&nbsp;: adresse et consentement conservés jusqu’à votre demande de retrait ou l’arrêt de la liste d’information.</li>
             <li>Comptes spectateurs inactifs&nbsp;: supprimés après 24 mois d’inactivité.</li>
             <li>Mesures techniques agrégées et derniers signaux d’activité&nbsp;: conservation de 30 jours.</li>
             <li>

@@ -153,12 +153,13 @@ enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
 # Front hébergé sur Railway (lot Vitrine).
-site_url = "https://olympiademanade-production.up.railway.app"
+site_url = "https://olympiadedesmanades.fr"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
 # Chemin précis de production, sans joker ni route morte. Un environnement local doit utiliser
 # son propre fichier de configuration et ne doit pas élargir cette allowlist en production.
 additional_redirect_urls = [
-  "https://olympiademanade-production.up.railway.app/inscription/code",
+  "https://olympiadedesmanades.fr/inscription/code",
+  "https://olympiadedesmanades.fr/jury",
 ]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600

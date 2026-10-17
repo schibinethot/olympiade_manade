@@ -7,6 +7,7 @@ import {
   momentSoiree,
   prochaineSoireeA,
   saisonAccueil,
+  soireeAfficheAccueil,
   soireeDeReference,
   texteCompteARebours,
 } from '../../app/lib/accueil';
@@ -102,6 +103,25 @@ describe('prochaineSoireeA', () => {
     const calendrier = [soiree('2027-05-07', 'Alès'), soiree('2026-08-21', 'Nîmes'), soiree('2027-08-20', 'Nîmes')];
     expect(prochaineSoireeA(calendrier, 'Nîmes', new Date('2026-10-10T12:00:00+02:00'))?.date_soiree).toBe('2027-08-20');
     expect(prochaineSoireeA(calendrier, 'Nîmes', new Date('2027-09-01T12:00:00+02:00'))).toBeNull();
+  });
+});
+
+describe('soireeAfficheAccueil', () => {
+  const calendrier = [
+    soiree('2027-05-01', 'Arles', { statut: 'confirmee' }),
+    soiree('2027-08-19', 'Mouriès'),
+    soiree('2027-08-20', 'Nîmes', { heure: '21:00:00' }),
+  ];
+
+  it('n’affiche pas la date Nîmes tant qu’une autre soirée est la prochaine du calendrier', () => {
+    expect(soireeAfficheAccueil(calendrier, 'Nîmes', new Date('2026-10-10T12:00:00+02:00'))).toBeNull();
+    expect(soireeAfficheAccueil(calendrier, 'Nîmes', new Date('2027-08-18T12:00:00+02:00'))).toBeNull();
+  });
+
+  it('affiche la date Nîmes quand c’est la prochaine soirée du calendrier', () => {
+    const affiche = soireeAfficheAccueil(calendrier, 'Nîmes', new Date('2027-08-20T12:00:00+02:00'));
+    expect(affiche?.ville).toBe('Nîmes');
+    expect(affiche?.date_soiree).toBe('2027-08-20');
   });
 });
 

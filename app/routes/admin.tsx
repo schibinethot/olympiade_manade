@@ -106,6 +106,7 @@ export default function Admin() {
           <Link to="/admin/participants" className="inline-flex min-h-12 items-center rounded-xl border border-trait px-5 font-semibold">Participants</Link>
           <Link to="/admin/juges" className="inline-flex min-h-12 items-center rounded-xl border border-trait px-5 font-semibold">Juges</Link>
           <Link to="/admin/messages" className="inline-flex min-h-12 items-center rounded-xl border border-trait px-5 font-semibold">Messages de contact</Link>
+          <Link to="/admin/abonnes" className="inline-flex min-h-12 items-center rounded-xl border border-trait px-5 font-semibold">Abonnés aux actualités</Link>
           <Link to="/admin/statistiques" className="inline-flex min-h-12 items-center rounded-xl bg-encre px-5 font-semibold text-sable">Statistiques et charge →</Link>
         </nav> :
         acces === 'deux-facteurs-requis' && facteurId ? <div className="grid gap-4">

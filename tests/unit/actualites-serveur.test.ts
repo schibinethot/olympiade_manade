@@ -4,12 +4,15 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   CONSENTEMENT_ACTUALITES_TEXTE,
   CONSENTEMENT_ACTUALITES_VERSION,
+  actualitesDepuisEnvironnement,
   creerActualites,
+  ipClientActualites,
   validerCorpsActualites,
 } from '../../serveur/actualites.mjs';
 
 const ORIGINE = 'http://127.0.0.1:4173';
 const CHAMPS = { email: 'Lea@Exemple.fr', consentement: true, site_web: '', turnstileToken: 'jeton-test' };
+const fetchReel = fetch;
 
 type ServeurTest = { base: string; fermer: () => Promise<void> };
 const serveurs: ServeurTest[] = [];
@@ -39,10 +42,20 @@ function configuration(fetchFn: typeof fetch, plus: Partial<Parameters<typeof cr
 }
 
 function deposer(base: string, champs: Record<string, unknown> = CHAMPS) {
-  return fetch(`${base}/api/actualites`, {
+  return fetchReel(`${base}/api/actualites`, {
     method: 'POST',
     headers: { Origin: ORIGINE, 'Content-Type': 'application/json' },
     body: JSON.stringify(champs),
+  });
+}
+
+function environnement(plus: Record<string, string> = {}) {
+  return actualitesDepuisEnvironnement({
+    VITE_SUPABASE_URL: 'http://127.0.0.1:54321',
+    SUPABASE_SERVICE_ROLE_KEY: 'service-secret',
+    TURNSTILE_SECRET_KEY: 'turnstile-secret',
+    CONTACT_ORIGIN: ORIGINE,
+    ...plus,
   });
 }
 
@@ -68,6 +81,74 @@ describe('validation serveur des abonnements aux actualités', () => {
       body: JSON.stringify(CHAMPS),
     });
     expect(reponse.status).toBe(403);
+  });
+
+  it('ne fait confiance qu’au X-Real-IP Railway explicitement activé', () => {
+    const req = {
+      headers: {
+        'x-real-ip': '203.0.113.8',
+        'x-forwarded-for': '198.51.100.1',
+      },
+      socket: { remoteAddress: '192.0.2.1' },
+    } as never;
+    expect(ipClientActualites(req, false)).toBe('192.0.2.1');
+    expect(ipClientActualites(req, true)).toBe('203.0.113.8');
+
+    const invalide = {
+      headers: { 'x-real-ip': '203.0.113.8, 198.51.100.1' },
+      socket: { remoteAddress: '192.0.2.1' },
+    } as never;
+    expect(ipClientActualites(invalide, true)).toBe('192.0.2.1');
+  });
+
+  it('applique par défaut 3 tentatives par IP et 1 000 dépôts humains par fenêtre', () => {
+    const actualites = configuration(async () => new Response('{}'));
+    expect(actualites.limiter.accepter('203.0.113.1')).toBe(true);
+    expect(actualites.limiter.accepter('203.0.113.1')).toBe(true);
+    expect(actualites.limiter.accepter('203.0.113.1')).toBe(true);
+    expect(actualites.limiter.accepter('203.0.113.1')).toBe(false);
+    for (let i = 0; i < 1_000; i++) expect(actualites.limiterDepots.accepter()).toBe(true);
+    expect(actualites.limiterDepots.accepter()).toBe(false);
+  });
+
+  it('lit les limites et la confiance Railway depuis les variables ACTUALITES dédiées', async () => {
+    const appels: Array<{ url: string; init?: RequestInit }> = [];
+    const demander = async (url: URL | RequestInfo, init?: RequestInit) => {
+      appels.push({ url: String(url), init });
+      if (String(url).includes('siteverify')) {
+        return new Response(JSON.stringify({ success: true, action: 'actualites', hostname: '127.0.0.1' }));
+      }
+      return new Response('', { status: 201 });
+    };
+    const precedent = globalThis.fetch;
+    globalThis.fetch = demander as typeof fetch;
+    try {
+      const variables = {
+        ACTUALITES_TRUST_RAILWAY_PROXY: 'true',
+        ACTUALITES_RATE_IP_LIMIT: '2',
+        ACTUALITES_RATE_GLOBAL_LIMIT: '1',
+        ACTUALITES_RATE_MAX_IPS: '100',
+      };
+      const limites = environnement(variables);
+      expect(limites.limiter.accepter('198.51.100.1')).toBe(true);
+      expect(limites.limiter.accepter('198.51.100.1')).toBe(true);
+      expect(limites.limiter.accepter('198.51.100.1')).toBe(false);
+      for (let i = 0; i < 120; i++) expect(limites.limiter.accepter(`2001:db8::${i.toString(16)}`)).toBe(true);
+      expect(limites.limiter.taille()).toBeLessThanOrEqual(100);
+      expect(limites.limiterDepots.accepter()).toBe(true);
+      expect(limites.limiterDepots.accepter()).toBe(false);
+
+      const serveur = await lancer(environnement(variables));
+      const entetes = { Origin: ORIGINE, 'Content-Type': 'application/json', 'X-Real-IP': '203.0.113.9' };
+      const envoyer = () => fetchReel(`${serveur.base}/api/actualites`, {
+        method: 'POST', headers: entetes, body: JSON.stringify(CHAMPS),
+      });
+      expect((await envoyer()).status).toBe(200);
+      expect((await envoyer()).status).toBe(429);
+      expect(String(appels[0].init?.body)).toContain('remoteip=203.0.113.9');
+    } finally {
+      globalThis.fetch = precedent;
+    }
   });
 
   it('valide l’action Turnstile puis persiste la preuve de consentement avec service_role', async () => {

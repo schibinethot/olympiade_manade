@@ -5,7 +5,7 @@ import { formaterHeure } from '../lib/dates';
 import type { Calendrier } from '../lib/donnees';
 
 type Props = {
-  /** Prochaine soirée de Nîmes d'après le calendrier ; sans elle, l'affiche n'annonce pas de date. */
+  /** Prochaine soirée du calendrier quand elle est aussi celle de l'affiche (Nîmes) ; sinon pas de date. */
   soiree: Calendrier | null;
 };
 
@@ -54,7 +54,10 @@ export function Affiche({ soiree }: Props) {
       </div>
       {/* Voile en dégradé, en haut et en bas, pour la lisibilité des textes sur la photo
           (app/app.css, .voile-affiche). */}
-      <div aria-hidden="true" className="voile-affiche absolute inset-0" />
+      <div
+        aria-hidden="true"
+        className={`voile-affiche absolute inset-0 ${soiree ? 'voile-affiche--avec-date' : 'voile-affiche--sans-date'}`}
+      />
       <div aria-hidden="true" className="grain absolute inset-0 opacity-30" />
 
       <div className="relative z-10 flex items-start justify-between gap-3 [text-shadow:0_0_2px_rgba(60,15,5,.7),0_1px_3px_rgba(60,15,5,.5),0_2px_16px_rgba(90,20,5,.55)]">
