@@ -1,6 +1,6 @@
 import net from 'node:net';
 import { describe, expect, it } from 'vitest';
-import { composerCourriel, courrielDepuisEnvironnement } from '../../serveur/courriel.mjs';
+import { composerCourriel, construireMessage, courrielDepuisEnvironnement, emailsDepuisEnvironnement, masquerEmail } from '../../serveur/courriel.mjs';
 import { creerContact } from '../../serveur/contact.mjs';
 
 describe('courriel organisateur', () => {
@@ -65,5 +65,76 @@ describe('contact et email', () => {
     } finally {
       await new Promise((ok) => serveur.close(ok));
     }
+  });
+});
+
+describe('construireMessage', () => {
+  const base = { from: 'Olympiade des Manades <bonjour@olympiadedesmanades.fr>', to: 'camille@exemple.fr', subject: 'Demain : l’Olympiade à Sommières !', text: 'Bonjour Camille,\n.à demain', html: '<p>Bonjour Camille</p>' };
+
+  it('produit un multipart/alternative en base64 avec objet RFC 2047', () => {
+    const message = construireMessage(base);
+    expect(message).toContain('Subject: =?UTF-8?B?');
+    expect(message).toContain('multipart/alternative');
+    expect(message).toContain('Content-Type: text/plain; charset=utf-8');
+    expect(message).toContain('Content-Type: text/html; charset=utf-8');
+    expect(message).toMatch(/\r\nMIME-Version: 1\.0\r\n/);
+    expect(message).toMatch(/\r\nDate: /);
+    expect(message).toMatch(/\r\nMessage-ID: <[^@>\s]+@olympiadedesmanades\.fr>\r\n/);
+    expect(message).toMatch(/^From: =\?UTF-8\?B\?[A-Za-z0-9+/=]+\?= <bonjour@olympiadedesmanades\.fr>\r\n/);
+    expect(message).not.toContain('Sommières');
+    const lignes = message.split('\r\n');
+    const base64 = lignes.filter((ligne) => /^[A-Za-z0-9+/=]{20,}$/.test(ligne));
+    expect(base64.length).toBeGreaterThan(0);
+    expect(base64.every((ligne) => ligne.length <= 76)).toBe(true);
+    expect(lignes.some((ligne) => ligne.startsWith('.'))).toBe(false);
+    expect(lignes.every((ligne) => ligne.length <= 998)).toBe(true);
+  });
+
+  it('reste mono-partie sans html, et rejette un en-tête avec CR ou LF', () => {
+    const simple = construireMessage({ ...base, html: undefined });
+    expect(simple).not.toContain('multipart/alternative');
+    expect(simple).toContain('Content-Type: text/plain; charset=utf-8');
+    expect(() => construireMessage({ ...base, headers: { 'List-Unsubscribe': '<https://x>\r\nBcc: pirate@exemple.fr' } })).toThrow();
+    expect(() => construireMessage({ ...base, headers: { 'X-Test': 'a\nb' } })).toThrow();
+    expect(() => construireMessage({ ...base, subject: 'a\r\nBcc: x@y.z' })).toThrow();
+    expect(construireMessage({ ...base, headers: { 'List-Unsubscribe': '<https://x>' } })).toContain('List-Unsubscribe: <https://x>\r\n');
+  });
+
+  it('masque les adresses', () => {
+    expect(masquerEmail('camille@exemple.fr')).toBe('c***@exemple.fr');
+  });
+});
+
+describe('emailsDepuisEnvironnement', () => {
+  const smtp = { SMTP_MODE: 'smtp', SMTP_HOST: 'smtp.exemple.fr', SMTP_PORT: '587', SMTP_USER: 'u', SMTP_PASS: 'p', EMAILS_FROM: 'Olympiade <bonjour@exemple.fr>' };
+
+  it('journalise en mode log sans corps ni adresse en clair', async () => {
+    const journaux: unknown[] = [];
+    const emails = emailsDepuisEnvironnement({ SMTP_MODE: 'log' }, { journal: (ligne) => journaux.push(ligne) });
+    const resultat = await emails.envoyer({ to: 'camille@exemple.fr', subject: 'Sujet', text: 'secret du corps', html: '<p>secret</p>' });
+    expect(resultat).toEqual({ mode: 'log', envoye: false, echec: false });
+    expect(journaux).toEqual([{ level: 'info', message: 'email journalisé', to: 'c***@exemple.fr', subject: 'Sujet' }]);
+    expect(JSON.stringify(journaux)).not.toContain('camille@exemple.fr');
+    expect(JSON.stringify(journaux)).not.toContain('secret');
+  });
+
+  it('ne fait rien en mode off', async () => {
+    const emails = emailsDepuisEnvironnement({});
+    expect(emails.mode).toBe('off');
+    await expect(emails.envoyer({ to: 'a@b.fr', subject: 's', text: 't' })).resolves.toEqual({ mode: 'off', envoye: false, echec: false });
+  });
+
+  it('exige toutes les valeurs en smtp et délègue au transport', async () => {
+    expect(emailsDepuisEnvironnement({ ...smtp, EMAILS_FROM: '' }).pret).toBe(false);
+    expect(emailsDepuisEnvironnement({ ...smtp, SMTP_PASS: '' }).pret).toBe(false);
+    const appels: Array<{ from: string; to: string; html?: string; headers?: Record<string, string> }> = [];
+    const emails = emailsDepuisEnvironnement(smtp, { envoyer: async (_cfg, message) => { appels.push(message); } });
+    expect(emails.pret).toBe(true);
+    await expect(emails.envoyer({ to: 'a@b.fr', subject: 's', text: 't', html: '<p>t</p>', headers: { 'X-A': 'b' } })).resolves.toEqual({ mode: 'smtp', envoye: true, echec: false });
+    expect(appels[0]).toMatchObject({ from: 'Olympiade <bonjour@exemple.fr>', to: 'a@b.fr', html: '<p>t</p>', headers: { 'X-A': 'b' } });
+    const casse = emailsDepuisEnvironnement(smtp, { envoyer: async () => { throw new Error('boum'); }, journal: () => undefined });
+    await expect(casse.envoyer({ to: 'a@b.fr', subject: 's', text: 't' })).resolves.toEqual({ mode: 'smtp', envoye: false, echec: true });
+    const incomplet = emailsDepuisEnvironnement({ SMTP_MODE: 'smtp' });
+    await expect(incomplet.envoyer({ to: 'a@b.fr', subject: 's', text: 't' })).resolves.toEqual({ mode: 'smtp', envoye: false, echec: true });
   });
 });

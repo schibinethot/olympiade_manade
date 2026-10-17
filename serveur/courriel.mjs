@@ -6,6 +6,7 @@
 
 import net from 'node:net';
 import tls from 'node:tls';
+import { randomUUID } from 'node:crypto';
 
 /** @param {string | undefined} valeur */
 function texte(valeur) {
@@ -40,13 +41,127 @@ export function composerCourriel(message) {
   ].join('\r\n');
 }
 
+const CRLF = String.fromCharCode(13, 10);
+
+/** @param {string} valeur */
+function sansSautDeLigne(valeur, /** @type {string} */ nom) {
+  if (/[\r\n]/.test(valeur)) throw new Error(`En-tête invalide (saut de ligne) : ${nom}`);
+  return valeur;
+}
+
+/** Base64 découpé à 76 caractères, lignes séparées par CRLF. */
+function base64Mime(/** @type {string} */ valeur) {
+  const brut = Buffer.from(valeur.replaceAll(CRLF, '\n').replaceAll('\n', CRLF), 'utf8').toString('base64');
+  return (brut.match(/.{1,76}/g) ?? ['']).join(CRLF);
+}
+
+/** Mots encodés RFC 2047 (UTF-8, B), au plus 75 caractères chacun, découpés entre deux caractères. */
+function motsEncodes(/** @type {string} */ valeur) {
+  /** @type {string[]} */
+  const mots = [];
+  let courant = '';
+  for (const caractere of valeur) {
+    if (Buffer.byteLength(courant + caractere, 'utf8') > 45) {
+      mots.push(courant);
+      courant = '';
+    }
+    courant += caractere;
+  }
+  if (courant || mots.length === 0) mots.push(courant);
+  return mots.map(sujetEncode).join(`${CRLF} `);
+}
+
+/** « Nom <a@b.fr> » : nom encodé RFC 2047 s’il n’est pas ASCII simple. */
+function adresseAvecNom(/** @type {string} */ adresse) {
+  const m = /^\s*(.*?)\s*<([^<>]+)>\s*$/.exec(adresse);
+  if (!m) return adresse;
+  const nom = m[1].replace(/^"(.*)"$/, '$1');
+  if (!nom) return `<${m[2]}>`;
+  return `${motsEncodes(nom)} <${m[2]}>`;
+}
+
+/** Adresse nue d’un « Nom <a@b.fr> » (enveloppe SMTP). */
+function adresseNue(/** @type {string} */ adresse) {
+  const m = /<([^<>]+)>/.exec(adresse);
+  return (m ? m[1] : adresse).trim();
+}
+
+/**
+ * Message RFC 5322 complet : texte seul, ou multipart/alternative si `html` est présent.
+ * Corps en base64 (76 colonnes), objet et nom d’expéditeur en RFC 2047.
+ * @param {{ from: string, to: string, subject: string, text: string, html?: string, replyTo?: string, headers?: Record<string, string> }} message
+ * @returns {string}
+ */
+export function construireMessage({ from, to, subject, text, html, replyTo, headers }) {
+  sansSautDeLigne(from, 'From');
+  sansSautDeLigne(to, 'To');
+  sansSautDeLigne(subject, 'Subject');
+  if (replyTo) sansSautDeLigne(replyTo, 'Reply-To');
+  const supplementaires = Object.entries(headers ?? {}).map(([nom, valeur]) => {
+    if (!/^[A-Za-z0-9-]+$/.test(nom)) throw new Error(`Nom d’en-tête invalide : ${nom}`);
+    return `${nom}: ${sansSautDeLigne(String(valeur), nom)}`;
+  });
+  const domaine = /@([^@<>\s]+)>?\s*$/.exec(adresseNue(from))?.[1] ?? 'localhost';
+  const enTetes = [
+    `From: ${adresseAvecNom(from)}`,
+    `To: ${to}`,
+    ...(replyTo ? [`Reply-To: ${replyTo}`] : []),
+    `Subject: ${motsEncodes(subject)}`,
+    `Date: ${new Date().toUTCString().replace('GMT', '+0000')}`,
+    `Message-ID: <${randomUUID()}@${domaine}>`,
+    'MIME-Version: 1.0',
+    ...supplementaires,
+  ];
+  if (html === undefined || html === '') {
+    return [
+      ...enTetes,
+      'Content-Type: text/plain; charset=utf-8',
+      'Content-Transfer-Encoding: base64',
+      '',
+      base64Mime(text),
+      '',
+    ].join(CRLF);
+  }
+  const frontiere = `=_manades_${randomUUID().replaceAll('-', '')}`;
+  return [
+    ...enTetes,
+    `Content-Type: multipart/alternative; boundary="${frontiere}"`,
+    '',
+    `--${frontiere}`,
+    'Content-Type: text/plain; charset=utf-8',
+    'Content-Transfer-Encoding: base64',
+    '',
+    base64Mime(text),
+    `--${frontiere}`,
+    'Content-Type: text/html; charset=utf-8',
+    'Content-Transfer-Encoding: base64',
+    '',
+    base64Mime(html),
+    `--${frontiere}--`,
+    '',
+  ].join(CRLF);
+}
+
+/**
+ * Masque une adresse pour les journaux : « camille@exemple.fr » devient « c***@exemple.fr ».
+ * @param {string} email
+ */
+export function masquerEmail(email) {
+  const arobase = String(email).lastIndexOf('@');
+  if (arobase < 1) return '***';
+  return `${String(email)[0]}***${String(email).slice(arobase)}`;
+}
+
 /**
  * @param {{ host: string, port: number, user: string, pass: string, timeoutMs?: number }} smtp
- * @param {{ from: string, to: string, subject: string, text: string, replyTo?: string }} message
+ * @param {{ from: string, to: string, subject: string, text: string, html?: string, replyTo?: string, headers?: Record<string, string> }} message
  */
 export function envoyerSmtp(smtp, message) {
   const timeoutMs = smtp.timeoutMs ?? 10_000;
-  const contenu = composerCourriel(message);
+  // Le contact reste en texte 8bit inchangé ; les e-mails de séquence (html, en-têtes) passent en multipart.
+  const contenu = message.html !== undefined || message.headers ? construireMessage(message) : composerCourriel(message);
+  const expediteur = adresseNue(message.from);
+  const destinataire = adresseNue(message.to);
   return new Promise((resolve, reject) => {
     const echec = (/** @type {Error} */ erreur) => {
       socket.destroy();
@@ -116,11 +231,11 @@ export function envoyerSmtp(smtp, message) {
       }
       if (etape === 'pass' && code === 235) {
         etape = 'from';
-        return envoyer(`MAIL FROM:<${message.from}>`);
+        return envoyer(`MAIL FROM:<${expediteur}>`);
       }
       if (etape === 'from' && code === 250) {
         etape = 'to';
-        return envoyer(`RCPT TO:<${message.to}>`);
+        return envoyer(`RCPT TO:<${destinataire}>`);
       }
       if (etape === 'to' && code === 250) {
         etape = 'data';
@@ -182,6 +297,49 @@ export function courrielDepuisEnvironnement(env, deps = {}) {
       if (!pret || !from || !to) return { mode, envoye: false, echec: true };
       await transport({ host, port, user, pass }, { from, to, subject: sujet, text, replyTo: contact.email });
       return { mode, envoye: true, echec: false };
+    },
+  };
+}
+
+/**
+ * Envoi des e-mails de la séquence (SMTP_* et EMAILS_FROM). Même modes que le contact.
+ * @param {NodeJS.ProcessEnv | Record<string, string | undefined>} env
+ * @param {{ journal?: (ligne: unknown) => void, envoyer?: typeof envoyerSmtp }} [deps]
+ */
+export function emailsDepuisEnvironnement(env, deps = {}) {
+  const mode = env.SMTP_MODE === 'smtp' ? 'smtp' : env.SMTP_MODE === 'log' ? 'log' : 'off';
+  const host = texte(env.SMTP_HOST);
+  const port = Number(env.SMTP_PORT || 587);
+  const user = texte(env.SMTP_USER);
+  const pass = texte(env.SMTP_PASS);
+  const from = texte(env.EMAILS_FROM);
+  const journal = deps.journal ?? ((ligne) => console.log(JSON.stringify(ligne)));
+  const transport = deps.envoyer ?? envoyerSmtp;
+  const pret = mode !== 'smtp' || Boolean(host && Number.isInteger(port) && port > 0 && user && pass && from);
+
+  return {
+    mode,
+    pret,
+    /**
+     * @param {{ to: string, subject: string, text: string, html?: string, headers?: Record<string, string> }} email
+     * @returns {Promise<{ mode: 'off' | 'log' | 'smtp', envoye: boolean, echec: boolean }>}
+     */
+    async envoyer(email) {
+      if (mode === 'off') return { mode, envoye: false, echec: false };
+      if (mode === 'log') {
+        journal({ level: 'info', message: 'email journalisé', to: masquerEmail(email.to), subject: email.subject });
+        return { mode, envoye: false, echec: false };
+      }
+      if (!pret) return { mode, envoye: false, echec: true };
+      try {
+        await transport({ host, port, user, pass }, {
+          from, to: email.to, subject: email.subject, text: email.text, html: email.html, headers: email.headers,
+        });
+        return { mode, envoye: true, echec: false };
+      } catch (erreur) {
+        journal({ level: 'error', message: 'échec d’envoi email', to: masquerEmail(email.to), erreur: erreur instanceof Error ? erreur.message : 'inconnue' });
+        return { mode, envoye: false, echec: true };
+      }
     },
   };
 }
