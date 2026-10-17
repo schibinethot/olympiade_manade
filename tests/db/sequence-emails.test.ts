@@ -382,6 +382,12 @@ describe('séquence d’e-mails : droits', () => {
       expect(
         (await db.query(`update public.modeles_emails set sujet = 'Confirmez' where cle = 'confirmation'`)).rowCount,
       ).toBe(1);
+      for (const jours of [-14, 7]) {
+        expect(
+          (await db.query(`update public.modeles_emails set jours_decalage = $1 where cle = 'veille'`, [jours])).rowCount,
+          String(jours),
+        ).toBe(1);
+      }
 
       expect(
         await doitEtreRefuse(
@@ -407,8 +413,9 @@ describe('séquence d’e-mails : droits', () => {
         ['veille', `corps = repeat('x', 8001)`],
         ['bienvenue', `encart = repeat('x', 4001)`],
         ['veille', `encart = 'Encart hors bienvenue'`],
-        ['veille', 'jours_decalage = 31'],
-        ['veille', 'jours_decalage = -31'],
+        // De J-14 à J+7 : toute étape réglable reste dans la fenêtre de la RPC (J-8 à J+17).
+        ['veille', 'jours_decalage = 8'],
+        ['veille', 'jours_decalage = -15'],
         ['veille', 'jours_decalage = null'],
         ['veille', `heure_envoi = '06:59'`],
         ['veille', `heure_envoi = '21:01'`],
@@ -1348,6 +1355,80 @@ describe('séquence d’e-mails : RPC emails_a_traiter', () => {
       await db.query(`update public.calendrier set statut = 'confirmee' where date_soiree = '2027-06-10'`);
       const juinConfirme = await appelerRpc(db, '2027-06-01T08:00:00.000Z', true);
       expect(juinConfirme.destinataires.map((d) => d.email)).toContain('annonces@exemple.fr');
+    }));
+
+  it('la bienvenue d’un confirmé depuis moins de 24 h trouve sa date à venir, même au-delà de J+17, sans doublon', () =>
+    dansUneTransaction(async (db) => {
+      // 15/03/2027 à 10:00 heure de Paris : la saison n'a pas commencé.
+      const maintenant = '2027-03-15T09:00:00.000Z';
+      const ilYa = (h: number) => new Date(Date.parse(maintenant) - h * 3600_000).toISOString();
+      await viderCalendrier(db);
+      const ancienne = await ajouterDateFixe(db, '2027-01-10', 'confirmee'); // passée, hors fenêtre
+      const proche = await ajouterDateFixe(db, '2027-03-20', 'confirmee'); // J+5, dans la fenêtre
+      const lointaine = await ajouterDateFixe(db, '2027-05-14', 'confirmee', 'Arles'); // J+60
+      const juin = await ajouterDateFixe(db, '2027-06-01', 'confirmee'); // suivie par la seule désinscrite
+
+      const printemps = await insererDestinataire(db, 'printemps@exemple.fr', { confirme_le: ilYa(1) });
+      const printemps2 = await insererDestinataire(db, 'printemps2@exemple.fr', { confirme_le: ilYa(3) });
+      const avantHier = await insererDestinataire(db, 'avant-hier@exemple.fr', { confirme_le: ilYa(48) });
+      // Confirmée il y a 1 h, désinscrite, puis redéposée par un tiers : présente pour sa confirmation.
+      const desinscrite = await insererDestinataire(db, 'stop@exemple.fr', {
+        aConfirmer: true,
+        confirme_le: ilYa(1),
+        desinscrit_le: ilYa(0.5),
+      });
+      await commeSuperutilisateur(db);
+      await db.query('delete from public.rattachements_emails');
+      await db.query(
+        `insert into public.rattachements_emails (destinataire_id, calendrier_id, origine) values
+           ($1, $4, 'inscription'), ($1, $5, 'je_viens'), ($1, $6, 'inscription'),
+           ($2, $4, 'inscription'), ($3, $4, 'inscription'), ($3, $5, 'je_viens'), ($7, $8, 'inscription')`,
+        [printemps, printemps2, avantHier, lointaine, proche, ancienne, desinscrite, juin],
+      );
+      // Un envoi sur la date lointaine, vieux de plus de 10 jours, suit sa date dans `dates`.
+      await insererEnvoi(db, printemps, 'annonce', { calendrierId: lointaine, statut: 'saute', creeLe: ilYa(24 * 20) });
+
+      const r = await appelerRpc(db, maintenant, true);
+      // La date lointaine n'apparaît qu'une fois, même suivie par deux candidats à la bienvenue.
+      expect(r.dates.map((d) => d.id)).toEqual([proche, lointaine]);
+      const loin = r.dates.find((d) => d.id === lointaine);
+      expect(Object.keys(loin ?? {}).sort()).toEqual(Object.keys(r.dates[0]).sort());
+      expect(loin).toMatchObject({ date_soiree: '2027-05-14', ville: 'Arles', statut: 'confirmee', manades: [] });
+
+      // Confirmée il y a deux jours, présente par sa date de la fenêtre : sa date lointaine n'est pas renvoyée.
+      expect(r.destinataires.map((d) => d.email).sort()).toEqual([
+        'avant-hier@exemple.fr',
+        'printemps2@exemple.fr',
+        'printemps@exemple.fr',
+        'stop@exemple.fr',
+      ]);
+      const libelle = new Map([
+        [avantHier, 'avant-hier'],
+        [printemps, 'printemps'],
+        [printemps2, 'printemps2'],
+        [proche, 'proche'],
+        [lointaine, 'lointaine'],
+        [ancienne, 'ancienne'],
+      ]);
+      expect(
+        r.rattachements.map((x) => `${libelle.get(x.destinataire_id)}→${libelle.get(x.calendrier_id)}`).sort(),
+      ).toEqual(['avant-hier→proche', 'printemps2→lointaine', 'printemps→lointaine', 'printemps→proche']);
+      expect(r.envois.map((e) => `${e.etape}:${libelle.get(e.calendrier_id as string)}`)).toEqual(['annonce:lointaine']);
+
+      // Confirmée il y a deux jours : ni la date lointaine ni le rattachement.
+      await db.query('delete from public.rattachements_emails where destinataire_id in ($1, $2)', [printemps, printemps2]);
+      await db.query('delete from public.envois_emails');
+      const sans = await appelerRpc(db, maintenant, true);
+      expect(sans.dates.map((d) => d.id)).toEqual([proche]);
+      expect(sans.rattachements.map((x) => `${libelle.get(x.destinataire_id)}→${libelle.get(x.calendrier_id)}`)).toEqual([
+        'avant-hier→proche',
+      ]);
+      expect(sans.destinataires.map((d) => d.email).sort()).toEqual([
+        'avant-hier@exemple.fr',
+        'printemps2@exemple.fr',
+        'printemps@exemple.fr',
+        'stop@exemple.fr',
+      ]);
     }));
 });
 

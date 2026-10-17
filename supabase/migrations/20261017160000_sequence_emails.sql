@@ -44,7 +44,8 @@ create table public.modeles_emails (
   constraint modeles_emails_encart_bienvenue check (
     (cle = 'bienvenue') = (encart is not null) and (encart is null or length(encart) <= 4000)
   ),
-  constraint modeles_emails_jours_bornes check (jours_decalage is null or jours_decalage between -30 and 30),
+  -- De J-14 à J+7 : toute étape réglable tombe dans la fenêtre de la RPC emails_a_traiter (J-8 à J+17).
+  constraint modeles_emails_jours_bornes check (jours_decalage is null or jours_decalage between -14 and 7),
   constraint modeles_emails_heure_bornee check (heure_envoi is null or heure_envoi between '07:00' and '21:00'),
   -- Une étape calée sur une date a toujours son échéance : sans elle, le planificateur ne saurait pas quand l'envoyer.
   constraint modeles_emails_echeance_complete check (
@@ -621,38 +622,6 @@ as $$
     order by c.date_soiree, c.heure nulls last, c.id
     limit 6
   ),
-  enrichies as (
-    select c.id, c.date_soiree, c.heure,
-           jsonb_build_object(
-             'id', c.id,
-             'nom', c.nom,
-             'ville', c.ville,
-             'arenes', c.arenes,
-             'date_soiree', c.date_soiree,
-             'heure', c.heure,
-             'statut', c.statut,
-             'lien_billetterie', c.lien_billetterie,
-             'infos_pratiques', c.infos_pratiques,
-             'soiree', case when s.id is null then null
-                            else jsonb_build_object('slug', s.slug, 'statut', s.statut) end,
-             'manades', coalesce((
-               select jsonb_agg(m.nom order by sm.ordre, m.nom)
-               from public.soiree_manades sm
-               join public.manades m on m.id = sm.manade_id
-               where sm.soiree_id = c.soiree_id
-             ), '[]'::jsonb),
-             'vainqueur', (
-               select p.vainqueur
-               from public.palmares p
-               where p.statut = 'confirme' and p.date_soiree = c.date_soiree and p.ville = c.ville
-               order by p.id
-               limit 1
-             )
-           ) as donnees
-    from public.calendrier c
-    left join public.soirees s on s.id = c.soiree_id
-    where c.id in (select f.id from fenetre f) or c.id in (select p.id from prochaines p)
-  ),
   destinataires as (
     select d.id, d.email, d.prenom, d.profil_id, d.abonne, d.abonnement_a_confirmer,
            d.desinscrit_le is not null as desinscrit, d.annonces, d.confirme_le, d.inscrit_le
@@ -692,6 +661,56 @@ as $$
           )
         )
       )
+  ),
+  -- Candidats à la bienvenue (confirmés depuis moins de 24 h, non désinscrits) : leur date à venir est
+  -- renvoyée même au-delà de J+17, pour que la bienvenue d'un abonné du printemps cite sa prochaine date.
+  -- Les dates passées hors fenêtre ne servent à rien et ne sont pas ajoutées.
+  bienvenue as (
+    select r.destinataire_id, r.calendrier_id
+    from public.rattachements_emails r
+    join destinataires d on d.id = r.destinataire_id
+    join public.calendrier c on c.id = r.calendrier_id
+    cross join jour
+    where d.confirme_le > p_maintenant - interval '24 hours'
+      and not d.desinscrit
+      and c.date_soiree > jour.j + 17
+  ),
+  dates_renvoyees as (
+    select f.id from fenetre f
+    union
+    select b.calendrier_id from bienvenue b
+  ),
+  enrichies as (
+    select c.id, c.date_soiree, c.heure,
+           jsonb_build_object(
+             'id', c.id,
+             'nom', c.nom,
+             'ville', c.ville,
+             'arenes', c.arenes,
+             'date_soiree', c.date_soiree,
+             'heure', c.heure,
+             'statut', c.statut,
+             'lien_billetterie', c.lien_billetterie,
+             'infos_pratiques', c.infos_pratiques,
+             'soiree', case when s.id is null then null
+                            else jsonb_build_object('slug', s.slug, 'statut', s.statut) end,
+             'manades', coalesce((
+               select jsonb_agg(m.nom order by sm.ordre, m.nom)
+               from public.soiree_manades sm
+               join public.manades m on m.id = sm.manade_id
+               where sm.soiree_id = c.soiree_id
+             ), '[]'::jsonb),
+             'vainqueur', (
+               select p.vainqueur
+               from public.palmares p
+               where p.statut = 'confirme' and p.date_soiree = c.date_soiree and p.ville = c.ville
+               order by p.id
+               limit 1
+             )
+           ) as donnees
+    from public.calendrier c
+    left join public.soirees s on s.id = c.soiree_id
+    where c.id in (select dr.id from dates_renvoyees dr) or c.id in (select p.id from prochaines p)
   )
   select jsonb_build_object(
     'modeles', (
@@ -717,7 +736,7 @@ as $$
     ),
     'dates', (
       select coalesce(jsonb_agg(e.donnees order by e.date_soiree, e.heure nulls last, e.id), '[]'::jsonb)
-      from enrichies e join fenetre f on f.id = e.id
+      from enrichies e join dates_renvoyees dr on dr.id = e.id
     ),
     'prochaines', (
       select coalesce(jsonb_agg(e.donnees order by e.date_soiree, e.heure nulls last, e.id), '[]'::jsonb)
@@ -741,8 +760,9 @@ as $$
              ), '[]'::jsonb)
       from destinataires d
     ),
-    -- Seulement ceux des adresses confirmées et non désinscrites : aucun rappel de date vers une adresse
-    -- opposée, même quand elle figure ici pour sa seule demande de confirmation.
+    -- Vers une date de la fenêtre, ou date à venir d'un candidat à la bienvenue. Seulement ceux des adresses
+    -- confirmées et non désinscrites : aucun rappel de date vers une adresse opposée, même quand elle figure
+    -- ici pour sa seule demande de confirmation.
     'rattachements', (
       select coalesce(jsonb_agg(
                jsonb_build_object(
@@ -755,11 +775,17 @@ as $$
              ), '[]'::jsonb)
       from public.rattachements_emails r
       join destinataires d on d.id = r.destinataire_id
-      join fenetre f on f.id = r.calendrier_id
       where d.confirme_le is not null and not d.desinscrit
+        and (
+          r.calendrier_id in (select f.id from fenetre f)
+          or exists (
+            select 1 from bienvenue b
+            where b.destinataire_id = r.destinataire_id and b.calendrier_id = r.calendrier_id
+          )
+        )
     ),
-    -- Envois du mode courant : de moins de 10 jours ou portant sur une date de la fenêtre ; confirmation et
-    -- bienvenue quel que soit leur âge, puisqu'elles ne partent qu'une fois.
+    -- Envois du mode courant : de moins de 10 jours ou portant sur une date renvoyée dans `dates` ;
+    -- confirmation et bienvenue quel que soit leur âge, puisqu'elles ne partent qu'une fois.
     'envois', (
       select coalesce(jsonb_agg(
                jsonb_build_object(
@@ -783,7 +809,7 @@ as $$
       where e.reel = p_reel
         and (
           e.cree_le > p_maintenant - interval '10 days'
-          or e.calendrier_id in (select f.id from fenetre f)
+          or e.calendrier_id in (select dr.id from dates_renvoyees dr)
           or e.etape in ('confirmation', 'bienvenue')
         )
     )
