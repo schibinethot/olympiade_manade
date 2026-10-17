@@ -235,109 +235,279 @@ async function enregistrerVideo(navigateur) {
   await contexte.route('**/rest/v1/profils*', (route) =>
     route.fulfill({ json: [{ id: session.user.id, prenom: 'Camille', role: 'admin' }] }),
   );
-  // Données factices pour admin/cookies : paramètres, stats, journal.
+  // Paramètres de bannière pour l'onglet Réglages.
   await contexte.route('**/rest/v1/parametres_cookies*', (route) =>
-    route.fulfill({ json: { id: 1, ...Object.fromEntries(Object.entries(SETTINGS).map(([k, v]) => [k.replace(/[A-Z]/g, (m) => '_' + m.toLowerCase()), v])) } }),
-  );
-  await contexte.route('**/rest/v1/consentements_cookies*', (route) =>
     route.fulfill({
-      headers: { 'content-range': '0-2/3', 'access-control-expose-headers': 'content-range' },
-      json: [
-        { id: '00000000-0000-4000-8000-00000000000f', visiteur_id: 'v_demo_1', ip_hachee: 'h_demo', agent_utilisateur: 'Chrome', consentement_donne: true, mesure_acceptee: true, publicite_acceptee: false, action: 'custom', url_page: 'https://exemple/', provenance: null, cree_le: new Date().toISOString() },
-        { id: '00000000-0000-4000-8000-00000000000e', visiteur_id: 'v_demo_2', ip_hachee: 'h_demo', agent_utilisateur: 'Safari', consentement_donne: true, mesure_acceptee: true, publicite_acceptee: true, action: 'accept_all', url_page: 'https://exemple/noter', provenance: null, cree_le: new Date().toISOString() },
-        { id: '00000000-0000-4000-8000-00000000000d', visiteur_id: 'v_demo_3', ip_hachee: 'h_demo', agent_utilisateur: 'Firefox', consentement_donne: false, mesure_acceptee: false, publicite_acceptee: false, action: 'reject_all', url_page: 'https://exemple/', provenance: null, cree_le: new Date().toISOString() },
-      ],
+      json: {
+        id: 1,
+        ...Object.fromEntries(
+          Object.entries(SETTINGS).map(([k, v]) => [k.replace(/[A-Z]/g, (m) => '_' + m.toLowerCase()), v]),
+        ),
+      },
     }),
   );
 
+  // Données factices COHÉRENTES pour les Statistiques et le Journal.
+  // Totaux inventés : 248 consentements sur 30 jours =
+  //   151 accept_all (61 %) + 64 reject_all (26 %) + 33 custom (13 %).
+  // Mesure acceptée = accept_all + une partie des custom = 151 + 23 = 174 (70 %).
+  // Publicité acceptée = accept_all + une petite partie des custom = 151 + 5 = 156 (63 %).
+  const COMPTEURS = {
+    total: 248,
+    accept_all: 151,
+    reject_all: 64,
+    custom: 33,
+    mesure: 174,
+    publicite: 156,
+  };
+  // Journal mock : 50 lignes alignées sur les compteurs.
+  const JOURNAL_FACTICE = (() => {
+    const lignes = [];
+    const base = Date.now();
+    const pousser = (count, action, mesure, pub) => {
+      for (let i = 0; i < count; i++) {
+        lignes.push({
+          id: `00000000-0000-4000-8000-${(lignes.length + 1).toString().padStart(12, '0')}`,
+          visiteur_id: `v_demo_${lignes.length + 1}`,
+          ip_hachee: `h_demo_${(lignes.length % 7) + 1}`,
+          agent_utilisateur: ['Chrome', 'Safari', 'Firefox', 'Edge'][lignes.length % 4],
+          consentement_donne: action !== 'reject_all',
+          mesure_acceptee: mesure,
+          publicite_acceptee: pub,
+          action,
+          url_page: ['https://exemple/', 'https://exemple/noter', 'https://exemple/dates', 'https://exemple/classements'][lignes.length % 4],
+          provenance: null,
+          cree_le: new Date(base - lignes.length * 1800000).toISOString(),
+        });
+      }
+    };
+    pousser(16, 'accept_all', true, true);     // 16 accept_all récents
+    pousser(5, 'custom', true, false);          // 5 custom (mesure oui, pub non)
+    pousser(2, 'custom', true, true);           // 2 custom (tout)
+    pousser(1, 'custom', false, true);          // 1 custom (pub seule)
+    pousser(26, 'reject_all', false, false);    // 26 reject_all
+    return lignes;
+  })();
+
+  await contexte.route('**/rest/v1/consentements_cookies*', (route) => {
+    const req = route.request();
+    const url = new URL(req.url());
+    const methode = req.method();
+
+    // HEAD (count seulement) : lit l'action/filtre et renvoie le compteur cohérent.
+    if (methode === 'HEAD') {
+      let count = COMPTEURS.total;
+      const action = url.searchParams.get('action');
+      if (action === 'eq.accept_all') count = COMPTEURS.accept_all;
+      else if (action === 'eq.reject_all') count = COMPTEURS.reject_all;
+      else if (action === 'eq.custom') count = COMPTEURS.custom;
+      if (url.searchParams.get('mesure_acceptee') === 'eq.true') count = COMPTEURS.mesure;
+      else if (url.searchParams.get('publicite_acceptee') === 'eq.true') count = COMPTEURS.publicite;
+      return route.fulfill({
+        status: 200,
+        headers: {
+          'content-range': `*/${count}`,
+          'access-control-expose-headers': 'content-range',
+        },
+        body: '',
+      });
+    }
+
+    // GET (journal, paginé) : renvoie les lignes selon Range + total.
+    const range = (req.headers()['range'] || '0-49').match(/(\d+)-(\d+)/);
+    const debut = range ? parseInt(range[1], 10) : 0;
+    const fin = range ? parseInt(range[2], 10) : 49;
+    const lignes = JOURNAL_FACTICE.slice(debut, fin + 1);
+    return route.fulfill({
+      status: 200,
+      headers: {
+        'content-range': `${debut}-${debut + Math.max(0, lignes.length - 1)}/${COMPTEURS.total}`,
+        'access-control-expose-headers': 'content-range',
+      },
+      contentType: 'application/json',
+      body: JSON.stringify(lignes),
+    });
+  });
+
   const page = await contexte.newPage();
 
+  // Petit utilitaire : afficher le carton HTML inline. Hérite d'un même template
+  // (sable + Playfair) pour que l'intro et le final soient visuellement cohérents.
+  // On NAVIGUE vers une data: URL plutôt que setContent (plus fiable en vidéo :
+  // la peinture est faite avant que la promesse ne résolve) et on attend que les
+  // styles soient appliqués avant de rendre la main.
+  async function afficherCarton({ fondClair = true, surtitre, titre, sous }) {
+    const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${surtitre}</title><style>
+      *,*::before,*::after{box-sizing:border-box}
+      html,body{margin:0;padding:0;width:100%;height:100%;}
+      body{background:${fondClair ? '#f7f4ed' : '#1c1912'};color:${fondClair ? '#1c1912' : '#f7f4ed'};font-family:Inter,-apple-system,"Segoe UI",system-ui,sans-serif;display:flex;align-items:center;justify-content:center;}
+      .carte{padding:48px 56px;text-align:center;max-width:960px;}
+      .surtitre{font-size:14px;font-weight:700;letter-spacing:.22em;color:${fondClair ? '#88693c' : '#f5b14d'};text-transform:uppercase;line-height:1;}
+      .titre{font:400 ${fondClair ? '56px' : '48px'}/1.1 "Playfair Display",Georgia,"Times New Roman",serif;margin:18px 0 14px;}
+      .sous{font-size:${fondClair ? '20px' : '18px'};color:${fondClair ? '#5a5246' : '#efe7d8'};line-height:1.4;}
+    </style></head><body><div class="carte"><div class="surtitre">${surtitre}</div><div class="titre">${titre}</div><div class="sous">${sous}</div></div></body></html>`;
+    await page.goto('data:text/html;charset=utf-8,' + encodeURIComponent(html), { waitUntil: 'load' });
+    // Attendre que la peinture ET les styles soient effectivement appliqués.
+    await page.waitForFunction(
+      () => {
+        const el = document.querySelector('.carte');
+        if (!el) return false;
+        const s = getComputedStyle(el);
+        return s.textAlign === 'center' && document.fonts.status === 'loaded';
+      },
+      { timeout: 4000 },
+    ).catch(() => {});
+    await page.evaluate(
+      () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))),
+    );
+  }
+
+  // Petit utilitaire : afficher une légende puis attendre, puis exécuter l'action.
+  async function etape(legende, action, { pauseLecture = 1000, pauseApres = 900 } = {}) {
+    await page.evaluate(SCRIPT_LEGENDE, legende);
+    await page.waitForTimeout(pauseLecture);
+    if (action) await action();
+    await page.waitForTimeout(pauseApres);
+  }
+
   // ---- 0. Carton titre
-  await page.setContent(`<!doctype html><html><head><meta charset="utf-8"><title>Parcours cookies</title><style>
-    html,body{margin:0;height:100%;background:#f7f4ed;color:#1c1912;font-family:Inter,system-ui,sans-serif;display:flex;align-items:center;justify-content:center;}
-    .carte{padding:48px 56px;text-align:center;}
-    .surtitre{font-size:14px;font-weight:700;letter-spacing:.22em;color:#88693c;text-transform:uppercase;}
-    .titre{font:400 56px/1.1 "Playfair Display",Georgia,serif;margin:16px 0 14px;}
-    .sous{font-size:20px;color:#5a5246;}
-  </style></head><body><div class="carte"><div class="surtitre">Olympiade des Manades</div><div class="titre">Le parcours cookies</div><div class="sous">30 secondes, du choix du visiteur à votre tableau de bord.</div></div></body></html>`);
-  await page.waitForTimeout(2400);
+  await afficherCarton({
+    fondClair: true,
+    surtitre: 'Olympiade des Manades',
+    titre: 'Le parcours cookies',
+    sous: 'Du choix du visiteur jusqu’à votre tableau de bord.',
+  });
+  await page.waitForTimeout(2200);
 
   // ---- 1. Accueil, fenêtre apparaît
   await page.goto(`${BASE}/`);
   await page.locator('#cc-main .cm').waitFor({ state: 'visible' });
   await page.evaluate(SCRIPT_CURSEUR);
-  await page.evaluate(SCRIPT_LEGENDE, "1 · Le visiteur arrive sur l'accueil");
-  await page.waitForTimeout(1500);
+  await etape("1 · Le visiteur arrive sur l'accueil", null, { pauseLecture: 1600, pauseApres: 0 });
 
-  // ---- 2. Clic sur Personnaliser
-  await page.evaluate(SCRIPT_LEGENDE, '2 · Il clique sur Personnaliser');
-  await cliquerAvecCurseur(page, page.locator('#cc-main .cm__btn[data-role="show"]'));
-  await page.locator('#cc-main .pm').waitFor({ state: 'visible' });
-  await page.evaluate(SCRIPT_CURSEUR);
-  await page.evaluate(SCRIPT_LEGENDE, '2 · Il clique sur Personnaliser');
-  await page.waitForTimeout(1300);
+  // ---- 2. Clic sur Personnaliser (légende AVANT clic)
+  await etape(
+    '2 · Il ouvre « Personnaliser »',
+    async () => {
+      await cliquerAvecCurseur(page, page.locator('#cc-main .cm__btn[data-role="show"]'));
+      await page.locator('#cc-main .pm').waitFor({ state: 'visible' });
+      await page.evaluate(SCRIPT_CURSEUR);
+    },
+    { pauseLecture: 1100, pauseApres: 900 },
+  );
 
   // ---- 3. Active Mesure d'audience
-  await page.evaluate(SCRIPT_LEGENDE, "3 · Il active la mesure d'audience");
-  // L'input analytics est le 2e section__toggle (après necessary, readonly).
-  const toggleAnalytics = page.locator('#cc-main input.section__toggle[value="analytics"]').first();
-  await bougerCurseurVers(page, toggleAnalytics);
-  await page.evaluate(() => window.__aideCliquerCurseur());
-  await page.waitForTimeout(140);
-  await toggleAnalytics.click({ force: true });
-  await page.waitForTimeout(1200);
+  await etape(
+    "3 · Il active la mesure d'audience",
+    async () => {
+      const toggle = page.locator('#cc-main input.section__toggle[value="analytics"]').first();
+      await bougerCurseurVers(page, toggle);
+      await page.evaluate(() => window.__aideCliquerCurseur());
+      await page.waitForTimeout(140);
+      await toggle.click({ force: true });
+    },
+    { pauseLecture: 1100, pauseApres: 900 },
+  );
 
   // ---- 4. Clique Enregistrer
-  await page.evaluate(SCRIPT_LEGENDE, '4 · Il enregistre ses choix');
-  await cliquerAvecCurseur(page, page.locator('#cc-main .pm__btn[data-role="save"]'));
-  await page.waitForTimeout(1300);
+  await etape(
+    '4 · Il enregistre ses choix',
+    async () => {
+      await cliquerAvecCurseur(page, page.locator('#cc-main .pm__btn[data-role="save"]'));
+    },
+    { pauseLecture: 1000, pauseApres: 1000 },
+  );
 
   // ---- 5. /noter, barre basse
   await contexte.clearCookies();
   await page.goto(`${BASE}/noter`);
   await page.locator('#cc-main .cm').waitFor({ state: 'visible' });
   await page.evaluate(SCRIPT_CURSEUR);
-  await page.evaluate(SCRIPT_LEGENDE, '5 · Sur « Noter en direct » : barre basse, page utilisable');
-  await page.waitForTimeout(1800);
+  await etape(
+    '5 · Sur « Noter en direct » : barre basse, page utilisable',
+    null,
+    { pauseLecture: 1800, pauseApres: 0 },
+  );
 
-  // ---- 6. Tout refuser
-  await page.evaluate(SCRIPT_LEGENDE, '6 · Cette fois il refuse tout');
-  await cliquerAvecCurseur(page, page.locator('#cc-main .cm__btn[data-role="necessary"]'));
-  await page.waitForTimeout(900);
+  // ---- 6. Tout refuser (légende AVANT, puis clic avec curseur visible)
+  await etape(
+    '6 · Cette fois il refuse tout',
+    async () => {
+      await cliquerAvecCurseur(page, page.locator('#cc-main .cm__btn[data-role="necessary"]'));
+    },
+    { pauseLecture: 1000, pauseApres: 900 },
+  );
 
-  // ---- 7. /admin/cookies (admin simulé) : onglets
+  // ---- 7. Il peut changer d'avis : clic sur « Gérer les cookies » du pied de page
+  // 7a. Scrolle vers le pied de page avec la légende.
+  await etape(
+    "7 · Il peut changer d'avis depuis le pied de page",
+    async () => {
+      const gerer = page
+        .locator('footer a, footer button')
+        .filter({ hasText: /Gérer les cookies/i })
+        .first();
+      await gerer.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(400);
+      await page.evaluate(SCRIPT_CURSEUR);
+      await cliquerAvecCurseur(page, gerer);
+      await page.locator('#cc-main .pm').waitFor({ state: 'visible' });
+      await page.evaluate(SCRIPT_CURSEUR);
+    },
+    { pauseLecture: 1100, pauseApres: 300 },
+  );
+  // 7b. Nouvelle légende sur le panneau rouvert, laissé en évidence > 2 s.
+  await etape(
+    'Les préférences se rouvrent, il peut tout changer',
+    null,
+    { pauseLecture: 2600, pauseApres: 0 },
+  );
+
+  // ---- 8. /admin/cookies (admin simulé) : Réglages → Statistiques → Journal
   // Charge la session admin dans localStorage côté client avant la navigation.
   await page.evaluate((valeur) => {
     try {
       localStorage.setItem('olympiade-auth', JSON.stringify(valeur));
     } catch {}
   }, session);
-  await page.goto(`${BASE}/admin/cookies`);
-  await page.waitForTimeout(1500);
+  await page.goto(`${BASE}/admin/cookies?onglet=reglages`);
+  await page.waitForTimeout(1400);
   await page.evaluate(SCRIPT_CURSEUR);
-  await page.evaluate(SCRIPT_LEGENDE, '7 · Côté admin : vous suivez tout depuis /admin/cookies');
-  await page.waitForTimeout(1300);
+  await etape(
+    '8 · Côté admin : vos Réglages (textes, catégories, durée)',
+    null,
+    { pauseLecture: 2200, pauseApres: 0 },
+  );
 
-  // Clique sur Statistiques puis Journal
   const ongletStats = page.locator('[role="tab"]#onglet-cookies-statistiques');
   if (await ongletStats.count()) {
-    await cliquerAvecCurseur(page, ongletStats);
-    await page.waitForTimeout(1200);
+    await etape(
+      '9 · Statistiques : taux d’acceptation sur la période',
+      async () => {
+        await cliquerAvecCurseur(page, ongletStats);
+      },
+      { pauseLecture: 1000, pauseApres: 1800 },
+    );
   }
   const ongletJournal = page.locator('[role="tab"]#onglet-cookies-journal');
   if (await ongletJournal.count()) {
-    await cliquerAvecCurseur(page, ongletJournal);
-    await page.waitForTimeout(1500);
+    await etape(
+      '10 · Journal : la preuve horodatée (IP pseudonymisée)',
+      async () => {
+        await cliquerAvecCurseur(page, ongletJournal);
+      },
+      { pauseLecture: 1000, pauseApres: 2000 },
+    );
   }
 
-  // Carton final
-  await page.setContent(`<!doctype html><html><head><meta charset="utf-8"><title>Fin</title><style>
-    html,body{margin:0;height:100%;background:#1c1912;color:#f7f4ed;font-family:Inter,system-ui,sans-serif;display:flex;align-items:center;justify-content:center;}
-    .surtitre{font-size:12px;font-weight:700;letter-spacing:.24em;color:#f5b14d;text-transform:uppercase;}
-    .titre{font:400 42px/1.15 "Playfair Display",Georgia,serif;margin:14px 0 10px;}
-    .sous{font-size:16px;color:#efe7d8;opacity:.85;}
-  </style></head><body><div style="text-align:center;padding:0 32px"><div class="surtitre">C'est tout</div><div class="titre">Simple pour vous, conforme CNIL pour vos visiteurs.</div><div class="sous">Les détails et les réglages sont dans les autres onglets.</div></div></body></html>`);
-  await page.waitForTimeout(1600);
+  // ---- Carton final (même style que l'intro, en inversé encre/sable)
+  await afficherCarton({
+    fondClair: false,
+    surtitre: "C'est tout",
+    titre: 'Simple pour vous, conforme CNIL pour vos visiteurs.',
+    sous: 'Les détails et les réglages sont dans les autres onglets.',
+  });
+  await page.waitForTimeout(2000);
 
   const videoHandle = page.video();
   await page.close();

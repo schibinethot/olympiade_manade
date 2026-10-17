@@ -13,6 +13,9 @@ import { useState, type ReactNode } from 'react';
 import { CARTE } from './CadreAdmin';
 import { PARCOURS_COOKIES } from '../../lib/parcours-cookies';
 
+/** Durée de repli (en secondes) tant que la vidéo n'a pas annoncé la sienne. */
+const DUREE_VIDEO_REPLI = 32;
+
 type ModeAide = 'fenetre' | 'bandeau' | 'aucun';
 type Appareil = 'mobile' | 'ordinateur';
 
@@ -50,20 +53,27 @@ export function AideCookies({
 // ---------------------------------------------------------------------------
 
 function SectionVideo() {
+  // La durée affichée est lue depuis l'événement « loadedmetadata » de la vidéo,
+  // avec un repli statique tant que la métadonnée n'est pas arrivée.
+  const [dureeSecondes, setDureeSecondes] = useState<number>(DUREE_VIDEO_REPLI);
   return (
     <section className={CARTE} aria-labelledby="aide-video-titre">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-[52ch]">
           <p className="text-xs font-bold tracking-[.18em] text-or-ink uppercase">Visite guidée</p>
           <h2 id="aide-video-titre" className="mt-1 font-display text-2xl">
-            Tout le parcours cookies en 30 secondes
+            Tout le parcours cookies, filmé en moins d'une minute
           </h2>
           <p className="mt-2 text-sm text-encre-2">
             Du premier choix du visiteur jusqu'au journal de preuve, filmé sur le site réel.
           </p>
         </div>
-        <span className="inline-flex items-center gap-2 rounded-full border border-trait bg-sable px-3 py-1 text-xs font-semibold text-encre-2">
-          <span className="inline-block h-2 w-2 rounded-full bg-ok" aria-hidden="true" /> 30 s
+        <span
+          className="inline-flex items-center gap-2 rounded-full border border-trait bg-sable px-3 py-1 text-xs font-semibold text-encre-2"
+          aria-label={`Durée de la vidéo : ${Math.round(dureeSecondes)} secondes`}
+        >
+          <span className="inline-block h-2 w-2 rounded-full bg-ok" aria-hidden="true" />{' '}
+          {Math.round(dureeSecondes)} s
         </span>
       </div>
       <div className="mt-4 overflow-hidden rounded-2xl border border-trait bg-encre">
@@ -74,6 +84,10 @@ function SectionVideo() {
           playsInline
           preload="metadata"
           poster="/aide/cookies/parcours-affiche.webp"
+          onLoadedMetadata={(evt) => {
+            const d = evt.currentTarget.duration;
+            if (Number.isFinite(d) && d > 0) setDureeSecondes(d);
+          }}
         >
           <source src="/aide/cookies/parcours.mp4" type="video/mp4" />
           Votre navigateur ne lit pas la vidéo. Les étapes sont décrites en-dessous.
