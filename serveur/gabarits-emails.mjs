@@ -346,8 +346,11 @@ function jourParis(/** @type {Date} */ instant) {
   return Date.UTC(lire('year'), lire('month') - 1, lire('day'));
 }
 
-/** @param {string} dateIso « AAAA-MM-JJ » */
-function lireJour(dateIso) {
+/**
+ * Jour calendaire strict (le 31/02 est refusé), à minuit UTC. Partagé avec echeances-emails.mjs.
+ * @param {string} dateIso « AAAA-MM-JJ »
+ */
+export function lireJour(dateIso) {
   const morceaux = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateIso);
   const utc = morceaux ? new Date(Date.UTC(Number(morceaux[1]), Number(morceaux[2]) - 1, Number(morceaux[3]))) : null;
   if (!morceaux || !utc || utc.getUTCDate() !== Number(morceaux[3])) throw new RangeError(`Date invalide : ${dateIso}`);
