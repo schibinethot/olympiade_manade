@@ -127,7 +127,7 @@ test('la confidentialité annonce les droits, la durée et les sous-traitants', 
   for (const nom of ['Supabase', 'Railway', 'Brevo']) {
     await expect(page.getByText(nom).first()).toBeVisible();
   }
-  await expect(page.getByText(/aucun traceur/i).first()).toBeVisible();
+  await expect(page.getByText(/aucun cookie/i).first()).toBeVisible();
   await expect(page.getByRole('link', { name: /formulaire de contact/i }).first()).toHaveAttribute('href', '/contact');
 });
 

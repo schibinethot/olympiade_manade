@@ -17,6 +17,7 @@ const LIENS = [
   { vers: '/admin/messages', libelle: 'Messages' },
   { vers: '/admin/abonnes', libelle: 'Abonnés' },
   { vers: '/admin/statistiques', libelle: 'Statistiques' },
+  { vers: '/admin/cookies', libelle: 'Cookies' },
 ] as const;
 
 export function useClientAdmin() {

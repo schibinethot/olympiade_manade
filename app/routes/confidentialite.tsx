@@ -3,6 +3,7 @@ import { IdentitePublique } from '../composants/IdentitePublique';
 import { CorpsLegal, LIEN_TEXTE, SectionLegale } from '../composants/TexteLegal';
 import { TitrePage } from '../composants/TitrePage';
 import type { Route } from './+types/confidentialite';
+import { useConsentementCookies } from '../composants/ConsentementCookies';
 
 export const meta: Route.MetaFunction = () => [
   { title: 'Confidentialité · Olympiade des Manades' },
@@ -16,6 +17,7 @@ const LIEN_CONTACT = (
 );
 
 export default function Confidentialite() {
+  const { afficherPreferences } = useConsentementCookies();
   return (
     <>
       <TitrePage surtitre="Vos données" titre="Confidentialité" />
@@ -31,7 +33,7 @@ export default function Confidentialite() {
               IP, date et heure, pages demandées, type de navigateur) pour assurer le fonctionnement et la sécurité du site.
               Le serveur conserve aussi des compteurs techniques agrégés (requêtes, erreurs, volume de données et temps
               de réponse), sans adresse IP ni historique individuel de navigation dans ces compteurs.
-              Nous n’utilisons aucun outil de mesure d’audience publicitaire. Base légale&nbsp;: intérêt légitime à sécuriser le service (art. 6(1)(f) RGPD).
+              Avec votre accord, des outils de mesure d’audience et de publicité peuvent être activés (voir section « Traceurs »). Base légale&nbsp;: intérêt légitime à sécuriser le service (art. 6(1)(f) RGPD).
               Durée&nbsp;: celle fixée par chaque hébergeur pour ses journaux techniques.
             </li>
             <li>
@@ -94,17 +96,51 @@ export default function Confidentialite() {
         </SectionLegale>
 
         <SectionLegale id="traceurs" titre="Traceurs et stockage local">
-          <p>Aucun cookie publicitaire, aucun outil de mesure d’audience. Les formulaires utilisent Cloudflare Turnstile pour la vérification anti-robot.</p>
           <p>
-            Lorsque vous vous inscrivez, une donnée de session est enregistrée dans votre navigateur pour vous reconnaître.
-            Elle est strictement nécessaire au service, ne sert à aucun suivi et est supprimée à votre déconnexion.
+            Les formulaires utilisent Cloudflare Turnstile pour la vérification anti-robot.
           </p>
+
           <p>
-            Vos notes en attente d’envoi sont conservées sur cet appareil pour reprendre en cas de coupure, séparément pour
-            chaque compte. Elles sont envoyées lorsque vous revenez sur le site avec le même compte et une connexion.
-            Les confirmations locales sont conservées au plus 7 jours et les refus au plus 30 jours, avec nettoyage à
-            l’utilisation. Les reçus serveur restent associés à votre compte pour éviter les doublons lors des reprises.
-            Effacer les données du navigateur supprime les notes qui n’ont pas encore été reçues par le serveur.
+            <strong>Traceurs nécessaires</strong>&nbsp;: le cookie <code>cc_cookie</code> conserve votre choix
+            de consentement (durée&nbsp;: 365&nbsp;jours par défaut, modifiable). Le cookie
+            <code>olympiade_acces</code> permet l’accès à la préversion. Votre session de jury et
+            d’organisateur est stockée en mémoire locale du navigateur (stockage local,
+            supprimée à la déconnexion). L’identifiant <code>cc_visitor_id</code> est une preuve
+            pseudonyme de votre choix, conservé dans le stockage local.
+          </p>
+
+          <p>
+            <strong>Mesure d’audience</strong>&nbsp;: avec votre accord, des traceurs Google Analytics
+            (<code>_ga</code>, <code>_ga_*</code>, <code>_gid</code>) mesurent la fréquentation du site.
+            Aucun cookie de mesure n’est déposé sans votre consentement explicite.
+          </p>
+
+          <p>
+            <strong>Publicité et réseaux sociaux</strong>&nbsp;: avec votre accord, des traceurs publicitaires
+            (Meta Pixel, Google Ads) permettent de mesurer l’efficacité de nos campagnes.
+            Aucun cookie publicitaire n’est déposé sans votre consentement explicite.
+          </p>
+
+          <p>
+            Vous pouvez modifier votre choix à tout moment en cliquant sur «&nbsp;
+            <button type="button" onClick={afficherPreferences} className={LIEN_TEXTE}>
+              Gérer les cookies
+            </button>
+            &nbsp;». La durée de validité de votre choix est de 365&nbsp;jours. Votre consentement
+            est retiré automatiquement à l’expiration, ou à tout moment via le bouton ci-dessus.
+          </p>
+
+          <p>
+            Lorsque vous vous inscrivez, une donnée de session est enregistrée dans votre navigateur pour vous
+            reconnaître. Elle est strictement nécessaire au service, ne sert à aucun suivi et est supprimée à
+            votre déconnexion.
+          </p>
+
+          <p>
+            Vos notes en attente d’envoi sont conservées sur cet appareil pour reprendre en cas de coupure,
+            séparément pour chaque compte. Les confirmations locales sont conservées au plus 7 jours et les
+            refus au plus 30 jours. Effacer les données du navigateur supprime les notes qui n’ont pas encore
+            été reçues par le serveur.
           </p>
         </SectionLegale>
 

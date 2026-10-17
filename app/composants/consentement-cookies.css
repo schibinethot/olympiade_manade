@@ -1,0 +1,670 @@
+/**
+ * Styles du bandeau de consentement cookies.
+ *
+ * Structure : import de la CSS de base de vanilla-cookieconsent, puis surcharges
+ * alignées sur la charte graphique Olympiade des Manades (docs/charte-graphique.md).
+ *
+ * Variables --cc-* alignées sur les jetons de app/app.css.
+ * Ne modifie pas app/app.css.
+ */
+
+@import "vanilla-cookieconsent/dist/cookieconsent.css";
+
+/* ============================================================
+   Variables de la lib alignées sur les jetons Olympiade
+   ============================================================ */
+
+#cc-main {
+  /* Fonds et textes */
+  --cc-bg: #fcfbf7;                   /* --color-creme */
+  --cc-text: #1c1912;                 /* --color-encre */
+  --cc-text-secondary: #5a5246;       /* --color-encre-2 */
+
+  /* Bordures */
+  --cc-border: #e3dacb;               /* --color-trait */
+  --cc-separator-border: #e3dacb;
+  --cc-cookie-category-block-bg: #f7f4ed; /* --color-sable */
+
+  /* Bouton primaire : dégradé couchant (blanc dessus) */
+  --cc-btn-primary-bg: #b3321a;       /* début du --couchant-bouton, fallback solide */
+  --cc-btn-primary-text: #ffffff;
+  --cc-btn-primary-hover-bg: #9a2a14;
+
+  /* Bouton secondaire / outline */
+  --cc-btn-secondary-text: #1c1912;
+  --cc-btn-secondary-border: #e3dacb;
+  --cc-btn-secondary-hover-bg: #efe7d8; /* --color-lin */
+
+  /* Toggles */
+  --cc-toggle-bg-on: #1c1912;
+  --cc-toggle-bg-off: #e3dacb;
+  --cc-toggle-knob-bg: #ffffff;
+
+  /* Lien */
+  --cc-link-color: #88693c;           /* --color-or-ink */
+
+  /* Voile bloquant */
+  --cc-overlay-bg: rgba(28, 25, 18, 0.72);
+
+  /* Ombre modale */
+  --cc-modal-shadow: 0 8px 32px rgba(28, 25, 18, 0.18);
+
+  font-family: var(--font-sans, "Inter", ui-sans-serif, system-ui, sans-serif);
+}
+
+/* ============================================================
+   Modal de consentement (.cm) — fenêtre ou barre
+   ============================================================ */
+
+#cc-main .cm {
+  background: var(--cc-bg) !important;
+  border-radius: 18px !important;
+  box-shadow: var(--cc-modal-shadow) !important;
+  border: 1px solid var(--cc-border) !important;
+  max-width: 520px !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  position: relative !important;
+}
+
+/* Centrage pour le mode fenêtre */
+#cc-main .cm.cm--middle.cm--center {
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  margin: 0 auto !important;
+}
+
+/* ============================================================
+   Overlay – bloque l'interaction (mode fenêtre uniquement)
+   ============================================================ */
+
+html.cc-consent-site #cc-main .cm-overlay {
+  background: var(--cc-overlay-bg) !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 999998 !important;
+  pointer-events: auto !important;
+}
+
+html.cc-consent-bandeau #cc-main .cm-overlay {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* Wrapper au-dessus de l'overlay */
+#cc-main .cm-wrapper {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 999999 !important;
+  display: flex !important;
+  pointer-events: none !important;
+}
+
+html.cc-consent-site #cc-main .cm-wrapper {
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+html.cc-consent-bandeau #cc-main .cm-wrapper {
+  align-items: flex-end !important;
+  justify-content: stretch !important;
+  pointer-events: none !important;
+}
+
+/* Barre pleine largeur en mode bandeau */
+html.cc-consent-bandeau #cc-main .cm {
+  max-width: none !important;
+  width: 100% !important;
+  border-radius: 0 !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  margin: 0 !important;
+  pointer-events: auto !important;
+}
+
+#cc-main .cm-wrapper .cm {
+  pointer-events: auto !important;
+}
+
+/* Masquer le consent modal quand les préférences sont ouvertes */
+html.cc-hide-consent-modal #cc-main .cm {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Blocage du défilement en mode fenêtre */
+html.cc-consent-site.show--consent,
+html.cc-consent-site.show--consent body {
+  overflow: hidden !important;
+}
+
+/* ============================================================
+   Surtitre : or-ink, capitales espacées (charte)
+   ============================================================ */
+
+#cc-main .cm__title {
+  font-family: var(--font-sans, "Inter", ui-sans-serif, system-ui, sans-serif) !important;
+  font-size: 0.6875rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.22em !important;
+  color: #88693c !important;          /* --color-or-ink */
+  padding: 1.375rem 1.5rem 0 1.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+/* En mode fenêtre : titre plus grand en Playfair (charte) */
+html.cc-consent-site #cc-main .cm__title {
+  font-family: var(--font-display, "Playfair Display", Georgia, serif) !important;
+  font-size: 1.5rem !important;
+  font-weight: 400 !important;
+  text-transform: none !important;
+  letter-spacing: -0.01em !important;
+  color: var(--cc-text) !important;
+}
+
+/* Description */
+#cc-main .cm__desc {
+  font-size: 0.9375rem !important;
+  line-height: 1.6 !important;
+  color: var(--cc-text-secondary) !important;
+  padding: 0 1.5rem !important;
+}
+
+html.cc-consent-bandeau #cc-main .cm__desc {
+  font-size: 0.875rem !important;
+}
+
+/* ============================================================
+   Rangée de boutons
+   Mode fenêtre : colonne sur mobile, rangée centrée sur tablette+
+   Mode bandeau  : texte à gauche, boutons à droite sur tablette+
+   ============================================================ */
+
+#cc-main .cm__btns {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.625rem !important;
+  padding: 1.125rem 1.5rem !important;
+  background: transparent !important;
+  border-top: 1px solid var(--cc-separator-border) !important;
+  margin-top: 0.875rem !important;
+}
+
+#cc-main .cm__btn-group {
+  display: inline-flex !important;
+  gap: 0.625rem !important;
+  align-items: center !important;
+  flex-shrink: 0 !important;
+}
+
+/* Ordre : Personnaliser (show) | Tout refuser (necessary) | Tout accepter (all) */
+#cc-main .cm__btn-group:has([data-role="show"]) {
+  order: 1 !important;
+}
+
+#cc-main .cm__btn-group:has([data-role="all"]) {
+  order: 2 !important;
+}
+
+#cc-main .cm__btn[data-role="show"] {
+  order: 1 !important;
+}
+
+#cc-main .cm__btn[data-role="necessary"] {
+  order: 2 !important;
+  display: inline-flex !important; /* visible en première couche (écart SITE-AM) */
+}
+
+#cc-main .cm__btn[data-role="all"] {
+  order: 3 !important;
+}
+
+/* ============================================================
+   Boutons — cibles 48 px, rayon du site (rounded-xl = 0.75rem)
+   ============================================================ */
+
+#cc-main .cm__btn {
+  flex: none !important;
+  padding: 11px 22px !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  border-radius: 0.75rem !important;
+  min-height: 48px !important;
+  transition: opacity 0.15s ease, box-shadow 0.15s ease !important;
+  cursor: pointer !important;
+  font-family: var(--font-sans, "Inter", ui-sans-serif, system-ui, sans-serif) !important;
+  white-space: nowrap !important;
+}
+
+/* Tout accepter : dégradé couchant, texte blanc */
+#cc-main .cm__btn[data-role="all"] {
+  background-image: linear-gradient(120deg, #b3321a 0%, #cb4a23 55%, #c74f16 100%) !important;
+  background-color: #b3321a !important;
+  color: #ffffff !important;
+  border: 1px solid transparent !important;
+}
+
+#cc-main .cm__btn[data-role="all"]:hover {
+  opacity: 0.9 !important;
+}
+
+/* Personnaliser et Tout refuser : outline */
+#cc-main .cm__btn[data-role="show"],
+#cc-main .cm__btn[data-role="necessary"],
+#cc-main .cm__btn--secondary {
+  background: transparent !important;
+  color: var(--cc-btn-secondary-text) !important;
+  border: 1.5px solid var(--cc-btn-secondary-border) !important;
+  font-weight: 500 !important;
+}
+
+#cc-main .cm__btn[data-role="show"]:hover,
+#cc-main .cm__btn[data-role="necessary"]:hover,
+#cc-main .cm__btn--secondary:hover {
+  background: var(--cc-btn-secondary-hover-bg) !important;
+  border-color: #c4b89e !important;
+}
+
+/* Pied du modal (lien confidentialité) */
+#cc-main .cm__footer {
+  padding: 0.625rem 1.5rem !important;
+  background: var(--cc-cookie-category-block-bg) !important;
+  border-top: 1px solid var(--cc-separator-border) !important;
+  font-size: 0.8125rem !important;
+  text-align: center !important;
+  border-radius: 0 0 17px 17px !important;
+}
+
+#cc-main .cm__footer a,
+#cc-main .cm__footer .cm__links,
+#cc-main .cm__footer .cm__link-group {
+  justify-content: center !important;
+  text-align: center !important;
+  color: var(--cc-link-color) !important;
+  text-decoration: underline !important;
+  text-underline-offset: 2px !important;
+}
+
+/* ============================================================
+   Modal des préférences (.pm)
+   ============================================================ */
+
+#cc-main .pm {
+  background: var(--cc-bg) !important;
+  border-radius: 18px !important;
+  box-shadow: var(--cc-modal-shadow) !important;
+  border: 1px solid var(--cc-border) !important;
+  max-width: 560px !important;
+  max-height: 78vh !important;
+}
+
+#cc-main .pm__header {
+  background: transparent !important;
+  border-bottom: 1px solid var(--cc-separator-border) !important;
+  padding: 1rem 1.25rem !important;
+}
+
+#cc-main .pm__title {
+  font-family: var(--font-display, "Playfair Display", Georgia, serif) !important;
+  font-size: 1.25rem !important;
+  font-weight: 400 !important;
+  color: var(--cc-text) !important;
+}
+
+#cc-main .pm__close-btn {
+  background: var(--cc-cookie-category-block-bg) !important;
+  border-radius: 50% !important;
+  /* 44px pour satisfaire WCAG 2.5.5 (best-practice axe) */
+  width: 2.75rem !important;
+  height: 2.75rem !important;
+  min-width: 2.75rem !important;
+  min-height: 2.75rem !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid var(--cc-border) !important;
+  flex-shrink: 0 !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+}
+
+#cc-main .pm__close-btn:hover {
+  background: var(--cc-btn-secondary-hover-bg) !important;
+  border-color: var(--cc-text-secondary) !important;
+}
+
+#cc-main .pm__close-btn svg {
+  width: 1rem !important;
+  height: 1rem !important;
+  stroke: var(--cc-text) !important;
+  stroke-width: 2 !important;
+  fill: none !important;
+}
+
+/* Corps */
+#cc-main .pm__body {
+  padding: 0 !important;
+}
+
+#cc-main .pm__section {
+  padding: 0.875rem 1.25rem !important;
+  border-bottom: 1px solid var(--cc-separator-border) !important;
+}
+
+#cc-main .pm__section:last-child {
+  border-bottom: none !important;
+}
+
+#cc-main .pm__section-title {
+  font-family: var(--font-sans, "Inter", ui-sans-serif, system-ui, sans-serif) !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  color: var(--cc-text) !important;
+}
+
+#cc-main .pm__section-desc {
+  font-size: 0.8125rem !important;
+  line-height: 1.6 !important;
+  color: var(--cc-text-secondary) !important;
+}
+
+/* Badge « Toujours actifs » */
+#cc-main .pm__badge {
+  background: var(--cc-toggle-bg-on) !important;
+  color: #f7f4ed !important;
+  font-size: 0.6875rem !important;
+  font-weight: 600 !important;
+  padding: 0.25rem 0.625rem !important;
+  border-radius: 9999px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  margin-left: 0.5rem !important;
+}
+
+/* Toggles — section__toggle est 23 px dans la lib, WCAG 2.5.8 demande ≥ 24 px */
+#cc-main .section__toggle,
+#cc-main .section__toggle-wrapper,
+#cc-main .toggle__icon,
+#cc-main .toggle__label {
+  height: 24px !important;
+  min-height: 24px !important;
+}
+
+#cc-main .pm__switch {
+  width: 3rem !important;
+  height: 1.625rem !important;
+}
+
+#cc-main .pm__switch .pm__toggle {
+  background: var(--cc-toggle-bg-off) !important;
+  border-radius: 9999px !important;
+}
+
+#cc-main .pm__switch .pm__toggle::after {
+  width: 1.25rem !important;
+  height: 1.25rem !important;
+  background: #ffffff !important;
+  border-radius: 50% !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12) !important;
+}
+
+#cc-main .pm__switch input:checked + .pm__toggle {
+  background: var(--cc-toggle-bg-on) !important;
+}
+
+/* Tableau de cookies */
+#cc-main .pm__table {
+  margin-top: 0.875rem !important;
+  border-radius: 0.5rem !important;
+  overflow: hidden !important;
+  border: 1px solid var(--cc-separator-border) !important;
+}
+
+#cc-main .pm__table-head {
+  background: var(--cc-cookie-category-block-bg) !important;
+}
+
+#cc-main .pm__table-th {
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: var(--cc-text-secondary) !important;
+  padding: 0.75rem !important;
+}
+
+#cc-main .pm__table-td {
+  font-size: 0.8125rem !important;
+  color: var(--cc-text) !important;
+  padding: 0.75rem !important;
+  border-top: 1px solid var(--cc-separator-border) !important;
+}
+
+#cc-main .pm__table-tr:nth-child(even) .pm__table-td {
+  background: var(--cc-cookie-category-block-bg) !important;
+}
+
+/* Pied des préférences */
+#cc-main .pm__footer {
+  padding: 0.75rem 1.25rem !important;
+  background: var(--cc-cookie-category-block-bg) !important;
+  border-top: 1px solid var(--cc-separator-border) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 0.75rem !important;
+}
+
+#cc-main .pm__footer .pm__btn-group {
+  display: flex !important;
+  gap: 0.625rem !important;
+}
+
+/* Ordre : Enregistrer à gauche, Tout refuser + Tout accepter à droite */
+#cc-main .pm__footer .pm__btn-group:first-child {
+  order: 2 !important;
+  flex-direction: row-reverse !important;
+}
+
+#cc-main .pm__footer .pm__btn-group:last-child {
+  order: 1 !important;
+}
+
+/* Boutons des préférences */
+#cc-main .pm__btn {
+  padding: 0.625rem 0.875rem !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  border-radius: 0.75rem !important;
+  min-height: 48px !important;
+  transition: all 0.15s ease !important;
+  cursor: pointer !important;
+  font-family: var(--font-sans, "Inter", ui-sans-serif, system-ui, sans-serif) !important;
+  white-space: nowrap !important;
+}
+
+/* Tout accepter : dégradé couchant */
+#cc-main .pm__btn[data-role="all"] {
+  background-image: linear-gradient(120deg, #b3321a 0%, #cb4a23 55%, #c74f16 100%) !important;
+  background-color: #b3321a !important;
+  color: #ffffff !important;
+  border: 1px solid transparent !important;
+}
+
+#cc-main .pm__btn[data-role="all"]:hover {
+  opacity: 0.9 !important;
+}
+
+/* Tout refuser : outline */
+#cc-main .pm__btn[data-role="necessary"] {
+  display: inline-flex !important;
+  background: transparent !important;
+  color: var(--cc-text) !important;
+  border: 1.5px solid var(--cc-border) !important;
+}
+
+#cc-main .pm__btn[data-role="necessary"]:hover {
+  background: var(--cc-btn-secondary-hover-bg) !important;
+  border-color: #c4b89e !important;
+}
+
+/* Enregistrer mes choix : outline */
+#cc-main .pm__btn[data-role="save"],
+#cc-main .pm__btn--secondary {
+  background: transparent !important;
+  color: var(--cc-text) !important;
+  border: 1.5px solid var(--cc-border) !important;
+}
+
+#cc-main .pm__btn[data-role="save"]:hover,
+#cc-main .pm__btn--secondary:hover {
+  background: var(--cc-btn-secondary-hover-bg) !important;
+  border-color: #c4b89e !important;
+}
+
+/* Liens dans les descriptions */
+#cc-main .cc__link,
+#cc-main a {
+  color: var(--cc-link-color) !important;
+  text-decoration: underline !important;
+  text-underline-offset: 2px !important;
+  transition: color 0.15s ease !important;
+}
+
+#cc-main .cc__link:hover,
+#cc-main a:hover {
+  color: var(--cc-text) !important;
+}
+
+/* ============================================================
+   Focus visible — contour ambre + anneau encre (charte, section 7)
+   ============================================================ */
+
+#cc-main .cm__btn:focus-visible,
+#cc-main .pm__btn:focus-visible,
+#cc-main .pm__close-btn:focus-visible {
+  outline: 3px solid #f5b14d !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 2px #1c1912 !important;
+}
+
+/* ============================================================
+   Animations
+   ============================================================ */
+
+@keyframes cc-fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+#cc-main .cm,
+#cc-main .pm {
+  animation: cc-fadeIn 0.28s ease-out !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #cc-main .cm,
+  #cc-main .pm {
+    animation: none !important;
+  }
+}
+
+/* ============================================================
+   Mode bandeau : mise en page bureau (tablette+)
+   Texte à gauche, boutons à droite
+   ============================================================ */
+
+@media (min-width: 640px) {
+  html.cc-consent-bandeau #cc-main .cm {
+    display: flex !important;
+    align-items: center !important;
+    gap: 1.25rem !important;
+    padding: 0 !important;
+  }
+
+  html.cc-consent-bandeau #cc-main .cm__body {
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+
+  html.cc-consent-bandeau #cc-main .cm__title,
+  html.cc-consent-bandeau #cc-main .cm__desc {
+    padding-right: 0 !important;
+  }
+
+  html.cc-consent-bandeau #cc-main .cm__btns {
+    flex-shrink: 0 !important;
+    margin-top: 0 !important;
+    border-top: none !important;
+    padding: 0 1.25rem 0 0 !important;
+  }
+}
+
+/* ============================================================
+   Responsive mobile
+   ============================================================ */
+
+@media (max-width: 639px) {
+  #cc-main .cm {
+    margin: 0 1rem !important;
+    border-radius: 18px !important;
+    max-width: calc(100% - 2rem) !important;
+  }
+
+  html.cc-consent-bandeau #cc-main .cm {
+    margin: 0 !important;
+    max-width: none !important;
+    border-radius: 0 !important;
+  }
+
+  #cc-main .cm__btns {
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+    padding: 0.875rem 1.25rem !important;
+  }
+
+  #cc-main .cm__btn-group {
+    width: 100% !important;
+  }
+
+  #cc-main .cm__btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  #cc-main .pm {
+    margin: 0.5rem !important;
+    max-height: calc(100dvh - 1rem) !important;
+    max-width: calc(100% - 1rem) !important;
+  }
+
+  #cc-main .pm__footer {
+    flex-direction: column !important;
+    padding: 0.875rem 1.25rem !important;
+  }
+
+  #cc-main .pm__footer .pm__btn-group {
+    width: 100% !important;
+    justify-content: stretch !important;
+  }
+
+  #cc-main .pm__btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}

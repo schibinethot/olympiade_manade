@@ -9,6 +9,8 @@ interface ImportMetaEnv {
   readonly VITE_INSCRIPTION_OUVERTE?: string;
   /** Clé publique VAPID. La clé privée reste exclusivement dans VAPID_PRIVATE_KEY, côté serveur. */
   readonly VITE_VAPID_PUBLIC_KEY?: string;
+  /** Identifiant du conteneur Google Tag Manager (ex. GTM-XXXXXXX). Laissé vide hors prod. */
+  readonly VITE_GTM_ID?: string;
 }
 
 // Année de publication, injectée au build par `define` (vite.config.ts).

@@ -44,6 +44,9 @@ type Pages = {
   "/admin/statistiques": {
     params: {};
   };
+  "/admin/cookies": {
+    params: {};
+  };
   "/admin/participants": {
     params: {};
   };
@@ -98,7 +101,7 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/classements" | "/dates" | "/contact" | "/mentions-legales" | "/confidentialite" | "/noter" | "/inscription" | "/inscription/code" | "/admin" | "/admin/statistiques" | "/admin/participants" | "/admin/messages" | "/admin/abonnes" | "/admin/juges" | "/admin/soirees" | "/admin/soirees/:soireeId" | "/admin/soirees/:soireeId/direct" | "/admin/soirees/:soireeId/resultats" | "/admin/vitrine" | "/compte" | "/ecran/:slug" | "/jury" | "/*";
+    page: "/" | "/classements" | "/dates" | "/contact" | "/mentions-legales" | "/confidentialite" | "/noter" | "/inscription" | "/inscription/code" | "/admin" | "/admin/statistiques" | "/admin/cookies" | "/admin/participants" | "/admin/messages" | "/admin/abonnes" | "/admin/juges" | "/admin/soirees" | "/admin/soirees/:soireeId" | "/admin/soirees/:soireeId/direct" | "/admin/soirees/:soireeId/resultats" | "/admin/vitrine" | "/compte" | "/ecran/:slug" | "/jury" | "/*";
   };
   "routes/accueil.tsx": {
     id: "routes/accueil";
@@ -143,6 +146,10 @@ type RouteFiles = {
   "routes/admin-statistiques.tsx": {
     id: "routes/admin-statistiques";
     page: "/admin/statistiques";
+  };
+  "routes/admin-cookies.tsx": {
+    id: "routes/admin-cookies";
+    page: "/admin/cookies";
   };
   "routes/admin-participants.tsx": {
     id: "routes/admin-participants";
@@ -211,6 +218,7 @@ type RouteModules = {
   "routes/inscription-code": typeof import("./app/routes/inscription-code.tsx");
   "routes/admin": typeof import("./app/routes/admin.tsx");
   "routes/admin-statistiques": typeof import("./app/routes/admin-statistiques.tsx");
+  "routes/admin-cookies": typeof import("./app/routes/admin-cookies.tsx");
   "routes/admin-participants": typeof import("./app/routes/admin-participants.tsx");
   "routes/admin-messages": typeof import("./app/routes/admin-messages.tsx");
   "routes/admin-abonnes": typeof import("./app/routes/admin-abonnes.tsx");
