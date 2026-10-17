@@ -1,4 +1,4 @@
-import { $ as lireCalendrier, A as LIEN_TEXTE, At as MESSAGES_AUTH, B as ONGLET_ACTIF, Bt as oublierDemande, C as octets, Ct as useConsentementCookies, D as CHAMPS_IDENTITE, Dt as useMaintenant, E as IdentitePublique, Et as useSession, F as sectionsDates, Ft as demanderCode, G as anneeChoisie, Gt as supabase, H as OngletsAnnee, Ht as validerInscription, I as CarteDate, It as formaterDecompte, J as DELAI_LECTURE_NAVIGATEUR_MS, Jt as presentationAfficheAccueil, K as anneesClassements, Kt as formaterJourMois, L as useHydrate, Lt as memoriserDemande, M as FormulaireContact, Mt as connecterAdmin, N as evenementsDesDates, Nt as demandeEnCours, O as CreditsPhotos, Ot as FournisseurEtatSoiree, P as noteProjections, Pt as demandeValide, Q as useRelectureApresInteraction, R as ClassementCalcule, Rt as normaliserCode, S as nombre, St as ConsentementCookies, T as NotationPublic, Tt as Icone, U as idOnglet, Ut as verifierCode, V as ONGLET_INACTIF, Vt as traduireErreurAuth, W as CarteResultat, Wt as verifierTotp, X as lireDonneesVitrineNavigateur, Xt as jourParis, Y as lireDonneesVitrine, Yt as soireeDeReference, Z as donneesRelues, _ as CHAMP$1, _t as CoqueAndroid, a as depuisChampParis, at as Epreuves, b as exporterMesures, bt as TitrePage, c as horairesModele, ct as BlocNoter, d as documentPdf, dt as Affiche, et as lireOuRepli, f as matriceQr, ft as CreditAffiche, g as CARTE$1, gt as BanniereDeblocage, h as BOUTON_PLEIN, ht as ServiceTravailleur, i as champParis, it as VerificationHumaine, j as SectionLegale, jt as commencerEnrolementTotp, k as CorpsLegal, kt as useInstantanePublic, l as slugifier, lt as INSCRIPTION_OUVERTE, m as BOUTON$1, mt as PrecisionAccueil, n as ImportPlanning, nt as ManadesEdition, o as etapesEchange, ot as EPREUVES, p as telechargerFichier, pt as VILLE_AFFICHE, q as resultatsAnnee, qt as momentSoiree, r as EPREUVES_MODELE, rt as InscriptionActualites, s as fenetreDefaut, st as DernierVainqueur, t as etapesReordre, tt as SaisonAccueil, u as CodeQr, ut as TEXTE_INSCRIPTIONS_FERMEES, v as CadreAdmin, vt as SuiviPresence, w as useAccesAdmin, wt as Entete, x as latence, xt as PiedDePage, y as useClientAdmin, yt as SuiviNotes, z as CLASSE_ONGLET, zt as normaliserEmail } from "./assets/app-DroIrf1q.js";
+import { $ as useRelectureApresInteraction, A as CorpsLegal, At as useInstantanePublic, B as CLASSE_ONGLET, Bt as normaliserEmail, C as nombre, Ct as ConsentementCookies, D as IdentitePublique, Dt as useSession, E as NotationPublic, Et as Icone, F as noteProjections, Ft as demandeValide, G as CarteResultat, Gt as verifierTotp, H as ONGLET_INACTIF, Ht as traduireErreurAuth, I as sectionsDates, It as demanderCode, J as resultatsAnnee, Jt as momentSoiree, K as anneeChoisie, Kt as supabase, L as CarteDate, Lt as formaterDecompte, M as SectionLegale, Mt as commencerEnrolementTotp, N as FormulaireContact, Nt as connecterAdmin, O as CHAMPS_IDENTITE, Ot as useMaintenant, P as evenementsDesDates, Pt as demandeEnCours, Q as donneesRelues, R as useHydrate, Rt as memoriserDemande, S as latence, St as PiedDePage, T as useAccesAdmin, Tt as Entete, U as OngletsAnnee, Ut as validerInscription, V as ONGLET_ACTIF, Vt as oublierDemande, W as idOnglet, Wt as verifierCode, X as lireDonneesVitrine, Xt as soireeDeReference, Y as DELAI_LECTURE_NAVIGATEUR_MS, Yt as presentationAfficheAccueil, Z as lireDonneesVitrineNavigateur, Zt as jourParis, _ as CARTE$1, _t as BanniereDeblocage, a as depuisChampParis, at as VerificationHumaine, b as useClientAdmin, bt as SuiviNotes, c as horairesModele, ct as DernierVainqueur, d as documentPdf, dt as TEXTE_INSCRIPTIONS_FERMEES, et as lireCalendrier, f as matriceQr, ft as Affiche, g as BOUTON_PLEIN, gt as ServiceTravailleur, h as BOUTON$1, ht as PrecisionAccueil, i as champParis, it as InscriptionActualites, j as LIEN_TEXTE, jt as MESSAGES_AUTH, k as CreditsPhotos, kt as FournisseurEtatSoiree, l as slugifier, lt as BlocNoter, m as AideCookies, mt as VILLE_AFFICHE, n as ImportPlanning, nt as SaisonAccueil, o as etapesEchange, ot as Epreuves, p as telechargerFichier, pt as CreditAffiche, q as anneesClassements, qt as formaterJourMois, r as EPREUVES_MODELE, rt as ManadesEdition, s as fenetreDefaut, st as EPREUVES, t as etapesReordre, tt as lireOuRepli, u as CodeQr, ut as INSCRIPTION_OUVERTE, v as CHAMP$1, vt as CoqueAndroid, w as octets, wt as useConsentementCookies, x as exporterMesures, xt as TitrePage, y as CadreAdmin, yt as SuiviPresence, z as ClassementCalcule, zt as normaliserCode } from "./assets/app-yzMUrpDZ.js";
 import { Link, Links, Meta, Navigate, Outlet, Scripts, ScrollRestoration, ServerRouter, UNSAFE_withComponentProps, UNSAFE_withErrorBoundaryProps, UNSAFE_withHydrateFallbackProps, isRouteErrorResponse, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 import { isbot } from "isbot";
 import { renderToReadableStream } from "react-dom/server";
@@ -50,7 +50,7 @@ async function handleRequest(request, responseStatusCode, responseHeaders, route
 }
 //#endregion
 //#region app/app.css?url
-var app_default = "/assets/app-BwiK28-d.css";
+var app_default = "/assets/app-DaTw1SyK.css";
 //#endregion
 //#region app/root.tsx
 var root_exports = /* @__PURE__ */ __exportAll({
@@ -2649,40 +2649,90 @@ var admin_cookies_default = UNSAFE_withComponentProps(function AdminCookies() {
 		children: /* @__PURE__ */ jsx(Contenu$3, {})
 	});
 });
+var ONGLETS = [
+	{
+		cle: "aide",
+		libelle: "Comment ça marche"
+	},
+	{
+		cle: "reglages",
+		libelle: "Réglages"
+	},
+	{
+		cle: "statistiques",
+		libelle: "Statistiques"
+	},
+	{
+		cle: "journal",
+		libelle: "Journal"
+	}
+];
+function estOnglet(valeur) {
+	return valeur === "aide" || valeur === "reglages" || valeur === "statistiques" || valeur === "journal";
+}
 function Contenu$3() {
-	const [onglet, setOnglet] = useState("reglages");
-	const styleOnglet = (actif) => `${BOUTON$1} ${actif ? "bg-encre text-sable" : ""}`;
+	const [params, setParams] = useSearchParams();
+	const demande = params.get("onglet");
+	const onglet = estOnglet(demande) ? demande : "aide";
+	const refs = useRef([]);
+	function activer(cle, focalise = false) {
+		setParams((prec) => {
+			const copie = new URLSearchParams(prec);
+			if (cle === "aide") copie.delete("onglet");
+			else copie.set("onglet", cle);
+			return copie;
+		}, { replace: true });
+		if (focalise) {
+			const index = ONGLETS.findIndex((o) => o.cle === cle);
+			setTimeout(() => refs.current[index]?.focus(), 0);
+		}
+	}
+	function onTouche(evt, index) {
+		const dernier = ONGLETS.length - 1;
+		let suivant = null;
+		if (evt.key === "ArrowRight") suivant = index === dernier ? 0 : index + 1;
+		else if (evt.key === "ArrowLeft") suivant = index === 0 ? dernier : index - 1;
+		else if (evt.key === "Home") suivant = 0;
+		else if (evt.key === "End") suivant = dernier;
+		if (suivant === null) return;
+		evt.preventDefault();
+		activer(ONGLETS[suivant].cle, true);
+	}
 	return /* @__PURE__ */ jsxs("div", {
 		className: "grid gap-5",
-		children: [
-			/* @__PURE__ */ jsxs("nav", {
-				"aria-label": "Onglets cookies",
-				className: "flex flex-wrap gap-2",
-				children: [
-					/* @__PURE__ */ jsx("button", {
-						type: "button",
-						className: styleOnglet(onglet === "reglages"),
-						onClick: () => setOnglet("reglages"),
-						children: "Réglages"
-					}),
-					/* @__PURE__ */ jsx("button", {
-						type: "button",
-						className: styleOnglet(onglet === "statistiques"),
-						onClick: () => setOnglet("statistiques"),
-						children: "Statistiques"
-					}),
-					/* @__PURE__ */ jsx("button", {
-						type: "button",
-						className: styleOnglet(onglet === "journal"),
-						onClick: () => setOnglet("journal"),
-						children: "Journal"
-					})
-				]
-			}),
-			onglet === "reglages" && /* @__PURE__ */ jsx(OngletReglages, {}),
-			onglet === "statistiques" && /* @__PURE__ */ jsx(OngletStatistiques, {}),
-			onglet === "journal" && /* @__PURE__ */ jsx(OngletJournal, {})
-		]
+		children: [/* @__PURE__ */ jsx("div", {
+			role: "tablist",
+			"aria-label": "Onglets cookies",
+			className: "flex flex-wrap gap-2",
+			children: ONGLETS.map((o, i) => {
+				const actif = o.cle === onglet;
+				return /* @__PURE__ */ jsx("button", {
+					ref: (el) => {
+						refs.current[i] = el;
+					},
+					type: "button",
+					role: "tab",
+					id: `onglet-cookies-${o.cle}`,
+					"aria-selected": actif,
+					"aria-controls": actif ? `panneau-cookies-${o.cle}` : void 0,
+					tabIndex: actif ? 0 : -1,
+					onClick: () => activer(o.cle),
+					onKeyDown: (e) => onTouche(e, i),
+					className: `${BOUTON$1} ${actif ? "bg-encre text-sable" : ""}`,
+					children: o.libelle
+				}, o.cle);
+			})
+		}), /* @__PURE__ */ jsxs("div", {
+			role: "tabpanel",
+			id: `panneau-cookies-${onglet}`,
+			"aria-labelledby": `onglet-cookies-${onglet}`,
+			children: [
+				onglet === "aide" && /* @__PURE__ */ jsx(AideCookies, { onAllerVers: (cible) => activer(cible, false) }),
+				onglet === "reglages" && /* @__PURE__ */ jsx(OngletReglages, {}),
+				onglet === "statistiques" && /* @__PURE__ */ jsx(OngletStatistiques, {}),
+				onglet === "journal" && /* @__PURE__ */ jsx(OngletJournal, {})
+			]
+		})]
 	});
 }
 function OngletReglages() {
@@ -6712,13 +6762,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": true,
-			"module": "/assets/root-DDPQFpPj.js",
+			"module": "/assets/root-Bfy7Qvd4.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-sbJyZWG0.js"
+				"/assets/app-DYHWtS2h.js"
 			],
-			"css": ["/assets/app-Wssnm6MA.css"],
+			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6737,13 +6787,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/accueil-BGyXMOZo.js",
+			"module": "/assets/accueil-Clrh7rVZ.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-sbJyZWG0.js",
+				"/assets/app-DYHWtS2h.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
-			"css": ["/assets/app-Wssnm6MA.css"],
+			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6762,13 +6812,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/classements-8dMf9h2n.js",
+			"module": "/assets/classements-BV_Qepts.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-sbJyZWG0.js",
+				"/assets/app-DYHWtS2h.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
-			"css": ["/assets/app-Wssnm6MA.css"],
+			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6787,13 +6837,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/dates-50DcFCGm.js",
+			"module": "/assets/dates-C7S9njbF.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-sbJyZWG0.js",
+				"/assets/app-DYHWtS2h.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
-			"css": ["/assets/app-Wssnm6MA.css"],
+			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6812,13 +6862,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/contact-KTENYF44.js",
+			"module": "/assets/contact-D92F6Y44.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-sbJyZWG0.js",
+				"/assets/app-DYHWtS2h.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
-			"css": ["/assets/app-Wssnm6MA.css"],
+			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6837,13 +6887,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/mentions-legales-BtnDVnGn.js",
+			"module": "/assets/mentions-legales-RTqai0GN.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-sbJyZWG0.js",
+				"/assets/app-DYHWtS2h.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
-			"css": ["/assets/app-Wssnm6MA.css"],
+			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6862,13 +6912,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/confidentialite-D_e4lcdT.js",
+			"module": "/assets/confidentialite-AnnjCXQ-.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-sbJyZWG0.js",
+				"/assets/app-DYHWtS2h.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
-			"css": ["/assets/app-Wssnm6MA.css"],
+			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6887,13 +6937,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/noter-BLQ1ZBXm.js",
+			"module": "/assets/noter-CwCpAlCc.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-sbJyZWG0.js",
+				"/assets/app-DYHWtS2h.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
-			"css": ["/assets/app-Wssnm6MA.css"],
+			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6912,14 +6962,14 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/inscription-oykHstWx.js",
+			"module": "/assets/inscription-C0GTyXEC.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-sbJyZWG0.js",
-				"/assets/FormulaireInscription-QFstpOiF.js"
+				"/assets/app-DYHWtS2h.js",
+				"/assets/FormulaireInscription-D8GLgd71.js"
 			],
-			"css": ["/assets/app-Wssnm6MA.css"],
+			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6938,14 +6988,14 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/inscription-code-DJgRj8f2.js",
+			"module": "/assets/inscription-code-rTEdRpVE.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-sbJyZWG0.js",
-				"/assets/FormulaireInscription-QFstpOiF.js"
+				"/assets/app-DYHWtS2h.js",
+				"/assets/FormulaireInscription-D8GLgd71.js"
 			],
-			"css": ["/assets/app-Wssnm6MA.css"],
+			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6964,13 +7014,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-2bzHcxNq.js",
+			"module": "/assets/admin-D4TIE7_W.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-sbJyZWG0.js"
+				"/assets/app-DYHWtS2h.js"
 			],
-			"css": ["/assets/app-Wssnm6MA.css"],
+			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -6989,13 +7039,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-statistiques-DBo6GgVr.js",
+			"module": "/assets/admin-statistiques-CPrEOJC_.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-sbJyZWG0.js"
+				"/assets/app-DYHWtS2h.js"
 			],
-			"css": ["/assets/app-Wssnm6MA.css"],
+			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -7014,13 +7064,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-cookies-BuMdO-qr.js",
+			"module": "/assets/admin-cookies-DjRWwBf-.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-sbJyZWG0.js"
+				"/assets/app-DYHWtS2h.js"
 			],
-			"css": ["/assets/app-Wssnm6MA.css"],
+			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -7039,13 +7089,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-participants-BUC5R5jq.js",
+			"module": "/assets/admin-participants-jaj2NxLX.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-sbJyZWG0.js"
+				"/assets/app-DYHWtS2h.js"
 			],
-			"css": ["/assets/app-Wssnm6MA.css"],
+			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -7064,13 +7114,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-messages-D_4kIqZt.js",
+			"module": "/assets/admin-messages-CITwKPyO.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-sbJyZWG0.js"
+				"/assets/app-DYHWtS2h.js"
 			],
-			"css": ["/assets/app-Wssnm6MA.css"],
+			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -7089,13 +7139,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-abonnes-BpTV3pJJ.js",
+			"module": "/assets/admin-abonnes-D9ysxI-m.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-sbJyZWG0.js"
+				"/assets/app-DYHWtS2h.js"
 			],
-			"css": ["/assets/app-Wssnm6MA.css"],
+			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -7114,13 +7164,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-juges-CDtKHcF-.js",
+			"module": "/assets/admin-juges-DRRwpU48.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-sbJyZWG0.js"
+				"/assets/app-DYHWtS2h.js"
 			],
-			"css": ["/assets/app-Wssnm6MA.css"],
+			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -7139,13 +7189,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-soirees-DhFqzxVH.js",
+			"module": "/assets/admin-soirees-CI5ZXk45.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-sbJyZWG0.js"
+				"/assets/app-DYHWtS2h.js"
 			],
-			"css": ["/assets/app-Wssnm6MA.css"],
+			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -7164,13 +7214,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-soiree-1TcD3FFH.js",
+			"module": "/assets/admin-soiree-DGNDUNty.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-sbJyZWG0.js"
+				"/assets/app-DYHWtS2h.js"
 			],
-			"css": ["/assets/app-Wssnm6MA.css"],
+			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -7189,13 +7239,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-direct-Bl9lTh2Z.js",
+			"module": "/assets/admin-direct-D2S_GZNm.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-sbJyZWG0.js"
+				"/assets/app-DYHWtS2h.js"
 			],
-			"css": ["/assets/app-Wssnm6MA.css"],
+			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -7214,13 +7264,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-resultats-BICZFZvE.js",
+			"module": "/assets/admin-resultats-CRxE9l7g.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-sbJyZWG0.js"
+				"/assets/app-DYHWtS2h.js"
 			],
-			"css": ["/assets/app-Wssnm6MA.css"],
+			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -7239,13 +7289,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-vitrine-C96tl8aH.js",
+			"module": "/assets/admin-vitrine-Bi4J6GOw.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-sbJyZWG0.js"
+				"/assets/app-DYHWtS2h.js"
 			],
-			"css": ["/assets/app-Wssnm6MA.css"],
+			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -7264,13 +7314,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/compte-1_5CnO5B.js",
+			"module": "/assets/compte-BUzVd5_X.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-sbJyZWG0.js"
+				"/assets/app-DYHWtS2h.js"
 			],
-			"css": ["/assets/app-Wssnm6MA.css"],
+			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -7289,13 +7339,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/ecran-CRRlQXD-.js",
+			"module": "/assets/ecran-BtHfvfmW.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-sbJyZWG0.js"
+				"/assets/app-DYHWtS2h.js"
 			],
-			"css": ["/assets/app-Wssnm6MA.css"],
+			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -7314,13 +7364,13 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/jury-XyXdfohV.js",
+			"module": "/assets/jury-j0wEkI0_.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-sbJyZWG0.js"
+				"/assets/app-DYHWtS2h.js"
 			],
-			"css": ["/assets/app-Wssnm6MA.css"],
+			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -7339,21 +7389,21 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/introuvable-WdL3amqa.js",
+			"module": "/assets/introuvable-OLic1anY.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-sbJyZWG0.js",
+				"/assets/app-DYHWtS2h.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
-			"css": ["/assets/app-Wssnm6MA.css"],
+			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
 			"hydrateFallbackModule": void 0
 		}
 	},
-	"url": "/assets/manifest-ad301990.js",
-	"version": "ad301990",
+	"url": "/assets/manifest-bbd57e16.js",
+	"version": "bbd57e16",
 	"sri": void 0
 };
 //#endregion
