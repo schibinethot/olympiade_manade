@@ -11,8 +11,10 @@
 // Sans Supabase, clé service_role, origine publique ou clé de liens valable : 503 et planificateur inactif.
 //
 // Planificateur, chaque minute : RPC emails_a_traiter, calculerEnvois, réservation (unicité en base),
-// lecture des envois dus, réclamation atomique (deux instances n'envoient jamais la même ligne), contrôles
-// de dernière minute (date annulée, consentement, désinscription), rendu, envoi au débit borné, statut.
+// lecture des envois dus, réclamation de chaque groupe juste avant son envoi, relecture du destinataire,
+// contrôles de dernière minute (date annulée, consentement, désinscription), rendu, envoi au débit borné,
+// statut. Livraison AU PLUS UNE FOIS : une ligne réclamée et jamais terminée n'est jamais renvoyée.
+// prevu_le n'est jamais modifié après la réservation : le plafond journalier se compte dessus.
 
 import { createHash } from 'node:crypto';
 import { ipClientActualites } from './actualites.mjs';
@@ -62,13 +64,14 @@ import {
  *   serviceRoleKey?: string | null,
  *   origine?: string | null,
  *   cleLiens?: string | null,
- *   expediteur?: string | null,
  *   courriel?: Poste,
  *   debitParSeconde?: number | string,
  *   fetchFn?: typeof fetch,
  *   maintenant?: () => number,
  *   timers?: boolean,
  *   trustRailwayProxy?: boolean,
+ *   railway?: boolean,
+ *   barriereActive?: boolean,
  *   journal?: (ligne: Record<string, unknown>) => void,
  *   attendre?: (ms: number) => Promise<void>,
  * }} OptionsEmails
@@ -87,7 +90,8 @@ import {
 /**
  * @typedef {{
  *   id: string, destinataire_id: string, etape: Etape, calendrier_id: string | null, message_id: string | null,
- *   tentatives: number, prevu_le: string, destinataires_emails: DestinataireEnvoi | null,
+ *   raison: string | null, tentatives: number, prevu_le: string, envoye_le: string | null,
+ *   destinataires_emails: DestinataireEnvoi | null,
  * }} LigneEnvoi
  */
 
@@ -111,15 +115,25 @@ const JOUR_MS = 24 * HEURE_MS;
 const INTERVALLE_MS = MINUTE_MS;
 /** Une étape due part dans les 12 h qui suivent son échéance (même règle que calculerEnvois). */
 const FENETRE_ENVOI_MS = 12 * HEURE_MS;
-/** Une ligne réclamée par une instance est à elle pendant ce délai ; au-delà (arrêt brutal), elle repart. */
+/** Le message n° 8 ne part plus 24 h après sa création : l'information serait périmée. */
+const FENETRE_MESSAGE_MS = 24 * HEURE_MS;
+/**
+ * Une ligne réclamée (raison « en_cours ») et toujours pas terminée après ce délai a été interrompue
+ * (arrêt brutal, statut non écrit) : elle passe en echec « interrompu », sans nouvel envoi.
+ */
 const BAIL_MS = 10 * MINUTE_MS;
 const TENTATIVES_MAX = 3;
 const DELAI_NOUVEL_ESSAI_MS = 5 * MINUTE_MS;
 const LOT_LECTURE = 500;
 const LOT_INSERTION = 500;
 const LOT_IDS = 50;
+/** Groupes réclamés, puis destinataires relus, par paquets de cette taille juste avant l'envoi. */
+const LOT_ENVOI = 10;
 const PAGE_RATTACHES = 1_000;
-const LIENS_PAR_IP = 30;
+/** Limite par IP des seuls liens refusés (invalides, expirés, malformés), par 10 minutes. */
+const LIENS_INVALIDES_PAR_IP = 30;
+/** Limite par destinataire des liens valables (pages et un clic), par 10 minutes. */
+const LIENS_PAR_DESTINATAIRE = 20;
 const TESTS_PAR_HEURE = 10;
 const DOUBLON_MESSAGE_MS = 10 * MINUTE_MS;
 const LIMITE_RPC_OCTETS = 64 * 1024 * 1024;
@@ -131,8 +145,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CONFLIT_ENVOIS = 'destinataire_id,etape,calendrier_id,message_id,reel';
 const SELECT_DATE = 'id,nom,ville,arenes,date_soiree,heure,statut,lien_billetterie,infos_pratiques';
 const SELECT_DESTINATAIRE = 'id,email,abonne,annonces,abonnement_a_confirmer,confirme_le,desinscrit_le';
-const SELECT_ENVOI = 'id,destinataire_id,etape,calendrier_id,message_id,tentatives,prevu_le,'
-  + 'destinataires_emails(id,email,prenom,annonces,abonnement_a_confirmer,confirme_le,desinscrit_le)';
+const SELECT_DESTINATAIRE_ENVOI = 'id,email,prenom,annonces,abonnement_a_confirmer,confirme_le,desinscrit_le';
+const SELECT_ENVOI = `id,destinataire_id,etape,calendrier_id,message_id,raison,tentatives,prevu_le,envoye_le,destinataires_emails(${SELECT_DESTINATAIRE_ENVOI})`;
 
 /** Types de lien acceptés par action : `decrire` lit les trois, chaque écriture le sien seulement. */
 const ACTIONS = /** @type {const} */ ({
@@ -179,13 +193,6 @@ function objet(valeur) {
 /** @param {unknown} valeur */
 function texte(valeur) {
   return typeof valeur === 'string' ? valeur.trim() : '';
-}
-
-/** Adresse nue de EMAILS_FROM (« Nom <a@b.fr> » ou « a@b.fr »), pour le mailto de List-Unsubscribe. @param {unknown} valeur */
-function adresseExpediteur(valeur) {
-  const brut = texte(valeur);
-  const adresse = /<([^<>\s]+)>\s*$/.exec(brut)?.[1] ?? brut;
-  return /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(adresse) ? adresse : null;
 }
 
 /** Erreur PostgREST réduite au statut HTTP et au code : jamais le corps (les 23505 contiennent l'adresse). */
@@ -362,6 +369,20 @@ function dateDepuisLigne(ligne, vainqueur) {
   };
 }
 
+/**
+ * Corps du semis des modèles : les 9 textes de départ, avec exactement les colonnes que service_role
+ * peut insérer. Testé contre les contraintes réelles de la migration (tests/db/semis-modeles-emails.test.ts).
+ */
+export function lignesModelesParDefaut() {
+  return ETAPES.map((cle) => {
+    const modele = MODELES_DEFAUT[cle];
+    return {
+      cle, nom: modele.nom, actif: true, sujet: modele.sujet, preheader: modele.preheader, corps: modele.corps,
+      encart: modele.encart, jours_decalage: modele.jours_decalage, heure_envoi: modele.heure_envoi,
+    };
+  });
+}
+
 /** @param {OptionsEmails} [options] */
 export function creerEmails(options = {}) {
   const supabaseUrl = origineSupabase(options.supabaseUrl);
@@ -374,18 +395,23 @@ export function creerEmails(options = {}) {
   /** @type {'off' | 'log' | 'smtp'} */
   const mode = poste.mode === 'smtp' ? 'smtp' : poste.mode === 'log' ? 'log' : 'off';
   const reel = mode === 'smtp';
-  const mailto = adresseExpediteur(options.expediteur);
   const debit = entierBorne(options.debitParSeconde, 5, 1, 20);
   const demander = options.fetchFn ?? fetch;
   const maintenant = options.maintenant ?? Date.now;
   const timers = options.timers !== false;
   const trustRailwayProxy = options.trustRailwayProxy === true;
+  const railway = options.railway === true;
+  const barriereActive = options.barriereActive === true;
   const journal = options.journal ?? ((ligne) => console.log(JSON.stringify(ligne)));
   const attendre = options.attendre ?? ((ms) => new Promise((ok) => { setTimeout(ok, ms); }));
   const serveurPret = !!(supabaseUrl && serviceRoleKey);
   const configure = !!(serveurPret && origine && cleLiens);
-  const actif = configure && mode !== 'off' && poste.pret;
-  const limiteurLiens = creerLimiteurFormulaire({ maintenant, parIp: LIENS_PAR_IP, global: 1_000_000 });
+  // Site privé (barrière ACCES_TOKEN) : les liens des e-mails (désinscription comprise) seraient
+  // inaccessibles aux destinataires. Aucun envoi réel ne part ; le mode log reste possible.
+  const smtpSuspendu = barriereActive && mode === 'smtp';
+  const actif = configure && mode !== 'off' && poste.pret && !smtpSuspendu;
+  const limiteurIp = creerLimiteurFormulaire({ maintenant, parIp: LIENS_INVALIDES_PAR_IP, global: 1_000_000 });
+  const limiteurDestinataires = creerLimiteurFormulaire({ maintenant, parIp: LIENS_PAR_DESTINATAIRE, global: 1_000_000 });
   /** @type {Map<string, { debut: number, n: number }>} */
   const testsParAdmin = new Map();
   /** @type {Map<string, { cree: number, promesse: Promise<{ messageId: string, destinataires: number }> }>} */
@@ -572,13 +598,25 @@ export function creerEmails(options = {}) {
   }
 
   /** @param {Requete} req @param {Reponse} res */
+  function tropDeDemandes(req, res) {
+    return repondreJson(req, res, 429, { error: 'Trop de demandes. Réessayez plus tard.' }, { 'Retry-After': String(Math.ceil(FENETRE_MS / 1000)) });
+  }
+
+  /**
+   * Refus d'un lien invalide, expiré ou malformé : seuls ces refus comptent dans la limite par IP. Un jeton
+   * valable n'y est jamais compté (réseau partagé, IP des messageries).
+   * @param {Requete} req @param {Reponse} res @param {string} ip @param {number} statut @param {string} message
+   */
+  function refuserLien(req, res, ip, statut, message) {
+    if (!limiteurIp.accepter(ip)) return tropDeDemandes(req, res);
+    return repondreJson(req, res, statut, { error: message });
+  }
+
+  /** @param {Requete} req @param {Reponse} res */
   async function repondreLien(req, res) {
     if (req.method !== 'POST') return repondreJson(req, res, 405, { error: 'Méthode non autorisée.' }, { Allow: 'POST' });
     if (!configure) return repondreJson(req, res, 503, { error: 'Service momentanément indisponible.' });
-    if (!limiteurLiens.accepter(ipClientActualites(req, trustRailwayProxy))) {
-      req.resume();
-      return repondreJson(req, res, 429, { error: 'Trop de demandes. Réessayez plus tard.' }, { 'Retry-After': String(Math.ceil(FENETRE_MS / 1000)) });
-    }
+    // L'Origin d'abord : une requête d'un autre site ne consomme aucune limite.
     if (req.headers.origin !== origine) {
       req.resume();
       return repondreJson(req, res, 403, { error: 'Origine de demande non autorisée.' });
@@ -587,18 +625,20 @@ export function creerEmails(options = {}) {
       req.resume();
       return repondreJson(req, res, 415, { error: 'Format de demande non pris en charge.' });
     }
+    const ip = ipClientActualites(req, trustRailwayProxy);
     let brut;
     try { brut = await lireJson(req); }
     catch (erreur) {
       const statut = /** @type {{ statut?: number }} */ (erreur).statut ?? 400;
-      return repondreJson(req, res, statut, { error: statut === 413 ? 'La demande est trop volumineuse.' : 'Format de demande invalide.' });
+      return refuserLien(req, res, ip, statut, statut === 413 ? 'La demande est trop volumineuse.' : 'Format de demande invalide.');
     }
     const demande = validerLien(brut);
-    if (!demande) return repondreJson(req, res, 400, { error: 'Format de demande invalide.' });
+    if (!demande) return refuserLien(req, res, ip, 400, 'Format de demande invalide.');
     const instant = maintenant();
     const charge = verifierJeton(demande.jeton, ACTIONS[demande.action], instant);
-    if (charge === 'expire') return repondreJson(req, res, 410, { error: 'Ce lien a expiré.' });
-    if (!charge) return repondreJson(req, res, 400, { error: 'Ce lien n’est pas valide.' });
+    if (charge === 'expire') return refuserLien(req, res, ip, 410, 'Ce lien a expiré.');
+    if (!charge) return refuserLien(req, res, ip, 400, 'Ce lien n’est pas valide.');
+    if (!limiteurDestinataires.accepter(charge.d)) return tropDeDemandes(req, res);
 
     /** @type {{ statut: number } | { etat: unknown }} */
     let resultat;
@@ -611,23 +651,31 @@ export function creerEmails(options = {}) {
     return repondreJson(req, res, 200, { ok: true, etat: resultat.etat });
   }
 
-  /** Désinscription en un clic : appelée par les messageries, sans Origin. @param {Requete} req @param {Reponse} res */
+  /**
+   * Désinscription en un clic : appelée par les messageries, sans Origin, depuis leurs propres IP. Même
+   * règle de limite que les pages : par IP pour les refus, par destinataire pour un jeton valable.
+   * @param {Requete} req @param {Reponse} res
+   */
   async function repondreUnClic(req, res) {
     if (req.method !== 'POST') return repondreJson(req, res, 405, { error: 'Méthode non autorisée.' }, { Allow: 'POST' });
     if (!configure) return repondreJson(req, res, 503, { error: 'Service momentanément indisponible.' });
+    const ip = ipClientActualites(req, trustRailwayProxy);
     const jeton = new URL(req.url ?? '/', 'http://serveur').searchParams.get('j') ?? '';
     const charge = verifierJeton(jeton, ['desinscription'], maintenant());
     if (!charge || charge === 'expire') {
       req.resume();
-      return repondreJson(req, res, 400, { error: 'Ce lien n’est pas valide.' });
+      return refuserLien(req, res, ip, 400, 'Ce lien n’est pas valide.');
+    }
+    if (!limiteurDestinataires.accepter(charge.d)) {
+      req.resume();
+      return tropDeDemandes(req, res);
     }
     let corps;
     try { corps = await lireCorps(req, LIMITE_CORPS_UN_CLIC); }
     catch (erreur) {
-      const statut = /** @type {{ statut?: number }} */ (erreur).statut ?? 400;
-      return repondreJson(req, res, statut, { error: 'Format de demande invalide.' });
+      return refuserLien(req, res, ip, /** @type {{ statut?: number }} */ (erreur).statut ?? 400, 'Format de demande invalide.');
     }
-    if (!demandeUnClic(corps)) return repondreJson(req, res, 400, { error: 'Format de demande invalide.' });
+    if (!demandeUnClic(corps)) return refuserLien(req, res, ip, 400, 'Format de demande invalide.');
     await desinscrire(charge.d, maintenant());
     return repondreJson(req, res, 200, { ok: true });
   }
@@ -635,7 +683,10 @@ export function creerEmails(options = {}) {
   // ——— Admin ———
 
   function etat() {
-    return { mode, pret: actif, cleLiens: cleLiens !== null, dernierPassage, dernierBilan: dernierBilan ? { ...dernierBilan } : null };
+    return {
+      mode, pret: actif, cleLiens: cleLiens !== null, barriereActive, dernierPassage,
+      dernierBilan: dernierBilan ? { ...dernierBilan } : null,
+    };
   }
 
   /** @param {string} id */
@@ -803,13 +854,7 @@ export function creerEmails(options = {}) {
 
   // ——— Planificateur ———
 
-  const LIGNES_MODELES = ETAPES.map((cle) => {
-    const modele = MODELES_DEFAUT[cle];
-    return {
-      cle, nom: modele.nom, actif: true, sujet: modele.sujet, preheader: modele.preheader, corps: modele.corps,
-      encart: modele.encart, jours_decalage: modele.jours_decalage, heure_envoi: modele.heure_envoi,
-    };
-  });
+  const LIGNES_MODELES = lignesModelesParDefaut();
 
   /** Sème les modèles manquants sans toucher aux lignes existantes ; un échec est retenté au passage suivant. */
   async function semer() {
@@ -833,31 +878,67 @@ export function creerEmails(options = {}) {
     }));
   }
 
-  /** @param {string[]} ids @param {Record<string, unknown>} champs */
+  /** Statut d'un envoi. prevu_le n'y figure jamais : l'échéance d'origine reste. @param {string[]} ids @param {Record<string, unknown>} champs */
   async function marquer(ids, champs) {
     for (const lot of tranches(ids, LOT_IDS)) {
+      const chemin = `/rest/v1/envois_emails?id=in.(${lot.join(',')})`;
       try {
-        await rest(`/rest/v1/envois_emails?id=in.(${lot.join(',')})`, { methode: 'PATCH', corps: champs, prefer: 'return=minimal' });
+        await rest(chemin, { methode: 'PATCH', corps: champs, prefer: 'return=minimal' });
       } catch {
-        // Un second essai : sans lui, une ligne envoyée resterait réclamée et repartirait après le bail.
-        await rest(`/rest/v1/envois_emails?id=in.(${lot.join(',')})`, { methode: 'PATCH', corps: champs, prefer: 'return=minimal' });
+        // Un second essai ; s'il échoue aussi, la ligne reste « en_cours » et sera soldée « interrompu ».
+        await rest(chemin, { methode: 'PATCH', corps: champs, prefer: 'return=minimal' });
       }
     }
   }
 
-  /** Réclame les lignes encore dues : seule l'instance dont l'UPDATE les touche les envoie. @param {string[]} ids @param {number} instant */
-  async function reclamer(ids, instant) {
-    /** @type {Set<string>} */
-    const reclames = new Set();
-    for (const lot of tranches(ids, LOT_IDS)) {
-      const lignes = await rest(`/rest/v1/envois_emails?id=in.(${lot.join(',')})&statut=eq.en_attente&prevu_le=lte.${enc(iso(instant))}&select=id`, {
-        methode: 'PATCH',
-        corps: { prevu_le: iso(instant + BAIL_MS) },
-        prefer: 'return=representation',
-      });
-      for (const ligne of Array.isArray(lignes) ? lignes : []) reclames.add(ligne.id);
-    }
-    return reclames;
+  /** Une ligne peut être réclamée : jamais réclamée, ou en attente d'un nouvel essai dont le délai est passé. @param {LigneEnvoi} ligne @param {number} instant */
+  function eligible(ligne, instant) {
+    if (ligne.raison === null) return true;
+    if (ligne.raison !== 'envoi_impossible') return false;
+    const derniere = Date.parse(ligne.envoye_le ?? '');
+    return Number.isNaN(derniere) || derniere + DELAI_NOUVEL_ESSAI_MS * ligne.tentatives <= instant;
+  }
+
+  /**
+   * Réclame un groupe juste avant son envoi : raison passe à « en_cours » et envoye_le note l'instant, par
+   * un UPDATE filtré sur l'état lu (raison, tentatives). Deux instances qui lisent la même ligne : une
+   * seule la touche. Une ligne déjà « en_cours » n'est jamais réclamée.
+   * @param {LigneEnvoi[]} groupe @param {number} instant @returns {Promise<LigneEnvoi[]>}
+   */
+  async function reclamer(groupe, instant) {
+    const [premiere] = groupe;
+    if (!eligible(premiere, instant)) return [];
+    const etatLu = premiere.raison === null ? 'raison=is.null' : 'raison=eq.envoi_impossible';
+    const lignes = await rest(`/rest/v1/envois_emails?id=in.(${groupe.map((l) => l.id).join(',')})&statut=eq.en_attente`
+      + `&${etatLu}&tentatives=eq.${Number(premiere.tentatives) || 0}&select=id`, {
+      methode: 'PATCH',
+      corps: { raison: 'en_cours', envoye_le: iso(instant) },
+      prefer: 'return=representation',
+    });
+    const ids = new Set((Array.isArray(lignes) ? lignes : []).map((/** @type {{ id: string }} */ l) => l.id));
+    return groupe.filter((ligne) => ids.has(ligne.id));
+  }
+
+  /** Lignes réclamées et jamais terminées depuis le bail : echec « interrompu », jamais renvoyées. @param {number} instant */
+  async function solderInterrompus(instant) {
+    const lignes = await rest(`/rest/v1/envois_emails?statut=eq.en_attente&reel=is.${reel}&raison=eq.en_cours`
+      + `&envoye_le=lt.${enc(iso(instant - BAIL_MS))}&select=id`, {
+      methode: 'PATCH',
+      corps: { statut: 'echec', raison: 'interrompu' },
+      prefer: 'return=representation',
+    });
+    const nombre = Array.isArray(lignes) ? lignes.length : 0;
+    if (nombre) journal({ level: 'warn', timestamp: iso(Date.now()), message: 'envois interrompus, non renvoyés', nombre });
+    return nombre;
+  }
+
+  /** Envois dus du mode courant : nouveaux, puis nouveaux essais dont le délai est passé. @param {number} instant @returns {Promise<LigneEnvoi[]>} */
+  async function lireDus(instant) {
+    const base = `/rest/v1/envois_emails?select=${SELECT_ENVOI}&statut=eq.en_attente&reel=is.${reel}`
+      + `&prevu_le=lte.${enc(iso(instant))}&order=prevu_le.asc,destinataire_id.asc,id.asc&limit=${LOT_LECTURE}`;
+    const nouveaux = await rest(`${base}&raison=is.null`) ?? [];
+    const essais = await rest(`${base}&raison=eq.envoi_impossible`) ?? [];
+    return [...nouveaux, ...essais].filter((ligne) => eligible(ligne, instant));
   }
 
   /** Les lignes d'une même annonce partent ensemble : complète celles qu'une limite de lecture aurait coupées. @param {LigneEnvoi[]} lues @param {number} instant */
@@ -867,7 +948,7 @@ export function creerEmails(options = {}) {
     for (const lot of tranches(ids, LOT_IDS)) {
       const lignes = await rest(`/rest/v1/envois_emails?select=${SELECT_ENVOI}&etape=eq.annonce&statut=eq.en_attente&reel=is.${reel}`
         + `&prevu_le=lte.${enc(iso(instant))}&destinataire_id=in.(${lot.join(',')})`) ?? [];
-      for (const ligne of lignes) parId.set(ligne.id, ligne);
+      for (const ligne of lignes) if (eligible(ligne, instant)) parId.set(ligne.id, ligne);
     }
     return [...parId.values()];
   }
@@ -877,12 +958,25 @@ export function creerEmails(options = {}) {
     /** @type {Map<string, LigneEnvoi[]>} */
     const groupes = new Map();
     for (const ligne of lignes) {
-      const cle = ligne.etape === 'annonce' ? `annonce ${ligne.destinataire_id}` : ligne.id;
+      // Une annonce : toutes ses lignes, dans le même état (réservées et mises à jour ensemble).
+      const cle = ligne.etape === 'annonce' ? `annonce ${ligne.destinataire_id} ${ligne.raison} ${ligne.tentatives}` : ligne.id;
       const groupe = groupes.get(cle);
       if (groupe) groupe.push(ligne);
       else groupes.set(cle, [ligne]);
     }
     return [...groupes.values()];
+  }
+
+  /** Destinataires relus juste après la réclamation. @param {string[]} ids @returns {Promise<Map<string, DestinataireEnvoi>>} */
+  async function relireDestinataires(ids) {
+    /** @type {Map<string, DestinataireEnvoi>} */
+    const frais = new Map();
+    for (const lot of tranches([...new Set(ids)], LOT_IDS)) {
+      for (const ligne of await rest(`/rest/v1/destinataires_emails?select=${SELECT_DESTINATAIRE_ENVOI}&id=in.(${lot.join(',')})`) ?? []) {
+        frais.set(ligne.id, ligne);
+      }
+    }
+    return frais;
   }
 
   /**
@@ -898,20 +992,22 @@ export function creerEmails(options = {}) {
    * Ce qu'il faut faire d'un groupe de lignes réclamées : lignes sautées (avec leur raison) et, peut-être,
    * un e-mail à rendre et envoyer. Tout est relu ici : un état changé depuis la réservation l'emporte.
    * @param {LigneEnvoi[]} groupe
+   * @param {DestinataireEnvoi | null} d destinataire relu après la réclamation
    * @param {ContexteEnvoi} ctx
    * @param {number} instant
    * @returns {{ sautes: { ids: string[], raison: string }[], envoi: { lignes: LigneEnvoi[], modele: ModeleEmail, contexte: ContexteEmail, entetes: Record<string, string> } | null }}
    */
-  function examiner(groupe, ctx, instant) {
+  function examiner(groupe, d, ctx, instant) {
     const premiere = groupe[0];
-    const d = premiere.destinataires_emails;
     const etape = premiere.etape;
     const tout = (/** @type {string} */ raison) => ({ sautes: [{ ids: groupe.map((l) => l.id), raison }], envoi: null });
     if (!d) return tout('destinataire_absent');
     if (etape !== 'confirmation' && d.desinscrit_le !== null) return tout('desinscrit');
     if (etape === 'confirmation' && !d.abonnement_a_confirmer) return tout('deja_confirme');
     if (etape !== 'confirmation' && d.confirme_le === null) return tout('non_confirme');
-    if (etape !== 'confirmation' && etape !== 'message' && instant - Date.parse(premiere.prevu_le) > FENETRE_ENVOI_MS) return tout('fenetre_depassee');
+    const retard = instant - Date.parse(premiere.prevu_le);
+    if (etape !== 'confirmation' && etape !== 'message' && retard > FENETRE_ENVOI_MS) return tout('fenetre_depassee');
+    if (etape === 'message' && retard > FENETRE_MESSAGE_MS) return tout('fenetre_depassee');
 
     /** @type {ModeleEmail} */
     let modele;
@@ -970,7 +1066,10 @@ export function creerEmails(options = {}) {
       date = (premiere.calendrier_id && ctx.dates.get(premiere.calendrier_id)) || null;
     }
 
-    const prochaines = etape === 'confirmation' ? [] : ctx.donnees.prochaines
+    // {{prochaines_dates}} annonce d'autres dates : seulement avec le consentement aux annonces, ou dans un
+    // message de l'organisateur aux inscrits d'une date (report, annulation). Sinon la ligne disparaît.
+    const listeAutorisee = etape === 'message' || (etape !== 'confirmation' && d.annonces === true);
+    const prochaines = !listeAutorisee ? [] : ctx.donnees.prochaines
       .filter((p) => p.id !== date?.id)
       .slice(0, 3)
       .map((p) => ({ ...p, lienJeViens: jeViensPour(p) }));
@@ -995,8 +1094,9 @@ export function creerEmails(options = {}) {
             jeViens: etape === 'annonce' && date ? jeViensPour(date) : null,
           },
         },
+        // Pas de mailto : aucune boîte ne traite les demandes envoyées par e-mail.
         entetes: {
-          'List-Unsubscribe': [`<${liens.desinscriptionUnClic}>`, ...(mailto ? [`<mailto:${mailto}?subject=desinscription>`] : [])].join(', '),
+          'List-Unsubscribe': `<${liens.desinscriptionUnClic}>`,
           'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
         },
       },
@@ -1013,14 +1113,18 @@ export function creerEmails(options = {}) {
     departs.push(Date.now());
   }
 
-  /** @param {LigneEnvoi[]} groupe @param {ContexteEnvoi} ctx @param {number} instant @param {Bilan} bilan @param {number[]} departs */
-  async function traiter(groupe, ctx, instant, bilan, departs) {
-    const { sautes, envoi } = examiner(groupe, ctx, instant);
+  /**
+   * @param {LigneEnvoi[]} groupe lignes réclamées
+   * @param {DestinataireEnvoi | null} destinataire relu après la réclamation
+   * @param {ContexteEnvoi} ctx @param {number} instant @param {Bilan} bilan @param {number[]} departs
+   */
+  async function traiter(groupe, destinataire, ctx, instant, bilan, departs) {
+    const { sautes, envoi } = examiner(groupe, destinataire, ctx, instant);
     for (const saut of sautes) {
-      await marquer(saut.ids, { statut: 'saute', raison: saut.raison });
+      await marquer(saut.ids, { statut: 'saute', raison: saut.raison, envoye_le: null });
       bilan.sautes += saut.ids.length;
     }
-    if (!envoi) return;
+    if (!envoi || !destinataire) return;
     const ids = envoi.lignes.map((ligne) => ligne.id);
     const tentatives = Math.max(...envoi.lignes.map((ligne) => Number(ligne.tentatives) || 0)) + 1;
     let rendu;
@@ -1028,12 +1132,11 @@ export function creerEmails(options = {}) {
       rendu = rendreEmail(envoi.modele, envoi.contexte, { cible: 'email' });
     } catch (erreur) {
       // Un rendu impossible le restera : échec définitif, sans nouvel essai.
-      await marquer(ids, { statut: 'echec', raison: 'rendu_invalide', tentatives });
+      await marquer(ids, { statut: 'echec', raison: 'rendu_invalide', tentatives, envoye_le: null });
       bilan.echecs += 1;
       signaler('rendu d’e-mail impossible', erreur, { etape: groupe[0].etape });
       return;
     }
-    const destinataire = /** @type {DestinataireEnvoi} */ (groupe[0].destinataires_emails);
     await patienter(departs);
     /** @type {{ envoye: boolean, echec: boolean }} */
     let resultat;
@@ -1042,23 +1145,24 @@ export function creerEmails(options = {}) {
     } catch {
       resultat = { envoye: false, echec: true };
     }
-    const fin = maintenant();
+    const fin = iso(maintenant());
     if (!resultat.echec) {
       const statut = resultat.envoye ? 'envoye' : 'simule';
-      await marquer(ids, { statut, envoye_le: iso(fin), raison: null });
+      await marquer(ids, { statut, envoye_le: fin, raison: null });
       if (statut === 'envoye') bilan.envoyes += 1;
       else bilan.simules += 1;
       return;
     }
     bilan.echecs += 1;
-    if (tentatives >= TENTATIVES_MAX) await marquer(ids, { statut: 'echec', tentatives, raison: 'envoi_impossible' });
-    else await marquer(ids, { tentatives, prevu_le: iso(fin + DELAI_NOUVEL_ESSAI_MS * tentatives), raison: 'envoi_impossible' });
+    // Un échec SMTP réécrit la raison : le nouvel essai n'est pas pris pour une interruption. envoye_le
+    // garde l'heure de cet essai, le suivant attend 5 min × tentatives.
+    if (tentatives >= TENTATIVES_MAX) await marquer(ids, { statut: 'echec', tentatives, raison: 'envoi_impossible', envoye_le: fin });
+    else await marquer(ids, { tentatives, raison: 'envoi_impossible', envoye_le: fin });
   }
 
   /** @param {EmailsATraiter} donnees @param {number} instant @param {Bilan} bilan */
   async function envoyerDus(donnees, instant, bilan) {
-    const lues = await rest(`/rest/v1/envois_emails?select=${SELECT_ENVOI}&statut=eq.en_attente&reel=is.${reel}`
-      + `&prevu_le=lte.${enc(iso(instant))}&order=prevu_le.asc,destinataire_id.asc,id.asc&limit=${LOT_LECTURE}`) ?? [];
+    const lues = await lireDus(instant);
     if (!lues.length) return;
     /** @type {LigneEnvoi[]} */
     const lignes = await completerAnnonces(lues, instant);
@@ -1078,26 +1182,24 @@ export function creerEmails(options = {}) {
 
     /** @type {number[]} */
     const departs = [];
-    /** @type {LigneEnvoi[][][]} */
-    const lots = [];
-    let courant = /** @type {LigneEnvoi[][]} */ ([]);
-    let taille = 0;
-    for (const groupe of grouper(lignes)) {
-      if (taille + groupe.length > LOT_IDS && courant.length) {
-        lots.push(courant);
-        courant = [];
-        taille = 0;
-      }
-      courant.push(groupe);
-      taille += groupe.length;
-    }
-    if (courant.length) lots.push(courant);
-
-    for (const lot of lots) {
-      const reclames = await reclamer(lot.flat().map((ligne) => ligne.id), instant);
+    for (const lot of tranches(grouper(lignes), LOT_ENVOI)) {
+      /** @type {LigneEnvoi[][]} */
+      const reclames = [];
       for (const groupe of lot) {
-        const retenues = groupe.filter((ligne) => reclames.has(ligne.id));
-        if (retenues.length) await traiter(retenues, ctx, instant, bilan, departs);
+        const retenues = await reclamer(groupe, maintenant());
+        if (retenues.length) reclames.push(retenues);
+      }
+      if (!reclames.length) continue;
+      // Relecture après la réclamation : une désinscription ou un retrait de consentement survenu depuis
+      // la lecture l'emporte.
+      const frais = await relireDestinataires(reclames.map((groupe) => groupe[0].destinataire_id));
+      for (const groupe of reclames) {
+        try {
+          await traiter(groupe, frais.get(groupe[0].destinataire_id) ?? null, ctx, instant, bilan, departs);
+        } catch (erreur) {
+          // Statut non écrit : la ligne reste « en_cours » et sera soldée « interrompu », jamais renvoyée.
+          signaler('fin d’envoi d’un e-mail impossible', erreur, { etape: groupe[0].etape });
+        }
       }
     }
   }
@@ -1153,6 +1255,7 @@ export function creerEmails(options = {}) {
         if (ligne.statut === 'en_attente') bilan.reserves += 1;
         else if (ligne.statut === 'saute') bilan.sautes += 1;
       }
+      bilan.echecs += await solderInterrompus(instant);
       await envoyerDus(donnees, instant, bilan);
       await purgerSiBesoin(instant);
       dernierPassage = iso(instant);
@@ -1173,6 +1276,18 @@ export function creerEmails(options = {}) {
     // Ne rejette jamais : statique.mjs l'appelle sans attendre, et le serveur ne doit pas tomber.
     try {
       await semer();
+      if (smtpSuspendu) {
+        journal({
+          level: 'warn', timestamp: iso(Date.now()),
+          message: 'envois réels suspendus : barrière d’accès active (ACCES_TOKEN), les liens des e-mails seraient inaccessibles',
+        });
+      }
+      if (railway && !trustRailwayProxy) {
+        journal({
+          level: 'warn', timestamp: iso(Date.now()),
+          message: 'liens des e-mails : EMAILS_TRUST_RAILWAY_PROXY faux sur Railway, toutes les IP partagent la limite des liens refusés',
+        });
+      }
       if (!actif) {
         journal({
           level: 'info', timestamp: iso(Date.now()), message: 'planificateur d’e-mails inactif', mode,
@@ -1230,17 +1345,23 @@ export function creerEmails(options = {}) {
   };
 }
 
-/** @param {NodeJS.ProcessEnv | Record<string, string | undefined>} env */
-export function emailsDepuisEnvironnement(env) {
+/**
+ * @param {NodeJS.ProcessEnv | Record<string, string | undefined>} env
+ * @param {{ barriereActive?: boolean }} [plus] barrière d'accès du site (statique.mjs), lue dans ACCES_TOKEN à défaut
+ */
+export function emailsDepuisEnvironnement(env, plus = {}) {
+  // EMAILS_TRUST_RAILWAY_PROXY, ou à défaut le réglage déjà posé pour les actualités (même ingress).
+  const confiance = texte(env.EMAILS_TRUST_RAILWAY_PROXY) || texte(env.ACTUALITES_TRUST_RAILWAY_PROXY);
   return creerEmails({
     supabaseUrl: env.VITE_SUPABASE_URL,
     publishableKey: env.VITE_SUPABASE_PUBLISHABLE_KEY,
     serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
     origine: env.CONTACT_ORIGIN,
     cleLiens: env.EMAILS_CLE_LIENS,
-    expediteur: env.EMAILS_FROM,
     courriel: posteDepuisEnvironnement(env),
     debitParSeconde: env.EMAILS_DEBIT_PAR_SECONDE,
-    trustRailwayProxy: env.EMAILS_TRUST_RAILWAY_PROXY === 'true',
+    trustRailwayProxy: confiance === 'true',
+    railway: texte(env.RAILWAY_ENVIRONMENT) !== '',
+    barriereActive: plus.barriereActive ?? texte(env.ACCES_TOKEN) !== '',
   });
 }

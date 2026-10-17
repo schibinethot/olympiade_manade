@@ -130,11 +130,13 @@ export function creerActualites(options = {}) {
     if (!lecture.ok) throw new Error(`HTTP ${lecture.status}`);
     const [destinataire] = /** @type {{ id?: unknown, abonnement_a_confirmer?: unknown }[]} */ (await lecture.json());
     if (!destinataire || destinataire.abonnement_a_confirmer !== true || typeof destinataire.id !== 'string' || !UUID.test(destinataire.id)) return;
-    const envois = await service(`/rest/v1/envois_emails?select=id,statut,cree_le&destinataire_id=eq.${destinataire.id}&etape=eq.confirmation&reel=is.true`);
+    const envois = await service(`/rest/v1/envois_emails?select=id,statut,cree_le,envoye_le&destinataire_id=eq.${destinataire.id}&etape=eq.confirmation&reel=is.true`);
     if (!envois.ok) throw new Error(`HTTP ${envois.status}`);
     const instant = maintenant();
-    for (const envoi of /** @type {{ id?: unknown, statut?: unknown, cree_le?: unknown }[]} */ (await envois.json())) {
-      const ancien = typeof envoi.cree_le === 'string' && instant - Date.parse(envoi.cree_le) > JOUR_MS;
+    for (const envoi of /** @type {{ id?: unknown, statut?: unknown, cree_le?: unknown, envoye_le?: unknown }[]} */ (await envois.json())) {
+      // L'âge se compte depuis le départ réel (une confirmation peut partir tard après de nouveaux essais).
+      const depart = typeof envoi.envoye_le === 'string' ? envoi.envoye_le : envoi.cree_le;
+      const ancien = typeof depart === 'string' && instant - Date.parse(depart) > JOUR_MS;
       const aRefaire = envoi.statut === 'echec' || envoi.statut === 'saute' || (envoi.statut !== 'en_attente' && ancien);
       if (!aRefaire || typeof envoi.id !== 'string') continue;
       const suppression = await service(`/rest/v1/envois_emails?id=eq.${encodeURIComponent(envoi.id)}`, {

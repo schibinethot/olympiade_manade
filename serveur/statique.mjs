@@ -40,7 +40,8 @@ try {
   fileNotes = fileNotesDepuisEnvironnement(process.env);
   instantane = instantaneDepuisEnvironnement(process.env);
   // Planificateur et liens des e-mails : inactif (503) sans Supabase, clé service_role, origine ou clé de liens.
-  emails = emailsDepuisEnvironnement(process.env);
+  // Site privé (barrière ACCES_TOKEN) : aucun envoi réel, les liens des e-mails seraient inaccessibles.
+  emails = emailsDepuisEnvironnement(process.env, { barriereActive: !!process.env.ACCES_TOKEN?.trim() });
   const acces = accesDepuis(process.env.ACCES_TOKEN);
   journaliserAbsence(acces);
   serveur = creerServeur({

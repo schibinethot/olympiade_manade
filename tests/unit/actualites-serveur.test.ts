@@ -303,6 +303,7 @@ describe('confirmation par e-mail des abonnements aux actualités', () => {
     expect(lecture?.url.searchParams.get('destinataire_id')).toBe(`eq.${DESTINATAIRE}`);
     expect(lecture?.url.searchParams.get('etape')).toBe('eq.confirmation');
     expect(lecture?.url.searchParams.get('reel')).toBe('is.true');
+    expect(lecture?.url.searchParams.get('select')?.split(',')).toEqual(expect.arrayContaining(['id', 'statut', 'cree_le', 'envoye_le']));
     const destinataire = appels.find((a) => a.url.pathname === '/rest/v1/destinataires_emails');
     expect(destinataire?.url.searchParams.get('email')).toBe('eq.lea@exemple.fr');
   });
@@ -314,6 +315,13 @@ describe('confirmation par e-mail des abonnements aux actualités', () => {
       [{ id: DESTINATAIRE, abonnement_a_confirmer: true }, [{ id: 'e', statut: 'echec', cree_le: new Date(MAINTENANT - 2 * 3_600_000).toISOString() }], 1],
       [{ id: DESTINATAIRE, abonnement_a_confirmer: true }, [{ id: 'e', statut: 'saute', cree_le: new Date(MAINTENANT - 60_000).toISOString() }], 1],
       [{ id: DESTINATAIRE, abonnement_a_confirmer: true }, [], 0],
+      // L'âge se compte depuis le départ réel : réservée il y a 30 h, partie il y a 2 h (nouvel essai).
+      [{ id: DESTINATAIRE, abonnement_a_confirmer: true }, [{
+        id: 'e', statut: 'envoye', cree_le: new Date(MAINTENANT - 30 * 3_600_000).toISOString(), envoye_le: new Date(MAINTENANT - 2 * 3_600_000).toISOString(),
+      }], 0],
+      [{ id: DESTINATAIRE, abonnement_a_confirmer: true }, [{
+        id: 'e', statut: 'envoye', cree_le: new Date(MAINTENANT - 30 * 3_600_000).toISOString(), envoye_le: new Date(MAINTENANT - 25 * 3_600_000).toISOString(),
+      }], 1],
     ];
     for (const [destinataire, envois, attendues] of cas) {
       const { appels, demander } = base(destinataire, envois);
