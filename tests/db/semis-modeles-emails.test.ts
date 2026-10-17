@@ -1,6 +1,6 @@
 import type pg from 'pg';
 import { describe, expect, it } from 'vitest';
-import { lignesModelesParDefaut } from '../../serveur/emails.mjs';
+import { lignesModelesParDefaut } from '../../serveur/planificateur-emails.mjs';
 import { ETAPES } from '../../serveur/gabarits-emails.mjs';
 import { commeSuperutilisateur, dansUneTransaction } from './aide';
 
