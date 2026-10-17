@@ -129,6 +129,19 @@ export function hoteSupabase(valeur) {
   }
 }
 
+// Hôtes autorisés par la CSP quand VITE_GTM_ID est configuré. Google Tag Manager déclenche
+// Google Analytics ET les Meta Pixel : la liste couvre les deux chaînes dès que GTM est chargé.
+const SOURCES_GTM = {
+  script: ['https://www.googletagmanager.com', 'https://connect.facebook.net'],
+  connect: [
+    'https://*.google-analytics.com',
+    'https://*.analytics.google.com',
+    'https://www.googletagmanager.com',
+    'https://www.facebook.com',
+  ],
+  img: ['https://*.google-analytics.com', 'https://www.googletagmanager.com', 'https://www.facebook.com'],
+};
+
 /**
  * Politique d'une page : le site lui-même et le projet Supabase. Les scripts en ligne émis
  * par React Router (contexte, import des modules, restauration du défilement) sont autorisés
@@ -137,15 +150,24 @@ export function hoteSupabase(valeur) {
  * aussi sur /inscription/code par une navigation dans l'application, depuis l'accueil.
  * @param {string[]} empreintes
  * @param {string} supabase
+ * @param {boolean} [gtm]
  */
-function cspPage(empreintes, supabase) {
+function cspPage(empreintes, supabase, gtm = false) {
+  const scriptSources = ['https://challenges.cloudflare.com', ...(gtm ? SOURCES_GTM.script : []), ...empreintes];
+  const connectSources = [
+    `https://${supabase}`,
+    `wss://${supabase}`,
+    'https://challenges.cloudflare.com',
+    ...(gtm ? SOURCES_GTM.connect : []),
+  ];
+  const imgSources = ['data:', `https://${supabase}`, ...(gtm ? SOURCES_GTM.img : [])];
   return [
     "default-src 'self'",
-    `script-src 'self' https://challenges.cloudflare.com ${empreintes.join(' ')}`.trim(),
+    `script-src 'self' ${scriptSources.join(' ')}`.replace(/\s+/g, ' ').trim(),
     `style-src 'self' ${EMPREINTE_STYLE_VIDE}`,
     "font-src 'self'",
-    `img-src 'self' data: https://${supabase}`,
-    `connect-src 'self' https://${supabase} wss://${supabase} https://challenges.cloudflare.com`,
+    `img-src 'self' ${imgSources.join(' ')}`,
+    `connect-src 'self' ${connectSources.join(' ')}`,
     'frame-src https://challenges.cloudflare.com',
     "object-src 'none'",
     "base-uri 'none'",
@@ -153,6 +175,8 @@ function cspPage(empreintes, supabase) {
     "frame-ancestors 'none'",
   ].join('; ');
 }
+
+export { cspPage };
 
 /** @param {string} html */
 function empreintesScriptsEnLigne(html) {
@@ -192,9 +216,10 @@ function lister(dossier) {
 /**
  * @param {string} racine
  * @param {string} supabase
+ * @param {boolean} [gtm]
  * @returns {Map<string, Fichier>}
  */
-function indexer(racine, supabase) {
+function indexer(racine, supabase, gtm = false) {
   /** @type {Map<string, Fichier>} */
   const fichiers = new Map();
   for (const absolu of lister(racine)) {
@@ -220,7 +245,7 @@ function indexer(racine, supabase) {
       variantes,
       enTetes: {
         'Cache-Control': cacheControl(chemin),
-        'Content-Security-Policy': html ? cspPage(empreintesScriptsEnLigne(corps.toString('utf8')), supabase) : CSP_RESSOURCE,
+        'Content-Security-Policy': html ? cspPage(empreintesScriptsEnLigne(corps.toString('utf8')), supabase, gtm) : CSP_RESSOURCE,
         ...(COMPRESSIBLES.has(extension) ? { Vary: 'Accept-Encoding' } : {}),
       },
     });
@@ -361,14 +386,16 @@ function repondre(fichiers, req, res) {
  *   planningNotation?: ReturnType<typeof import('./planning-notation.mjs').creerPlanningNotation>
  *   contact?: ReturnType<typeof import('./contact.mjs').creerContact>
  *   actualites?: ReturnType<typeof import('./actualites.mjs').creerActualites>
+ *   consentementCookies?: ReturnType<typeof import('./consentement-cookies.mjs').creerConsentementCookies>
  *   etatSoiree?: ReturnType<typeof import('./instantane.mjs').creerEtatSoiree>
  *   juges?: { estRoute: (url: string | undefined) => boolean, repondre: (req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) => Promise<void> }
  *   complements?: { estRoute: (url: string | undefined) => boolean, repondre: (req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) => Promise<void> }
  *   acces?: ReturnType<typeof import('./acces.mjs').accesDepuis>
+ *   gtm?: boolean
  * }} options
  */
-export function creerServeur({ racine, supabase, supervision, planningNotation, contact, actualites, etatSoiree, juges, complements, acces }) {
-  const fichiers = indexer(racine, supabase);
+export function creerServeur({ racine, supabase, supervision, planningNotation, contact, actualites, consentementCookies, etatSoiree, juges, complements, acces, gtm = false }) {
+  const fichiers = indexer(racine, supabase, gtm);
   const barriere = acces ?? null;
   const serveur = createServer((req, res) => {
     // Barrière d'accès avant toute autre logique : /sante toujours ouvert, lien `?acces=`
@@ -387,6 +414,14 @@ export function creerServeur({ racine, supabase, supervision, planningNotation, 
       actualites.repondre(req, res).catch((erreur) => {
         journaliserErreur('échec du dépôt d’abonnement aux actualités', erreur);
         if (!res.headersSent) texteBrut(req, res, 503, 'Formulaire indisponible\n');
+        else res.destroy();
+      });
+      return;
+    }
+    if (consentementCookies?.estRoute(req.url)) {
+      consentementCookies.repondre(req, res).catch((erreur) => {
+        journaliserErreur('échec du consentement cookies', erreur);
+        if (!res.headersSent) texteBrut(req, res, 503, 'Consentement indisponible\n');
         else res.destroy();
       });
       return;
