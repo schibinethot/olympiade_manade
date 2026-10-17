@@ -35,7 +35,7 @@ export function Fer({ manade, taille = 'normal', clair = false, className = '' }
         taille === 'petit' ? 'size-8 text-[17px]' : 'size-11 text-[24px]'
       } ${
         marque
-          ? 'overflow-hidden'
+          ? `overflow-hidden ${clair ? 'mix-blend-screen' : 'mix-blend-multiply'}`
           : `rounded-full pt-[3px] pr-0.5 font-brush shadow-[inset_0_0_0_1.5px_currentColor] ${clair ? 'text-white' : 'text-or-ink'}`
       } ${className}`}
     >
@@ -45,7 +45,7 @@ export function Fer({ manade, taille = 'normal', clair = false, className = '' }
           alt=""
           width={237}
           height={237}
-          className={`size-full object-contain ${clair ? 'invert mix-blend-screen' : 'mix-blend-multiply'}`}
+          className={`size-full object-contain ${clair ? 'invert' : ''}`}
         />
       ) : (
         initiale

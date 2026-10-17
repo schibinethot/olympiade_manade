@@ -1,9 +1,9 @@
-import { $ as useRelectureApresInteraction, A as CorpsLegal, At as useInstantanePublic, B as CLASSE_ONGLET, Bt as normaliserEmail, C as nombre, Ct as ConsentementCookies, D as IdentitePublique, Dt as useSession, E as NotationPublic, Et as Icone, F as noteProjections, Ft as demandeValide, G as CarteResultat, Gt as verifierTotp, H as ONGLET_INACTIF, Ht as traduireErreurAuth, I as sectionsDates, It as demanderCode, J as resultatsAnnee, Jt as momentSoiree, K as anneeChoisie, Kt as supabase, L as CarteDate, Lt as formaterDecompte, M as SectionLegale, Mt as commencerEnrolementTotp, N as FormulaireContact, Nt as connecterAdmin, O as CHAMPS_IDENTITE, Ot as useMaintenant, P as evenementsDesDates, Pt as demandeEnCours, Q as donneesRelues, R as useHydrate, Rt as memoriserDemande, S as latence, St as PiedDePage, T as useAccesAdmin, Tt as Entete, U as OngletsAnnee, Ut as validerInscription, V as ONGLET_ACTIF, Vt as oublierDemande, W as idOnglet, Wt as verifierCode, X as lireDonneesVitrine, Xt as soireeDeReference, Y as DELAI_LECTURE_NAVIGATEUR_MS, Yt as presentationAfficheAccueil, Z as lireDonneesVitrineNavigateur, Zt as jourParis, _ as CARTE$1, _t as BanniereDeblocage, a as depuisChampParis, at as VerificationHumaine, b as useClientAdmin, bt as SuiviNotes, c as horairesModele, ct as DernierVainqueur, d as documentPdf, dt as TEXTE_INSCRIPTIONS_FERMEES, et as lireCalendrier, f as matriceQr, ft as Affiche, g as BOUTON_PLEIN, gt as ServiceTravailleur, h as BOUTON$1, ht as PrecisionAccueil, i as champParis, it as InscriptionActualites, j as LIEN_TEXTE, jt as MESSAGES_AUTH, k as CreditsPhotos, kt as FournisseurEtatSoiree, l as slugifier, lt as BlocNoter, m as AideCookies, mt as VILLE_AFFICHE, n as ImportPlanning, nt as SaisonAccueil, o as etapesEchange, ot as Epreuves, p as telechargerFichier, pt as CreditAffiche, q as anneesClassements, qt as formaterJourMois, r as EPREUVES_MODELE, rt as ManadesEdition, s as fenetreDefaut, st as EPREUVES, t as etapesReordre, tt as lireOuRepli, u as CodeQr, ut as INSCRIPTION_OUVERTE, v as CHAMP$1, vt as CoqueAndroid, w as octets, wt as useConsentementCookies, x as exporterMesures, xt as TitrePage, y as CadreAdmin, yt as SuiviPresence, z as ClassementCalcule, zt as normaliserCode } from "./assets/app-yzMUrpDZ.js";
+import { $ as SaisonAccueil, $t as domaine, A as CorpsLegal, At as useConsentementCookies, B as CLASSE_ONGLET, Bt as demandeEnCours, C as nombre, Ct as BanniereDeblocage, D as IdentitePublique, Dt as TitrePage, E as NotationPublic, Et as SuiviNotes, F as noteProjections, Ft as FournisseurEtatSoiree, G as CarteResultat, Gt as normaliserCode, H as ONGLET_INACTIF, Ht as demanderCode, I as sectionsDates, It as useInstantanePublic, J as lireDonneesVitrineNavigateur, Jt as traduireErreurAuth, K as DELAI_LECTURE_NAVIGATEUR_MS, Kt as normaliserEmail, L as CarteDate, Lt as MESSAGES_AUTH, M as SectionLegale, Mt as Icone, N as FormulaireContact, Nt as useSession, O as CHAMPS_IDENTITE, Ot as PiedDePage, P as evenementsDesDates, Pt as useMaintenant, Q as lireOuRepli, Qt as supabase, R as useHydrate, Rt as commencerEnrolementTotp, S as latence, St as ServiceTravailleur, T as useAccesAdmin, Tt as SuiviPresence, U as OngletsAnnee, Ut as formaterDecompte, V as ONGLET_ACTIF, Vt as demandeValide, W as idOnglet, Wt as memoriserDemande, X as useRelectureApresInteraction, Xt as verifierCode, Y as donneesRelues, Yt as validerInscription, Z as lireCalendrier, Zt as verifierTotp, _ as CARTE$1, _t as TEXTE_INSCRIPTIONS_FERMEES, a as depuisChampParis, at as DernierVainqueur, b as useClientAdmin, bt as VILLE_AFFICHE, c as horairesModele, ct as resultatsManade, d as documentPdf, dt as anneesClassements, en as formaterJourMois, et as ManadesEdition, f as matriceQr, ft as resultatsAnnee, g as BOUTON_PLEIN, gt as INSCRIPTION_OUVERTE, h as BOUTON$1, ht as Fer, i as champParis, in as jourParis, it as EPREUVES, j as LIEN_TEXTE, jt as Entete, k as CreditsPhotos, kt as ConsentementCookies, l as slugifier, lt as victoiresConfirmees, m as AideCookies, mt as BlocNoter, n as ImportPlanning, nn as presentationAfficheAccueil, nt as VerificationHumaine, o as etapesEchange, ot as ficheManadeParSlug, p as telechargerFichier, pt as FICHES_MANADES, q as lireDonneesVitrine, qt as oublierDemande, r as EPREUVES_MODELE, rn as soireeDeReference, rt as Epreuves, s as fenetreDefaut, st as lienFicheManade, t as etapesReordre, tn as momentSoiree, tt as InscriptionActualites, u as CodeQr, ut as anneeChoisie, v as CHAMP$1, vt as Affiche, w as octets, wt as CoqueAndroid, x as exporterMesures, xt as PrecisionAccueil, y as CadreAdmin, yt as CreditAffiche, z as ClassementCalcule, zt as connecterAdmin } from "./assets/app-BYAA8CNy.js";
 import { Link, Links, Meta, Navigate, Outlet, Scripts, ScrollRestoration, ServerRouter, UNSAFE_withComponentProps, UNSAFE_withErrorBoundaryProps, UNSAFE_withHydrateFallbackProps, isRouteErrorResponse, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 import { isbot } from "isbot";
 import { renderToReadableStream } from "react-dom/server";
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
-import { useCallback, useContext, useEffect, useId, useRef, useState } from "react";
+import { Fragment as Fragment$1, useCallback, useContext, useEffect, useId, useRef, useState } from "react";
 import { OTPInput, OTPInputContext } from "input-otp";
 //#region \0rolldown/runtime.js
 var __defProp = Object.defineProperty;
@@ -50,16 +50,16 @@ async function handleRequest(request, responseStatusCode, responseHeaders, route
 }
 //#endregion
 //#region app/app.css?url
-var app_default = "/assets/app-DaTw1SyK.css";
+var app_default = "/assets/app-ChN86y2-.css";
 //#endregion
 //#region app/root.tsx
 var root_exports = /* @__PURE__ */ __exportAll({
-	ErrorBoundary: () => ErrorBoundary,
+	ErrorBoundary: () => ErrorBoundary$1,
 	HydrateFallback: () => HydrateFallback,
 	Layout: () => Layout,
 	default: () => root_default,
 	links: () => links,
-	meta: () => meta$25
+	meta: () => meta$27
 });
 var police = (fichier) => ({
 	rel: "preload",
@@ -88,7 +88,7 @@ var links = () => [
 		href: "/manifest.webmanifest"
 	}
 ];
-var meta$25 = () => [{ title: "Olympiade des Manades" }, {
+var meta$27 = () => [{ title: "Olympiade des Manades" }, {
 	name: "description",
 	content: "Le public note les manades, en direct, aux côtés du jury."
 }];
@@ -156,7 +156,7 @@ var HydrateFallback = UNSAFE_withHydrateFallbackProps(function HydrateFallback()
 		})
 	});
 });
-var ErrorBoundary = UNSAFE_withErrorBoundaryProps(function ErrorBoundary({ error }) {
+var ErrorBoundary$1 = UNSAFE_withErrorBoundaryProps(function ErrorBoundary({ error }) {
 	const introuvable = isRouteErrorResponse(error) && error.status === 404;
 	return /* @__PURE__ */ jsx(Coque, { children: /* @__PURE__ */ jsx(TitrePage, {
 		surtitre: introuvable ? "Erreur 404" : "Erreur",
@@ -175,12 +175,12 @@ var ErrorBoundary = UNSAFE_withErrorBoundaryProps(function ErrorBoundary({ error
 //#endregion
 //#region app/routes/accueil.tsx
 var accueil_exports = /* @__PURE__ */ __exportAll({
-	clientLoader: () => clientLoader$3,
+	clientLoader: () => clientLoader$4,
 	default: () => accueil_default,
-	loader: () => loader$2,
-	meta: () => meta$24
+	loader: () => loader$3,
+	meta: () => meta$26
 });
-var meta$24 = () => [
+var meta$26 = () => [
 	{ title: "Olympiade des Manades" },
 	{
 		tagName: "link",
@@ -196,10 +196,10 @@ var meta$24 = () => [
 		content: "Les Olympiades camarguaises : le public note les manades, en direct, aux côtés du jury. Saison 2027."
 	}
 ];
-async function loader$2() {
+async function loader$3() {
 	return lireDonneesVitrine();
 }
-async function clientLoader$3({ serverLoader }) {
+async function clientLoader$4({ serverLoader }) {
 	return lireDonneesVitrineNavigateur(serverLoader);
 }
 var accueil_default = UNSAFE_withComponentProps(function Accueil({ loaderData }) {
@@ -241,6 +241,404 @@ var accueil_default = UNSAFE_withComponentProps(function Accueil({ loaderData })
 			})
 		})
 	] });
+});
+//#endregion
+//#region app/routes/manades.tsx
+var manades_exports = /* @__PURE__ */ __exportAll({
+	default: () => manades_default,
+	meta: () => meta$25
+});
+var meta$25 = () => [
+	{ title: "Les manades · Olympiade des Manades" },
+	{
+		name: "description",
+		content: "Découvrez les manades de l’édition 2026 : leurs élevages, leurs activités et leurs résultats publiés."
+	},
+	{
+		tagName: "link",
+		rel: "canonical",
+		href: "https://olympiadedesmanades.fr/manades"
+	}
+];
+/** Annuaire des manades documentées de l’édition, également accessible sans JavaScript. */
+var manades_default = UNSAFE_withComponentProps(function Manades() {
+	return /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx(TitrePage, {
+		surtitre: "Édition 2026",
+		titre: /* @__PURE__ */ jsxs(Fragment, { children: ["Les ", /* @__PURE__ */ jsx("em", { children: "manades" })] }),
+		children: /* @__PURE__ */ jsx("p", { children: "Leurs histoires, leurs activités et les résultats publiés lors des Olympiades." })
+	}), /* @__PURE__ */ jsx("section", {
+		"aria-label": "Fiches des manades",
+		className: "grid gap-3 px-4 pt-5 tablette:grid-cols-2 tablette:px-7 paysage:grid-cols-3 paysage:px-10 bureau:px-14",
+		children: FICHES_MANADES.map((fiche) => /* @__PURE__ */ jsxs(Link, {
+			to: `/manades/${fiche.slug}`,
+			className: "group grid min-h-52 content-between rounded-[22px] border border-trait bg-creme p-5 transition-colors hover:bg-lin focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-encre",
+			children: [/* @__PURE__ */ jsx(Fer, {
+				manade: fiche.nom,
+				className: "size-[72px] text-[38px] transition-transform group-hover:scale-105"
+			}), /* @__PURE__ */ jsxs("div", { children: [
+				/* @__PURE__ */ jsx("p", {
+					className: "text-[10.5px] font-bold tracking-[.2em] text-or-ink uppercase group-hover:text-encre-2",
+					children: fiche.localisation
+				}),
+				/* @__PURE__ */ jsxs("h2", {
+					className: "mt-1 font-display text-[27px] leading-[1.08] font-bold",
+					children: ["Manade ", fiche.nom]
+				}),
+				/* @__PURE__ */ jsx("p", {
+					className: "mt-2 text-[13.5px] text-encre-2",
+					children: fiche.accroche
+				}),
+				/* @__PURE__ */ jsx("span", {
+					className: "mt-3 inline-flex min-h-8 items-center text-[13px] font-semibold text-rouge group-hover:text-encre group-hover:underline",
+					children: "Voir la fiche"
+				})
+			] })]
+		}, fiche.slug))
+	})] });
+});
+//#endregion
+//#region app/routes/manade.tsx
+var manade_exports = /* @__PURE__ */ __exportAll({
+	ErrorBoundary: () => ErrorBoundary,
+	clientLoader: () => clientLoader$3,
+	default: () => manade_default,
+	loader: () => loader$2,
+	meta: () => meta$24
+});
+var DATE = new Intl.DateTimeFormat("fr-FR", {
+	day: "numeric",
+	month: "long",
+	year: "numeric",
+	timeZone: "UTC"
+});
+function dateResultat({ date_soiree, annee }) {
+	if (!date_soiree) return String(annee);
+	const [a, m, j] = date_soiree.split("-").map(Number);
+	return DATE.format(new Date(Date.UTC(a, m - 1, j))).replace(/^1 /, "1er ");
+}
+function sourcesParId(fiche, ids) {
+	return ids.flatMap((id) => fiche.sources.filter((source) => source.id === id));
+}
+function LiensSources({ fiche, ids }) {
+	const sources = sourcesParId(fiche, ids);
+	if (!sources.length) return null;
+	return /* @__PURE__ */ jsxs("span", {
+		className: "ml-1 text-[11.5px] font-medium text-encre-2",
+		children: [
+			"(",
+			sources.map((source, index) => /* @__PURE__ */ jsxs(Fragment$1, { children: [index ? ", " : "", /* @__PURE__ */ jsx("a", {
+				href: source.url,
+				"aria-label": `Source : ${source.titre}`,
+				title: source.titre,
+				className: "underline underline-offset-2 hover:text-encre",
+				children: "source"
+			})] }, source.id)),
+			")"
+		]
+	});
+}
+function LibelleResultat({ resultat, victoire, rang, citation }) {
+	const { statut } = resultat;
+	if (victoire) return /* @__PURE__ */ jsx("span", {
+		className: statut === "confirme" ? "text-rouge" : "text-rouge-alerte",
+		children: statut === "confirme" ? "Victoire confirmée" : "Victoire à confirmer"
+	});
+	if (rang !== null) return /* @__PURE__ */ jsxs("span", {
+		className: statut === "confirme" ? "text-encre" : "text-rouge-alerte",
+		children: [rang === 1 ? "1re place" : `${rang}e place`, statut === "a_confirmer" ? " · à confirmer" : ""]
+	});
+	return citation ? /* @__PURE__ */ jsxs("span", {
+		className: statut === "a_confirmer" ? "text-rouge-alerte" : "",
+		children: ["Citée dans le compte rendu", statut === "a_confirmer" ? " · à confirmer" : ""]
+	}) : null;
+}
+function Resultats({ fiche, palmares }) {
+	if (!palmares) return /* @__PURE__ */ jsx("p", {
+		className: "text-encre-2",
+		children: "Les résultats sont momentanément indisponibles. Réessayez dans un instant."
+	});
+	const resultats = resultatsManade(palmares, fiche.nom);
+	if (!resultats.length) return /* @__PURE__ */ jsx("p", {
+		className: "text-encre-2",
+		children: "Aucun résultat connu dans le palmarès publié."
+	});
+	const victoires = victoiresConfirmees(palmares, fiche.nom);
+	return /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("p", {
+		className: "mb-4 text-[13.5px] text-encre-2",
+		children: victoires ? `${victoires} victoire${victoires > 1 ? "s" : ""} confirmée${victoires > 1 ? "s" : ""} dans le palmarès publié.` : "Les rangs et comptes rendus publiés sont réunis ici."
+	}), /* @__PURE__ */ jsx("ol", {
+		className: "grid gap-3",
+		children: resultats.map(({ resultat, victoire, rang, citation }) => {
+			const vainqueur = lienFicheManade(resultat.vainqueur);
+			return /* @__PURE__ */ jsx("li", {
+				className: "rounded-[18px] border border-trait bg-creme p-4",
+				children: /* @__PURE__ */ jsxs("div", {
+					className: "grid gap-3 tablette:grid-cols-[auto_minmax(0,1fr)] tablette:gap-4",
+					children: [/* @__PURE__ */ jsx(Fer, {
+						manade: fiche.nom,
+						taille: "petit"
+					}), /* @__PURE__ */ jsxs("div", { children: [
+						/* @__PURE__ */ jsxs("p", {
+							className: "text-[10.5px] font-bold tracking-[.18em] text-or-ink uppercase",
+							children: [
+								resultat.ville,
+								" · ",
+								/* @__PURE__ */ jsx("time", {
+									dateTime: resultat.date_soiree ?? String(resultat.annee),
+									children: dateResultat(resultat)
+								})
+							]
+						}),
+						/* @__PURE__ */ jsx("h3", {
+							className: "mt-1 font-display text-[20px] leading-tight font-bold",
+							children: resultat.evenement
+						}),
+						/* @__PURE__ */ jsx("p", {
+							className: "mt-1 text-[13.5px] font-semibold",
+							children: /* @__PURE__ */ jsx(LibelleResultat, {
+								resultat,
+								victoire,
+								rang,
+								citation
+							})
+						}),
+						citation ? /* @__PURE__ */ jsxs("p", {
+							className: "mt-2 text-[13.5px] text-encre-2",
+							children: [
+								resultat.statut === "a_confirmer" ? "Résultat à confirmer. " : "",
+								"Vainqueur global\xA0: ",
+								vainqueur ? /* @__PURE__ */ jsxs(Link, {
+									to: vainqueur,
+									className: "font-medium underline underline-offset-2",
+									children: ["Manade ", resultat.vainqueur]
+								}) : `Manade ${resultat.vainqueur}`,
+								"."
+							]
+						}) : null,
+						resultat.detail ? /* @__PURE__ */ jsx("p", {
+							className: "mt-2 text-[13.5px] text-encre-2",
+							children: resultat.detail
+						}) : null,
+						/* @__PURE__ */ jsx("p", {
+							className: "mt-2 text-[12px] text-encre-2",
+							children: resultat.source_url ? /* @__PURE__ */ jsxs("a", {
+								href: resultat.source_url,
+								className: "underline underline-offset-2 hover:text-encre",
+								children: ["Source\xA0: ", domaine(resultat.source_url) ?? "article"]
+							}) : "Source non renseignée"
+						})
+					] })]
+				})
+			}, resultat.id);
+		})
+	})] });
+}
+async function loader$2({ params }) {
+	const fiche = ficheManadeParSlug(params.slug ?? "");
+	if (!fiche) throw new Response("Fiche introuvable", { status: 404 });
+	return {
+		fiche,
+		donnees: await lireDonneesVitrine()
+	};
+}
+async function clientLoader$3({ params, serverLoader }) {
+	const fiche = ficheManadeParSlug(params.slug ?? "");
+	if (!fiche) throw new Response("Fiche introuvable", { status: 404 });
+	return {
+		fiche,
+		donnees: await lireDonneesVitrineNavigateur(async () => (await serverLoader()).donnees)
+	};
+}
+var meta$24 = ({ loaderData }) => {
+	const fiche = loaderData?.fiche ?? null;
+	if (!fiche) return [{ title: "Page introuvable · Olympiade des Manades" }, {
+		name: "robots",
+		content: "noindex"
+	}];
+	const url = `https://olympiadedesmanades.fr/manades/${fiche.slug}`;
+	return [
+		{ title: `Manade ${fiche.nom} · Olympiade des Manades` },
+		{
+			name: "description",
+			content: `${fiche.accroche} Découvrez la manade ${fiche.nom}, ses activités et ses résultats publiés.`
+		},
+		{
+			tagName: "link",
+			rel: "canonical",
+			href: url
+		},
+		{
+			property: "og:url",
+			content: url
+		}
+	];
+};
+var manade_default = UNSAFE_withComponentProps(function Manade({ loaderData }) {
+	const { fiche, donnees } = loaderData;
+	useRelectureApresInteraction(donnees);
+	return /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx(TitrePage, {
+		surtitre: fiche.localisation,
+		titre: /* @__PURE__ */ jsxs(Fragment, { children: ["Manade ", /* @__PURE__ */ jsx("em", { children: fiche.nom })] }),
+		children: /* @__PURE__ */ jsx("p", { children: fiche.accroche })
+	}), /* @__PURE__ */ jsxs("article", {
+		className: "px-4 pt-5 tablette:px-7 paysage:px-10 bureau:px-14",
+		children: [
+			/* @__PURE__ */ jsxs("section", {
+				className: "relative grid gap-5 overflow-hidden rounded-[26px] border border-trait bg-creme p-5 tablette:p-7 paysage:grid-cols-[auto_minmax(0,1fr)] paysage:items-start",
+				"aria-labelledby": "presentation-manade",
+				children: [/* @__PURE__ */ jsx(Fer, {
+					manade: fiche.nom,
+					className: "size-28 text-[58px] tablette:size-36 tablette:text-[72px]"
+				}), /* @__PURE__ */ jsxs("div", {
+					className: "relative max-w-[66ch]",
+					children: [
+						/* @__PURE__ */ jsx("h2", {
+							id: "presentation-manade",
+							className: "font-display text-[26px] leading-tight font-bold",
+							children: "Qui sont-ils\xA0?"
+						}),
+						/* @__PURE__ */ jsx("div", {
+							className: "mt-3 grid gap-3 text-[15px] leading-relaxed text-encre-2",
+							children: fiche.presentation.map((paragraphe) => /* @__PURE__ */ jsxs("p", { children: [paragraphe.texte, /* @__PURE__ */ jsx(LiensSources, {
+								fiche,
+								ids: paragraphe.sources
+							})] }, paragraphe.texte))
+						}),
+						fiche.siteOfficiel ? /* @__PURE__ */ jsxs("a", {
+							href: fiche.siteOfficiel.url,
+							className: "mt-5 inline-flex min-h-12 items-center gap-1.5 rounded-xl border border-trait px-4 text-[13.5px] font-semibold hover:bg-lin",
+							children: [fiche.siteOfficiel.libelle, /* @__PURE__ */ jsx(Icone, {
+								nom: "fleche",
+								className: "size-4"
+							})]
+						}) : null
+					]
+				})]
+			}),
+			/* @__PURE__ */ jsxs("div", {
+				className: "mt-8 grid gap-8 paysage:grid-cols-2 paysage:items-start",
+				children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsxs("section", {
+					"aria-labelledby": "activites-manade",
+					children: [/* @__PURE__ */ jsx("h2", {
+						id: "activites-manade",
+						className: "font-display text-[28px] leading-tight font-bold",
+						children: "Ce qu’ils font"
+					}), /* @__PURE__ */ jsx("div", {
+						className: "mt-4 grid gap-3",
+						children: fiche.activites.map((activite) => /* @__PURE__ */ jsxs("article", {
+							className: "rounded-[18px] border border-trait bg-creme p-4",
+							children: [/* @__PURE__ */ jsx("h3", {
+								className: "font-display text-[20px] font-bold",
+								children: activite.titre
+							}), /* @__PURE__ */ jsxs("p", {
+								className: "mt-1.5 text-[14px] leading-relaxed text-encre-2",
+								children: [activite.texte, /* @__PURE__ */ jsx(LiensSources, {
+									fiche,
+									ids: activite.sources
+								})]
+							})]
+						}, activite.titre))
+					})]
+				}), fiche.reperes.length ? /* @__PURE__ */ jsxs("section", {
+					className: "mt-8",
+					"aria-labelledby": "reperes-manade",
+					children: [/* @__PURE__ */ jsx("h2", {
+						id: "reperes-manade",
+						className: "font-display text-[28px] leading-tight font-bold",
+						children: "Repères"
+					}), /* @__PURE__ */ jsx("dl", {
+						className: "mt-4 grid gap-3",
+						children: fiche.reperes.map((repere) => /* @__PURE__ */ jsxs("div", {
+							className: "rounded-[18px] border border-trait bg-lin p-4",
+							children: [/* @__PURE__ */ jsx("dt", {
+								className: "text-[10.5px] font-bold tracking-[.18em] text-encre-2 uppercase",
+								children: repere.libelle
+							}), /* @__PURE__ */ jsxs("dd", {
+								className: "mt-1 font-semibold",
+								children: [repere.valeur, /* @__PURE__ */ jsx(LiensSources, {
+									fiche,
+									ids: repere.sources
+								})]
+							})]
+						}, repere.libelle))
+					})]
+				}) : null] }), /* @__PURE__ */ jsxs("section", {
+					"aria-labelledby": "resultats-manade",
+					children: [/* @__PURE__ */ jsx("h2", {
+						id: "resultats-manade",
+						className: "font-display text-[28px] leading-tight font-bold",
+						children: "Résultats par événement"
+					}), /* @__PURE__ */ jsx("div", {
+						className: "mt-4",
+						children: /* @__PURE__ */ jsx(Resultats, {
+							fiche,
+							palmares: donnees.palmares
+						})
+					})]
+				})]
+			}),
+			/* @__PURE__ */ jsxs("section", {
+				className: "mt-10 border-t border-trait pt-6",
+				"aria-labelledby": "sources-manade",
+				children: [
+					/* @__PURE__ */ jsx("h2", {
+						id: "sources-manade",
+						className: "font-display text-[22px] font-bold",
+						children: "Sources"
+					}),
+					/* @__PURE__ */ jsxs("p", {
+						className: "mt-1 text-[12.5px] text-encre-2",
+						children: [
+							"Consultées le ",
+							dateResultat({
+								date_soiree: fiche.verifieLe,
+								annee: 0
+							}),
+							"."
+						]
+					}),
+					/* @__PURE__ */ jsx("ul", {
+						className: "mt-3 grid gap-2 text-[13.5px]",
+						children: fiche.sources.map((source) => /* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsx("a", {
+							href: source.url,
+							className: "underline underline-offset-2 hover:text-rouge",
+							children: source.titre
+						}) }, source.id))
+					})
+				]
+			}),
+			/* @__PURE__ */ jsxs("nav", {
+				className: "mt-8 pb-2",
+				"aria-label": "Autres fiches de manades",
+				children: [/* @__PURE__ */ jsxs(Link, {
+					to: "/manades",
+					className: "inline-flex min-h-12 items-center gap-1.5 text-[13.5px] font-semibold text-rouge hover:underline",
+					children: [/* @__PURE__ */ jsx(Icone, {
+						nom: "fleche",
+						className: "size-4 rotate-180"
+					}), "Toutes les manades"]
+				}), /* @__PURE__ */ jsx("ul", {
+					className: "mt-2 flex flex-wrap gap-x-4 gap-y-1.5 text-[13px] font-medium",
+					children: FICHES_MANADES.filter((autre) => autre.slug !== fiche.slug).map((autre) => /* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsx(Link, {
+						to: `/manades/${autre.slug}`,
+						className: "underline underline-offset-2 hover:text-rouge",
+						children: autre.nom
+					}) }, autre.slug))
+				})]
+			})
+		]
+	})] });
+});
+var ErrorBoundary = UNSAFE_withErrorBoundaryProps(function ErrorBoundary() {
+	return /* @__PURE__ */ jsx(TitrePage, {
+		surtitre: "Erreur 404",
+		titre: "Page introuvable",
+		children: /* @__PURE__ */ jsxs("p", { children: ["Cette fiche de manade n’existe pas. ", /* @__PURE__ */ jsx(Link, {
+			to: "/manades",
+			className: "font-semibold text-rouge underline underline-offset-2",
+			children: "Voir les manades de l’édition"
+		})] })
+	});
 });
 //#endregion
 //#region app/routes/classements.tsx
@@ -6762,11 +7160,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": true,
-			"module": "/assets/root-Bfy7Qvd4.js",
+			"module": "/assets/root-BtW6ApDA.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-DYHWtS2h.js"
+				"/assets/app-BhJdKjB6.js"
 			],
 			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
@@ -6787,11 +7185,61 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/accueil-Clrh7rVZ.js",
+			"module": "/assets/accueil-BAtHVRrc.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-DYHWtS2h.js",
+				"/assets/app-BhJdKjB6.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
+			],
+			"css": ["/assets/app-BGE5VRyy.css"],
+			"clientActionModule": void 0,
+			"clientLoaderModule": void 0,
+			"clientMiddlewareModule": void 0,
+			"hydrateFallbackModule": void 0
+		},
+		"routes/manades": {
+			"id": "routes/manades",
+			"parentId": "root",
+			"path": "manades",
+			"index": void 0,
+			"caseSensitive": void 0,
+			"hasAction": false,
+			"hasLoader": false,
+			"hasClientAction": false,
+			"hasClientLoader": false,
+			"hasClientMiddleware": false,
+			"hasDefaultExport": true,
+			"hasErrorBoundary": false,
+			"module": "/assets/manades-BTTMZQMj.js",
+			"imports": [
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-BhJdKjB6.js",
+				"/assets/rolldown-runtime-CbXtAM7H.js"
+			],
+			"css": ["/assets/app-BGE5VRyy.css"],
+			"clientActionModule": void 0,
+			"clientLoaderModule": void 0,
+			"clientMiddlewareModule": void 0,
+			"hydrateFallbackModule": void 0
+		},
+		"routes/manade": {
+			"id": "routes/manade",
+			"parentId": "root",
+			"path": "manades/:slug",
+			"index": void 0,
+			"caseSensitive": void 0,
+			"hasAction": false,
+			"hasLoader": true,
+			"hasClientAction": false,
+			"hasClientLoader": true,
+			"hasClientMiddleware": false,
+			"hasDefaultExport": true,
+			"hasErrorBoundary": true,
+			"module": "/assets/manade-BUj6wd7n.js",
+			"imports": [
+				"/assets/rolldown-runtime-CbXtAM7H.js",
+				"/assets/react-pRPD1JoA.js",
+				"/assets/app-BhJdKjB6.js"
 			],
 			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
@@ -6812,10 +7260,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/classements-BV_Qepts.js",
+			"module": "/assets/classements-Ciolki3X.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-DYHWtS2h.js",
+				"/assets/app-BhJdKjB6.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": ["/assets/app-BGE5VRyy.css"],
@@ -6837,10 +7285,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/dates-C7S9njbF.js",
+			"module": "/assets/dates-UJlt8VTu.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-DYHWtS2h.js",
+				"/assets/app-BhJdKjB6.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": ["/assets/app-BGE5VRyy.css"],
@@ -6862,10 +7310,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/contact-D92F6Y44.js",
+			"module": "/assets/contact-Dq6zfhMW.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-DYHWtS2h.js",
+				"/assets/app-BhJdKjB6.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": ["/assets/app-BGE5VRyy.css"],
@@ -6887,10 +7335,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/mentions-legales-RTqai0GN.js",
+			"module": "/assets/mentions-legales-D2AGGOOB.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-DYHWtS2h.js",
+				"/assets/app-BhJdKjB6.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": ["/assets/app-BGE5VRyy.css"],
@@ -6912,10 +7360,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/confidentialite-AnnjCXQ-.js",
+			"module": "/assets/confidentialite-B37ttW8G.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-DYHWtS2h.js",
+				"/assets/app-BhJdKjB6.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": ["/assets/app-BGE5VRyy.css"],
@@ -6937,10 +7385,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/noter-CwCpAlCc.js",
+			"module": "/assets/noter-BHVqEAVr.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-DYHWtS2h.js",
+				"/assets/app-BhJdKjB6.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": ["/assets/app-BGE5VRyy.css"],
@@ -6962,12 +7410,12 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/inscription-C0GTyXEC.js",
+			"module": "/assets/inscription-PmHj55Xz.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-DYHWtS2h.js",
-				"/assets/FormulaireInscription-D8GLgd71.js"
+				"/assets/app-BhJdKjB6.js",
+				"/assets/FormulaireInscription-D5VxgE8p.js"
 			],
 			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
@@ -6988,12 +7436,12 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/inscription-code-rTEdRpVE.js",
+			"module": "/assets/inscription-code-CuSu5GGo.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-DYHWtS2h.js",
-				"/assets/FormulaireInscription-D8GLgd71.js"
+				"/assets/app-BhJdKjB6.js",
+				"/assets/FormulaireInscription-D5VxgE8p.js"
 			],
 			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
@@ -7014,11 +7462,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-D4TIE7_W.js",
+			"module": "/assets/admin-BiWolScW.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-DYHWtS2h.js"
+				"/assets/app-BhJdKjB6.js"
 			],
 			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
@@ -7039,11 +7487,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-statistiques-CPrEOJC_.js",
+			"module": "/assets/admin-statistiques-B7FxgblQ.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-DYHWtS2h.js"
+				"/assets/app-BhJdKjB6.js"
 			],
 			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
@@ -7064,11 +7512,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-cookies-DjRWwBf-.js",
+			"module": "/assets/admin-cookies-CRSjQraJ.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-DYHWtS2h.js"
+				"/assets/app-BhJdKjB6.js"
 			],
 			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
@@ -7089,11 +7537,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-participants-jaj2NxLX.js",
+			"module": "/assets/admin-participants-CorGiTki.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-DYHWtS2h.js"
+				"/assets/app-BhJdKjB6.js"
 			],
 			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
@@ -7114,11 +7562,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-messages-CITwKPyO.js",
+			"module": "/assets/admin-messages-DiYJeG2r.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-DYHWtS2h.js"
+				"/assets/app-BhJdKjB6.js"
 			],
 			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
@@ -7139,11 +7587,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-abonnes-D9ysxI-m.js",
+			"module": "/assets/admin-abonnes-C6L73BL0.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-DYHWtS2h.js"
+				"/assets/app-BhJdKjB6.js"
 			],
 			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
@@ -7164,11 +7612,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-juges-DRRwpU48.js",
+			"module": "/assets/admin-juges-CuUInmyn.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-DYHWtS2h.js"
+				"/assets/app-BhJdKjB6.js"
 			],
 			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
@@ -7189,11 +7637,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-soirees-CI5ZXk45.js",
+			"module": "/assets/admin-soirees-Ov1S-16O.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-DYHWtS2h.js"
+				"/assets/app-BhJdKjB6.js"
 			],
 			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
@@ -7214,11 +7662,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-soiree-DGNDUNty.js",
+			"module": "/assets/admin-soiree-BLqZxJ8r.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-DYHWtS2h.js"
+				"/assets/app-BhJdKjB6.js"
 			],
 			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
@@ -7239,11 +7687,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-direct-D2S_GZNm.js",
+			"module": "/assets/admin-direct-Bn-0bvmC.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-DYHWtS2h.js"
+				"/assets/app-BhJdKjB6.js"
 			],
 			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
@@ -7264,11 +7712,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-resultats-CRxE9l7g.js",
+			"module": "/assets/admin-resultats-C6YeOuB1.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-DYHWtS2h.js"
+				"/assets/app-BhJdKjB6.js"
 			],
 			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
@@ -7289,11 +7737,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/admin-vitrine-Bi4J6GOw.js",
+			"module": "/assets/admin-vitrine-b4pwSaQj.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-DYHWtS2h.js"
+				"/assets/app-BhJdKjB6.js"
 			],
 			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
@@ -7314,11 +7762,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/compte-BUzVd5_X.js",
+			"module": "/assets/compte-K3bnxmz_.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-DYHWtS2h.js"
+				"/assets/app-BhJdKjB6.js"
 			],
 			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
@@ -7339,11 +7787,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/ecran-BtHfvfmW.js",
+			"module": "/assets/ecran-CqwSRdhW.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-DYHWtS2h.js"
+				"/assets/app-BhJdKjB6.js"
 			],
 			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
@@ -7364,11 +7812,11 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/jury-j0wEkI0_.js",
+			"module": "/assets/jury-Dsq_MwYw.js",
 			"imports": [
 				"/assets/rolldown-runtime-CbXtAM7H.js",
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-DYHWtS2h.js"
+				"/assets/app-BhJdKjB6.js"
 			],
 			"css": ["/assets/app-BGE5VRyy.css"],
 			"clientActionModule": void 0,
@@ -7389,10 +7837,10 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/introuvable-OLic1anY.js",
+			"module": "/assets/introuvable-CY0fmQtn.js",
 			"imports": [
 				"/assets/react-pRPD1JoA.js",
-				"/assets/app-DYHWtS2h.js",
+				"/assets/app-BhJdKjB6.js",
 				"/assets/rolldown-runtime-CbXtAM7H.js"
 			],
 			"css": ["/assets/app-BGE5VRyy.css"],
@@ -7402,8 +7850,8 @@ var server_manifest_default = {
 			"hydrateFallbackModule": void 0
 		}
 	},
-	"url": "/assets/manifest-bbd57e16.js",
-	"version": "bbd57e16",
+	"url": "/assets/manifest-8270b933.js",
+	"version": "8270b933",
 	"sri": void 0
 };
 //#endregion
@@ -7418,6 +7866,12 @@ var ssr = false;
 var isSpaMode = false;
 var prerender = [
 	"/",
+	"/manades",
+	"/manades/vinuesa",
+	"/manades/gillet",
+	"/manades/robert-michel",
+	"/manades/lafon",
+	"/manades/arlatenco",
 	"/classements",
 	"/dates",
 	"/contact",
@@ -7443,6 +7897,22 @@ var routes = {
 		index: true,
 		caseSensitive: void 0,
 		module: accueil_exports
+	},
+	"routes/manades": {
+		id: "routes/manades",
+		parentId: "root",
+		path: "manades",
+		index: void 0,
+		caseSensitive: void 0,
+		module: manades_exports
+	},
+	"routes/manade": {
+		id: "routes/manade",
+		parentId: "root",
+		path: "manades/:slug",
+		index: void 0,
+		caseSensitive: void 0,
+		module: manade_exports
 	},
 	"routes/classements": {
 		id: "routes/classements",

@@ -14,6 +14,14 @@ type Pages = {
   "/": {
     params: {};
   };
+  "/manades": {
+    params: {};
+  };
+  "/manades/:slug": {
+    params: {
+      "slug": string;
+    };
+  };
   "/classements": {
     params: {};
   };
@@ -101,11 +109,19 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/classements" | "/dates" | "/contact" | "/mentions-legales" | "/confidentialite" | "/noter" | "/inscription" | "/inscription/code" | "/admin" | "/admin/statistiques" | "/admin/cookies" | "/admin/participants" | "/admin/messages" | "/admin/abonnes" | "/admin/juges" | "/admin/soirees" | "/admin/soirees/:soireeId" | "/admin/soirees/:soireeId/direct" | "/admin/soirees/:soireeId/resultats" | "/admin/vitrine" | "/compte" | "/ecran/:slug" | "/jury" | "/*";
+    page: "/" | "/manades" | "/manades/:slug" | "/classements" | "/dates" | "/contact" | "/mentions-legales" | "/confidentialite" | "/noter" | "/inscription" | "/inscription/code" | "/admin" | "/admin/statistiques" | "/admin/cookies" | "/admin/participants" | "/admin/messages" | "/admin/abonnes" | "/admin/juges" | "/admin/soirees" | "/admin/soirees/:soireeId" | "/admin/soirees/:soireeId/direct" | "/admin/soirees/:soireeId/resultats" | "/admin/vitrine" | "/compte" | "/ecran/:slug" | "/jury" | "/*";
   };
   "routes/accueil.tsx": {
     id: "routes/accueil";
     page: "/";
+  };
+  "routes/manades.tsx": {
+    id: "routes/manades";
+    page: "/manades";
+  };
+  "routes/manade.tsx": {
+    id: "routes/manade";
+    page: "/manades/:slug";
   };
   "routes/classements.tsx": {
     id: "routes/classements";
@@ -208,6 +224,8 @@ type RouteFiles = {
 type RouteModules = {
   "root": typeof import("./app/root.tsx");
   "routes/accueil": typeof import("./app/routes/accueil.tsx");
+  "routes/manades": typeof import("./app/routes/manades.tsx");
+  "routes/manade": typeof import("./app/routes/manade.tsx");
   "routes/classements": typeof import("./app/routes/classements.tsx");
   "routes/dates": typeof import("./app/routes/dates.tsx");
   "routes/contact": typeof import("./app/routes/contact.tsx");

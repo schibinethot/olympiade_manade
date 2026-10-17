@@ -1,4 +1,6 @@
 import { EDITION_MANADES } from '../donnees/affiche';
+import { Link } from 'react-router';
+import { lienFicheManade } from '../lib/manades';
 import { Fer } from './Fer';
 
 /**
@@ -16,16 +18,22 @@ export function ManadesEdition() {
         Les manades de l’édition {EDITION_MANADES.annee}
       </h2>
       <ul className="mt-4 grid grid-cols-5 gap-1 tablette:flex tablette:justify-center tablette:gap-0">
-        {EDITION_MANADES.manades.map((manade) => (
+        {EDITION_MANADES.manades.map((manade) => {
+          const lien = lienFicheManade(manade);
+          const contenu = <><Fer manade={manade} /><span className="text-balance break-words">{manade}</span></>;
+          return (
           <li
             key={manade}
             className="flex min-w-0 flex-col items-center gap-[9px] text-[11px] leading-[1.15] font-extrabold tracking-[0.1em] text-encre uppercase tablette:border-l tablette:border-trait tablette:px-5 tablette:first:border-l-0 paysage:px-[34px] paysage:text-[12.5px]"
           >
-            <Fer manade={manade} />
-            <span className="text-balance break-words">{manade}</span>
+            {lien ? <Link to={lien} className="flex min-h-20 flex-col items-center gap-[9px] rounded-lg hover:text-rouge focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-encre">{contenu}</Link> : contenu}
           </li>
-        ))}
+          );
+        })}
       </ul>
+      <Link to="/manades" className="mt-4 inline-flex min-h-12 items-center text-[13px] font-semibold text-rouge hover:underline">
+        Découvrir les manades
+      </Link>
     </section>
   );
 }

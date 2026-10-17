@@ -1,4 +1,6 @@
 import { domaine } from '../lib/accueil';
+import { lienFicheManade } from '../lib/manades';
+import { Link } from 'react-router';
 import { lireClassement } from '../lib/classements';
 import type { Palmares } from '../lib/donnees';
 import { PUCE_ALERTE, PUCE_OK } from './BadgeSoiree';
@@ -32,6 +34,7 @@ export function CarteResultat({ resultat, niveau = 3, aLaUne = false }: Props) {
   const classement = aLaUne ? lireClassement(resultat.detail) : null;
   const source = resultat.source_url ? domaine(resultat.source_url) : null;
   const vainqueur = resultat.vainqueur.trim();
+  const lienVainqueur = lienFicheManade(vainqueur);
 
   return (
     <article
@@ -40,13 +43,17 @@ export function CarteResultat({ resultat, niveau = 3, aLaUne = false }: Props) {
       }`}
     >
       <div className={`grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 ${classement ? 'items-center paysage:gap-x-6' : 'items-start'}`}>
-        <Fer manade={vainqueur} className={classement ? 'paysage:size-[62px] paysage:text-[34px]' : 'mt-0.5'} />
+        {lienVainqueur ? (
+          <Link to={lienVainqueur} aria-label={`Découvrir la manade ${vainqueur}`} className="self-start rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-encre">
+            <Fer manade={vainqueur} className={classement ? 'paysage:size-[62px] paysage:text-[34px]' : 'mt-0.5'} />
+          </Link>
+        ) : <Fer manade={vainqueur} className={classement ? 'paysage:size-[62px] paysage:text-[34px]' : 'mt-0.5'} />}
         <div className="min-w-0">
           <p className="text-[10.5px] leading-[1.25] font-bold tracking-[0.2em] text-or-ink uppercase">
             {resultat.ville} · <time dateTime={resultat.date_soiree ?? String(resultat.annee)}>{dateResultat(resultat)}</time>
           </p>
           <Titre className={`mt-1 font-display leading-[1.2] font-bold ${classement ? 'text-[24px] paysage:text-[30px]' : 'text-[20px]'}`}>
-            Manade {vainqueur}
+            Manade {lienVainqueur ? <Link to={lienVainqueur} className="hover:text-rouge hover:underline">{vainqueur}</Link> : vainqueur}
           </Titre>
           <p className="mt-0.5 text-[13px] font-medium text-encre-2">{resultat.evenement}</p>
           {!classement && resultat.detail ? <p className="mt-1.5 text-[13.5px] text-encre-2">{resultat.detail}</p> : null}
@@ -66,7 +73,7 @@ export function CarteResultat({ resultat, niveau = 3, aLaUne = false }: Props) {
                   <sup className="text-[.45em]">{rang === 1 ? 'er' : 'e'}</sup>
                 </span>
                 <span className="text-[14.5px] leading-snug font-semibold tablette:mt-1.5 tablette:block">
-                  {manade}
+                  {lienFicheManade(manade) ? <Link to={lienFicheManade(manade)!} className="hover:text-rouge hover:underline">{manade}</Link> : manade}
                   {precision ? <span className="block text-[12.5px] font-normal text-encre-2">{precision}</span> : null}
                 </span>
               </li>

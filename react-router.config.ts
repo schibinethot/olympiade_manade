@@ -1,4 +1,5 @@
 import type { Config } from '@react-router/dev/config';
+import { FICHES_MANADES } from './app/donnees/manades';
 
 // Application monopage (pas de serveur à l'exécution) dont les pages vitrine
 // sont pré-rendues au build. Les autres routes (/noter, puis /inscription)
@@ -8,5 +9,5 @@ export default {
   // Un seul fichier par route : le clientLoader ne tourne plus à l'hydratation des pages vitrine
   // (app/lib/relecture.ts), le séparer du composant ne faisait qu'ajouter une requête.
   splitRouteModules: false,
-  prerender: ['/', '/classements', '/dates', '/contact', '/mentions-legales', '/confidentialite'],
+  prerender: ['/', '/manades', ...FICHES_MANADES.map((fiche) => `/manades/${fiche.slug}`), '/classements', '/dates', '/contact', '/mentions-legales', '/confidentialite'],
 } satisfies Config;

@@ -1,6 +1,7 @@
 import { Fragment } from 'react';
 import { Link } from 'react-router';
 import { dernierVainqueur } from '../lib/accueil';
+import { lienFicheManade } from '../lib/manades';
 import type { Palmares } from '../lib/donnees';
 import { initialeManade, marqueManade } from './Fer';
 import { Icone } from './Icone';
@@ -19,6 +20,7 @@ const SURTITRE = 'block font-sans text-[10.5px] leading-[1.25] font-bold trackin
 export function DernierVainqueur({ palmares }: Props) {
   const v = palmares ? dernierVainqueur(palmares) : null;
   const marque = v ? marqueManade(v.vainqueur) : undefined;
+  const lienVainqueur = v ? lienFicheManade(v.vainqueur) : null;
 
   return (
     <section
@@ -51,7 +53,7 @@ export function DernierVainqueur({ palmares }: Props) {
           <span className={SURTITRE}>Dernier vainqueur connu</span>{' '}
           {v ? (
             <span className="mt-2.5 mb-3 block font-display text-[42px] leading-[.98] font-bold paysage:text-[60px]">
-              Manade <em className="text-or-clair italic">{v.vainqueur}</em>
+              Manade <em className="text-or-clair italic">{lienVainqueur ? <Link to={lienVainqueur} className="hover:underline">{v.vainqueur}</Link> : v.vainqueur}</em>
             </span>
           ) : null}
         </h2>
