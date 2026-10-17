@@ -139,19 +139,20 @@ function construireConfig(
             layout: 'box',
             position: 'middle center',
             flipButtons: true,
-            equalWeightButtons: false,
+            // Exigence CNIL : « Tout refuser » et « Tout accepter » strictement même poids
+            equalWeightButtons: true,
           }
         : {
             layout: 'bar',
             position: 'bottom center',
             flipButtons: true,
-            equalWeightButtons: false,
+            equalWeightButtons: true,
           },
       preferencesModal: {
         layout: 'box',
         position: 'right',
         flipButtons: true,
-        equalWeightButtons: false,
+        equalWeightButtons: true,
       },
     },
 

@@ -1,65 +1,94 @@
 /**
  * Styles du bandeau de consentement cookies.
  *
- * Structure : import de la CSS de base de vanilla-cookieconsent, puis surcharges
- * alignées sur la charte graphique Olympiade des Manades (docs/charte-graphique.md).
+ * Objectifs direction artistique :
+ *  - Alignement charte « Jour » (sable/creme, encre, trait, or-ink, Playfair/Inter).
+ *  - Égalité CNIL : « Tout refuser » et « Tout accepter » strictement même poids visuel
+ *    (fond encre, texte sable) dans la fenêtre, la barre et les préférences.
+ *  - Hauteurs 48 px, textes centrés, mêmes rayons que les boutons du site (rounded-xl).
+ *  - Variables --cc-* branchées sur les jetons de app/app.css (ne pas modifier app.css).
+ *  - Zéro dégradé, zéro style inline (CSP style-src 'self').
  *
- * Variables --cc-* alignées sur les jetons de app/app.css.
- * Ne modifie pas app/app.css.
+ * Charte : docs/charte-graphique.md
+ * Jetons : app/app.css (@theme)
+ * Boutons de référence : app/composants/admin/CadreAdmin.tsx (BOUTON, BOUTON_PLEIN)
  */
 
 @import "vanilla-cookieconsent/dist/cookieconsent.css";
 
 /* ============================================================
-   Variables de la lib alignées sur les jetons Olympiade
+   1. Variables de la lib → jetons Olympiade (ambiance « Jour »)
    ============================================================ */
 
 #cc-main {
   /* Fonds et textes */
-  --cc-bg: #fcfbf7;                   /* --color-creme */
-  --cc-text: #1c1912;                 /* --color-encre */
-  --cc-text-secondary: #5a5246;       /* --color-encre-2 */
+  --cc-bg: #fcfbf7;                              /* --color-creme */
+  --cc-primary-color: #1c1912;                   /* --color-encre */
+  --cc-secondary-color: #5a5246;                 /* --color-encre-2 */
+  --cc-text: #1c1912;
+  --cc-text-secondary: #5a5246;
 
-  /* Bordures */
-  --cc-border: #e3dacb;               /* --color-trait */
-  --cc-separator-border: #e3dacb;
-  --cc-cookie-category-block-bg: #f7f4ed; /* --color-sable */
+  /* Bordures et séparateurs */
+  --cc-border: #e3dacb;                          /* --color-trait */
+  --cc-separator-border-color: #e3dacb;
+  --cc-section-category-border: #e3dacb;
+  --cc-cookie-category-block-bg: #f7f4ed;        /* --color-sable */
+  --cc-cookie-category-block-border: #e3dacb;
+  --cc-cookie-category-block-hover-bg: #efe7d8;  /* --color-lin */
+  --cc-cookie-category-block-hover-border: #c4b89e;
+  --cc-cookie-category-expanded-block-bg: #f7f4ed;
+  --cc-cookie-category-expanded-block-hover-bg: #efe7d8;
 
-  /* Bouton primaire : dégradé couchant (blanc dessus) */
-  --cc-btn-primary-bg: #b3321a;       /* début du --couchant-bouton, fallback solide */
-  --cc-btn-primary-text: #ffffff;
-  --cc-btn-primary-hover-bg: #9a2a14;
+  /* Boutons PRIMAIRES de la lib
+     (nous surchargeons par rôle plus bas : Tout accepter ET Tout refuser
+     portent tous deux ce style primaire, Personnaliser et Enregistrer
+     portent le style secondaire) */
+  --cc-btn-primary-bg: #1c1912;                  /* --color-encre */
+  --cc-btn-primary-color: #f7f4ed;               /* --color-sable */
+  --cc-btn-primary-border-color: #1c1912;
+  --cc-btn-primary-hover-bg: #000000;
+  --cc-btn-primary-hover-color: #f7f4ed;
+  --cc-btn-primary-hover-border-color: #000000;
 
-  /* Bouton secondaire / outline */
-  --cc-btn-secondary-text: #1c1912;
-  --cc-btn-secondary-border: #e3dacb;
-  --cc-btn-secondary-hover-bg: #efe7d8; /* --color-lin */
+  /* Boutons SECONDAIRES (outline encre, fond crème) */
+  --cc-btn-secondary-bg: transparent;
+  --cc-btn-secondary-color: #1c1912;
+  --cc-btn-secondary-border-color: #e3dacb;
+  --cc-btn-secondary-hover-bg: #efe7d8;          /* --color-lin */
+  --cc-btn-secondary-hover-color: #1c1912;
+  --cc-btn-secondary-hover-border-color: #c4b89e;
 
-  /* Toggles */
-  --cc-toggle-bg-on: #1c1912;
-  --cc-toggle-bg-off: #e3dacb;
-  --cc-toggle-knob-bg: #ffffff;
+  /* Interrupteurs */
+  --cc-toggle-on-bg: #1c1912;                    /* encre */
+  --cc-toggle-off-bg: #857a68;                   /* encre-3 */
+  --cc-toggle-on-knob-bg: #f7f4ed;               /* sable */
+  --cc-toggle-off-knob-bg: #f7f4ed;
+  --cc-toggle-enabled-icon-color: #1c1912;
+  --cc-toggle-disabled-icon-color: #857a68;
+  --cc-toggle-readonly-bg: #c4b89e;              /* trait+ */
+  --cc-toggle-readonly-knob-bg: #f7f4ed;
+  --cc-toggle-readonly-knob-icon-color: #1c1912;
 
-  /* Lien */
-  --cc-link-color: #88693c;           /* --color-or-ink */
-
-  /* Voile bloquant */
+  /* Pied, lien, overlay, modal */
+  --cc-link-color: #88693c;                      /* --color-or-ink */
+  --cc-footer-bg: #f7f4ed;
+  --cc-footer-color: #5a5246;
+  --cc-footer-border-color: #e3dacb;
   --cc-overlay-bg: rgba(28, 25, 18, 0.72);
-
-  /* Ombre modale */
-  --cc-modal-shadow: 0 8px 32px rgba(28, 25, 18, 0.18);
+  --cc-modal-border-radius: 18px;
+  --cc-btn-border-radius: 0.75rem;               /* rounded-xl (= boutons du site) */
 
   font-family: var(--font-sans, "Inter", ui-sans-serif, system-ui, sans-serif);
 }
 
 /* ============================================================
-   Modal de consentement (.cm) — fenêtre ou barre
+   2. Modal « consent » (fenêtre OU barre)
    ============================================================ */
 
 #cc-main .cm {
   background: var(--cc-bg) !important;
   border-radius: 18px !important;
-  box-shadow: var(--cc-modal-shadow) !important;
+  box-shadow: 0 8px 32px rgba(28, 25, 18, 0.18) !important;
   border: 1px solid var(--cc-border) !important;
   max-width: 520px !important;
   padding: 0 !important;
@@ -78,9 +107,7 @@
   margin: 0 auto !important;
 }
 
-/* ============================================================
-   Overlay – bloque l'interaction (mode fenêtre uniquement)
-   ============================================================ */
+/* ---- Overlay (fenêtre bloquante seulement) ---- */
 
 html.cc-consent-site #cc-main .cm-overlay {
   background: var(--cc-overlay-bg) !important;
@@ -114,7 +141,6 @@ html.cc-consent-site #cc-main .cm-wrapper {
 html.cc-consent-bandeau #cc-main .cm-wrapper {
   align-items: flex-end !important;
   justify-content: stretch !important;
-  pointer-events: none !important;
 }
 
 /* Barre pleine largeur en mode bandeau */
@@ -147,36 +173,39 @@ html.cc-consent-site.show--consent body {
 }
 
 /* ============================================================
-   Surtitre : or-ink, capitales espacées (charte)
+   3. Textes de la fenêtre / barre
    ============================================================ */
 
+/* Surtitre or-ink (par défaut : mode barre) */
 #cc-main .cm__title {
   font-family: var(--font-sans, "Inter", ui-sans-serif, system-ui, sans-serif) !important;
   font-size: 0.6875rem !important;
   font-weight: 700 !important;
+  line-height: 1.1 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.22em !important;
-  color: #88693c !important;          /* --color-or-ink */
+  color: #88693c !important;
   padding: 1.375rem 1.5rem 0 1.5rem !important;
-  margin-bottom: 0.5rem !important;
+  margin: 0 0 0.5rem 0 !important;
 }
 
-/* En mode fenêtre : titre plus grand en Playfair (charte) */
+/* Titre Playfair pour le mode fenêtre (choix assumé : plus noble pour la modale) */
 html.cc-consent-site #cc-main .cm__title {
   font-family: var(--font-display, "Playfair Display", Georgia, serif) !important;
   font-size: 1.5rem !important;
   font-weight: 400 !important;
+  line-height: 1.2 !important;
   text-transform: none !important;
   letter-spacing: -0.01em !important;
   color: var(--cc-text) !important;
 }
 
-/* Description */
 #cc-main .cm__desc {
   font-size: 0.9375rem !important;
-  line-height: 1.6 !important;
+  line-height: 1.55 !important;
   color: var(--cc-text-secondary) !important;
   padding: 0 1.5rem !important;
+  margin: 0 !important;
 }
 
 html.cc-consent-bandeau #cc-main .cm__desc {
@@ -184,106 +213,113 @@ html.cc-consent-bandeau #cc-main .cm__desc {
 }
 
 /* ============================================================
-   Rangée de boutons
-   Mode fenêtre : colonne sur mobile, rangée centrée sur tablette+
-   Mode bandeau  : texte à gauche, boutons à droite sur tablette+
+   4. Rangée de boutons (fenêtre & barre, défaut colonne/row centré)
    ============================================================ */
 
 #cc-main .cm__btns {
   display: flex !important;
   flex-direction: row !important;
   flex-wrap: wrap !important;
-  align-items: center !important;
+  align-items: stretch !important;
   justify-content: center !important;
   gap: 0.625rem !important;
   padding: 1.125rem 1.5rem !important;
   background: transparent !important;
-  border-top: 1px solid var(--cc-separator-border) !important;
+  border-top: 1px solid var(--cc-separator-border-color) !important;
   margin-top: 0.875rem !important;
 }
 
 #cc-main .cm__btn-group {
   display: inline-flex !important;
   gap: 0.625rem !important;
-  align-items: center !important;
+  align-items: stretch !important;
   flex-shrink: 0 !important;
 }
 
-/* Ordre : Personnaliser (show) | Tout refuser (necessary) | Tout accepter (all) */
-#cc-main .cm__btn-group:has([data-role="show"]) {
-  order: 1 !important;
-}
-
-#cc-main .cm__btn-group:has([data-role="all"]) {
-  order: 2 !important;
-}
-
-#cc-main .cm__btn[data-role="show"] {
-  order: 1 !important;
-}
-
-#cc-main .cm__btn[data-role="necessary"] {
-  order: 2 !important;
-  display: inline-flex !important; /* visible en première couche (écart SITE-AM) */
-}
-
-#cc-main .cm__btn[data-role="all"] {
-  order: 3 !important;
-}
+/* Ordre d'apparition : Personnaliser · Tout refuser · Tout accepter */
+#cc-main .cm__btn-group:has([data-role="show"])    { order: 1 !important; }
+#cc-main .cm__btn-group:has([data-role="all"])     { order: 2 !important; }
+#cc-main .cm__btn[data-role="show"]                { order: 1 !important; }
+#cc-main .cm__btn[data-role="necessary"]           { order: 2 !important; display: inline-flex !important; }
+#cc-main .cm__btn[data-role="all"]                 { order: 3 !important; }
 
 /* ============================================================
-   Boutons — cibles 48 px, rayon du site (rounded-xl = 0.75rem)
+   5. Boutons — 48 px, rayon rounded-xl, texte centré V+H
    ============================================================ */
 
-#cc-main .cm__btn {
+#cc-main .cm__btn,
+#cc-main .pm__btn {
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   flex: none !important;
-  padding: 11px 22px !important;
-  font-size: 15px !important;
+  min-height: 48px !important;
+  padding: 0 1.25rem !important;
+  font-size: 0.9375rem !important;
   font-weight: 600 !important;
+  line-height: 1 !important;
+  text-align: center !important;
   text-transform: none !important;
   letter-spacing: normal !important;
   border-radius: 0.75rem !important;
-  min-height: 48px !important;
-  transition: opacity 0.15s ease, box-shadow 0.15s ease !important;
+  border: 1.5px solid transparent !important;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease !important;
   cursor: pointer !important;
   font-family: var(--font-sans, "Inter", ui-sans-serif, system-ui, sans-serif) !important;
   white-space: nowrap !important;
 }
 
-/* Tout accepter : dégradé couchant, texte blanc */
-#cc-main .cm__btn[data-role="all"] {
-  background-image: linear-gradient(120deg, #b3321a 0%, #cb4a23 55%, #c74f16 100%) !important;
-  background-color: #b3321a !important;
-  color: #ffffff !important;
-  border: 1px solid transparent !important;
-}
-
-#cc-main .cm__btn[data-role="all"]:hover {
-  opacity: 0.9 !important;
-}
-
-/* Personnaliser et Tout refuser : outline */
-#cc-main .cm__btn[data-role="show"],
+/* -- Primaires (poids CNIL identique) : Tout accepter + Tout refuser --------
+   Fond encre, texte sable, border de la même teinte. */
+#cc-main .cm__btn[data-role="all"],
 #cc-main .cm__btn[data-role="necessary"],
-#cc-main .cm__btn--secondary {
+#cc-main .pm__btn[data-role="all"],
+#cc-main .pm__btn[data-role="necessary"] {
+  background: #1c1912 !important;
+  background-image: none !important;
+  color: #f7f4ed !important;
+  border-color: #1c1912 !important;
+}
+
+#cc-main .cm__btn[data-role="all"]:hover,
+#cc-main .cm__btn[data-role="necessary"]:hover,
+#cc-main .pm__btn[data-role="all"]:hover,
+#cc-main .pm__btn[data-role="necessary"]:hover {
+  background: #000000 !important;
+  border-color: #000000 !important;
+  color: #f7f4ed !important;
+}
+
+/* -- Secondaires (outline) : Personnaliser + Enregistrer mes choix ---------- */
+#cc-main .cm__btn[data-role="show"],
+#cc-main .cm__btn--secondary,
+#cc-main .pm__btn[data-role="save"],
+#cc-main .pm__btn--secondary {
   background: transparent !important;
-  color: var(--cc-btn-secondary-text) !important;
-  border: 1.5px solid var(--cc-btn-secondary-border) !important;
+  background-image: none !important;
+  color: #1c1912 !important;
+  border-color: #e3dacb !important;
   font-weight: 500 !important;
 }
 
 #cc-main .cm__btn[data-role="show"]:hover,
-#cc-main .cm__btn[data-role="necessary"]:hover,
-#cc-main .cm__btn--secondary:hover {
-  background: var(--cc-btn-secondary-hover-bg) !important;
+#cc-main .cm__btn--secondary:hover,
+#cc-main .pm__btn[data-role="save"]:hover,
+#cc-main .pm__btn--secondary:hover {
+  background: #efe7d8 !important;
   border-color: #c4b89e !important;
+  color: #1c1912 !important;
 }
 
-/* Pied du modal (lien confidentialité) */
+/* ============================================================
+   6. Pied du modal « consent » (lien Confidentialité)
+   ============================================================ */
+
 #cc-main .cm__footer {
   padding: 0.625rem 1.5rem !important;
-  background: var(--cc-cookie-category-block-bg) !important;
-  border-top: 1px solid var(--cc-separator-border) !important;
+  background: var(--cc-footer-bg) !important;
+  border-top: 1px solid var(--cc-separator-border-color) !important;
   font-size: 0.8125rem !important;
   text-align: center !important;
   border-radius: 0 0 17px 17px !important;
@@ -300,13 +336,13 @@ html.cc-consent-bandeau #cc-main .cm__desc {
 }
 
 /* ============================================================
-   Modal des préférences (.pm)
+   7. Modal des préférences (.pm)
    ============================================================ */
 
 #cc-main .pm {
   background: var(--cc-bg) !important;
   border-radius: 18px !important;
-  box-shadow: var(--cc-modal-shadow) !important;
+  box-shadow: 0 8px 32px rgba(28, 25, 18, 0.18) !important;
   border: 1px solid var(--cc-border) !important;
   max-width: 560px !important;
   max-height: 78vh !important;
@@ -314,33 +350,40 @@ html.cc-consent-bandeau #cc-main .cm__desc {
 
 #cc-main .pm__header {
   background: transparent !important;
-  border-bottom: 1px solid var(--cc-separator-border) !important;
+  border-bottom: 1px solid var(--cc-separator-border-color) !important;
   padding: 1rem 1.25rem !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
 }
 
 #cc-main .pm__title {
   font-family: var(--font-display, "Playfair Display", Georgia, serif) !important;
   font-size: 1.25rem !important;
   font-weight: 400 !important;
+  line-height: 1.25 !important;
   color: var(--cc-text) !important;
+  flex: 1 !important;
+  min-width: 0 !important;
 }
 
+/* -- Bouton de fermeture : 44 px (WCAG 2.5.5), icône centrée ~20 px --------- */
 #cc-main .pm__close-btn {
   background: var(--cc-cookie-category-block-bg) !important;
   border-radius: 50% !important;
-  /* 44px pour satisfaire WCAG 2.5.5 (best-practice axe) */
   width: 2.75rem !important;
   height: 2.75rem !important;
   min-width: 2.75rem !important;
   min-height: 2.75rem !important;
-  transition: all 0.2s ease !important;
-  display: flex !important;
+  display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   border: 1px solid var(--cc-border) !important;
   flex-shrink: 0 !important;
   padding: 0 !important;
   cursor: pointer !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease !important;
+  position: relative !important;
 }
 
 #cc-main .pm__close-btn:hover {
@@ -348,26 +391,46 @@ html.cc-consent-bandeau #cc-main .cm__desc {
   border-color: var(--cc-text-secondary) !important;
 }
 
+/* La lib enveloppe l'icône dans un <span> interne : on force le span à
+   centrer son contenu et on dimensionne le SVG. */
+#cc-main .pm__close-btn > span {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
 #cc-main .pm__close-btn svg {
-  width: 1rem !important;
-  height: 1rem !important;
+  width: 1.25rem !important;      /* 20 px */
+  height: 1.25rem !important;
+  min-width: 1.25rem !important;
+  min-height: 1.25rem !important;
+  display: block !important;
   stroke: var(--cc-text) !important;
   stroke-width: 2 !important;
   fill: none !important;
 }
 
-/* Corps */
+/* ---- Corps ---- */
+
 #cc-main .pm__body {
   padding: 0 !important;
 }
 
 #cc-main .pm__section {
   padding: 0.875rem 1.25rem !important;
-  border-bottom: 1px solid var(--cc-separator-border) !important;
+  border-bottom: 1px solid var(--cc-separator-border-color) !important;
 }
 
 #cc-main .pm__section:last-child {
   border-bottom: none !important;
+}
+
+#cc-main .pm__section-title-wrapper {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
 }
 
 #cc-main .pm__section-title {
@@ -375,6 +438,7 @@ html.cc-consent-bandeau #cc-main .cm__desc {
   font-size: 1rem !important;
   font-weight: 600 !important;
   color: var(--cc-text) !important;
+  line-height: 1.3 !important;
 }
 
 #cc-main .pm__section-desc {
@@ -383,9 +447,33 @@ html.cc-consent-bandeau #cc-main .cm__desc {
   color: var(--cc-text-secondary) !important;
 }
 
+/* Chevron des sections dépliables : encre, lisible */
+#cc-main .pm__section-arrow {
+  background: transparent !important;
+  color: #1c1912 !important;
+  stroke: #1c1912 !important;
+  fill: #1c1912 !important;
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+#cc-main .pm__section-arrow svg {
+  stroke: #1c1912 !important;
+  fill: #1c1912 !important;
+  width: 0.75rem !important;
+  height: 0.75rem !important;
+}
+
+#cc-main .pm__section--expandable:hover {
+  background: #efe7d8 !important;    /* lin, cohérent avec hover secondaire */
+}
+
 /* Badge « Toujours actifs » */
 #cc-main .pm__badge {
-  background: var(--cc-toggle-bg-on) !important;
+  background: #1c1912 !important;
   color: #f7f4ed !important;
   font-size: 0.6875rem !important;
   font-weight: 600 !important;
@@ -394,9 +482,10 @@ html.cc-consent-bandeau #cc-main .cm__desc {
   text-transform: uppercase !important;
   letter-spacing: 0.06em !important;
   margin-left: 0.5rem !important;
+  line-height: 1 !important;
 }
 
-/* Toggles — section__toggle est 23 px dans la lib, WCAG 2.5.8 demande ≥ 24 px */
+/* Toggles — min 24 px (WCAG 2.5.8) */
 #cc-main .section__toggle,
 #cc-main .section__toggle-wrapper,
 #cc-main .toggle__icon,
@@ -405,34 +494,35 @@ html.cc-consent-bandeau #cc-main .cm__desc {
   min-height: 24px !important;
 }
 
-#cc-main .pm__switch {
-  width: 3rem !important;
-  height: 1.625rem !important;
-}
-
-#cc-main .pm__switch .pm__toggle {
-  background: var(--cc-toggle-bg-off) !important;
+#cc-main .toggle__icon {
+  background: var(--cc-toggle-off-bg) !important;
   border-radius: 9999px !important;
 }
 
-#cc-main .pm__switch .pm__toggle::after {
-  width: 1.25rem !important;
-  height: 1.25rem !important;
-  background: #ffffff !important;
-  border-radius: 50% !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12) !important;
+#cc-main .toggle__icon-circle {
+  background: var(--cc-toggle-off-knob-bg) !important;
+  box-shadow: 0 1px 2px rgba(28, 25, 18, 0.18) !important;
 }
 
-#cc-main .pm__switch input:checked + .pm__toggle {
-  background: var(--cc-toggle-bg-on) !important;
+#cc-main .section__toggle:checked ~ .toggle__label .toggle__icon,
+#cc-main .section__toggle:checked + .toggle__label .toggle__icon {
+  background: var(--cc-toggle-on-bg) !important;
 }
 
-/* Tableau de cookies */
+#cc-main .toggle__icon-on,
+#cc-main .toggle__icon-off {
+  color: var(--cc-text) !important;
+  stroke: var(--cc-text) !important;
+  fill: var(--cc-text) !important;
+}
+
+/* Table des cookies */
+#cc-main .pm__section-table,
 #cc-main .pm__table {
-  margin-top: 0.875rem !important;
+  margin-top: 0.75rem !important;
   border-radius: 0.5rem !important;
   overflow: hidden !important;
-  border: 1px solid var(--cc-separator-border) !important;
+  border: 1px solid var(--cc-separator-border-color) !important;
 }
 
 #cc-main .pm__table-head {
@@ -452,119 +542,83 @@ html.cc-consent-bandeau #cc-main .cm__desc {
   font-size: 0.8125rem !important;
   color: var(--cc-text) !important;
   padding: 0.75rem !important;
-  border-top: 1px solid var(--cc-separator-border) !important;
+  border-top: 1px solid var(--cc-separator-border-color) !important;
 }
 
 #cc-main .pm__table-tr:nth-child(even) .pm__table-td {
   background: var(--cc-cookie-category-block-bg) !important;
 }
 
-/* Pied des préférences */
+/* ---- Pied des préférences ---- */
+
 #cc-main .pm__footer {
-  padding: 0.75rem 1.25rem !important;
-  background: var(--cc-cookie-category-block-bg) !important;
-  border-top: 1px solid var(--cc-separator-border) !important;
+  padding: 0.875rem 1.25rem !important;
+  background: var(--cc-footer-bg) !important;
+  border-top: 1px solid var(--cc-separator-border-color) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  gap: 0.75rem !important;
+  gap: 0.625rem !important;
 }
 
 #cc-main .pm__footer .pm__btn-group {
   display: flex !important;
   gap: 0.625rem !important;
+  align-items: stretch !important;
 }
 
-/* Ordre : Enregistrer à gauche, Tout refuser + Tout accepter à droite */
+/* DOM : 1er groupe = Tout accepter + Tout refuser · 2e groupe = Enregistrer.
+   Rendu bureau : Tout refuser · Tout accepter · Enregistrer (de gauche à droite). */
 #cc-main .pm__footer .pm__btn-group:first-child {
-  order: 2 !important;
+  order: 1 !important;
   flex-direction: row-reverse !important;
 }
 
 #cc-main .pm__footer .pm__btn-group:last-child {
-  order: 1 !important;
+  order: 2 !important;
 }
 
-/* Boutons des préférences */
-#cc-main .pm__btn {
-  padding: 0.625rem 0.875rem !important;
-  font-size: 0.8125rem !important;
-  font-weight: 600 !important;
-  border-radius: 0.75rem !important;
-  min-height: 48px !important;
-  transition: all 0.15s ease !important;
-  cursor: pointer !important;
-  font-family: var(--font-sans, "Inter", ui-sans-serif, system-ui, sans-serif) !important;
-  white-space: nowrap !important;
-}
+/* ============================================================
+   8. Liens (dans la fenêtre, les préférences et « Plus d'informations »)
+   Un SEUL style de lien : or-ink souligné.
+   ============================================================ */
 
-/* Tout accepter : dégradé couchant */
-#cc-main .pm__btn[data-role="all"] {
-  background-image: linear-gradient(120deg, #b3321a 0%, #cb4a23 55%, #c74f16 100%) !important;
-  background-color: #b3321a !important;
-  color: #ffffff !important;
-  border: 1px solid transparent !important;
-}
-
-#cc-main .pm__btn[data-role="all"]:hover {
-  opacity: 0.9 !important;
-}
-
-/* Tout refuser : outline */
-#cc-main .pm__btn[data-role="necessary"] {
-  display: inline-flex !important;
-  background: transparent !important;
-  color: var(--cc-text) !important;
-  border: 1.5px solid var(--cc-border) !important;
-}
-
-#cc-main .pm__btn[data-role="necessary"]:hover {
-  background: var(--cc-btn-secondary-hover-bg) !important;
-  border-color: #c4b89e !important;
-}
-
-/* Enregistrer mes choix : outline */
-#cc-main .pm__btn[data-role="save"],
-#cc-main .pm__btn--secondary {
-  background: transparent !important;
-  color: var(--cc-text) !important;
-  border: 1.5px solid var(--cc-border) !important;
-}
-
-#cc-main .pm__btn[data-role="save"]:hover,
-#cc-main .pm__btn--secondary:hover {
-  background: var(--cc-btn-secondary-hover-bg) !important;
-  border-color: #c4b89e !important;
-}
-
-/* Liens dans les descriptions */
 #cc-main .cc__link,
-#cc-main a {
+#cc-main a,
+#cc-main .pm__section a,
+#cc-main .pm__section a.cc__link {
   color: var(--cc-link-color) !important;
   text-decoration: underline !important;
   text-underline-offset: 2px !important;
+  font-weight: 500 !important;
   transition: color 0.15s ease !important;
 }
 
 #cc-main .cc__link:hover,
 #cc-main a:hover {
-  color: var(--cc-text) !important;
+  color: #1c1912 !important;
 }
 
 /* ============================================================
-   Focus visible — contour ambre + anneau encre (charte, section 7)
+   9. Focus visible — contour ambre + anneau encre (charte, section 7)
    ============================================================ */
 
 #cc-main .cm__btn:focus-visible,
 #cc-main .pm__btn:focus-visible,
-#cc-main .pm__close-btn:focus-visible {
+#cc-main .pm__close-btn:focus-visible,
+#cc-main .section__toggle:focus-visible + .toggle__label,
+#cc-main .pm__section--expandable:focus-visible,
+#cc-main .pm__section-title-wrapper:focus-visible,
+#cc-main a:focus-visible,
+#cc-main .cc__link:focus-visible {
   outline: 3px solid #f5b14d !important;
   outline-offset: 2px !important;
   box-shadow: 0 0 0 2px #1c1912 !important;
+  border-radius: 0.5rem !important;
 }
 
 /* ============================================================
-   Animations
+   10. Animations
    ============================================================ */
 
 @keyframes cc-fadeIn {
@@ -585,86 +639,261 @@ html.cc-consent-bandeau #cc-main .cm__desc {
 }
 
 /* ============================================================
-   Mode bandeau : mise en page bureau (tablette+)
-   Texte à gauche, boutons à droite
+   11. Mode BARRE — mise en page bureau (tablette+)
+   DOM : .cm > .cm__body (= .cm__texts + .cm__btns) + .cm__footer
+   Objectif : texte (surtitre + description + lien Confidentialité) à gauche,
+   boutons alignés à droite sur une seule ligne, padding cohérent avec le site.
    ============================================================ */
 
 @media (min-width: 640px) {
   html.cc-consent-bandeau #cc-main .cm {
     display: flex !important;
-    align-items: center !important;
-    gap: 1.25rem !important;
-    padding: 0 !important;
+    flex-direction: column !important;
+    padding: 0.875rem 1.75rem !important;      /* tablette:px-7 */
+    gap: 0.25rem !important;
   }
 
   html.cc-consent-bandeau #cc-main .cm__body {
-    flex: 1 !important;
-    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 1.5rem !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
   }
 
-  html.cc-consent-bandeau #cc-main .cm__title,
+  html.cc-consent-bandeau #cc-main .cm__links {
+    margin: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+    padding: 0 !important;
+  }
+
+  html.cc-consent-bandeau #cc-main .cm__texts {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    justify-content: center !important;
+  }
+
+  html.cc-consent-bandeau #cc-main .cm__title {
+    padding: 0 !important;
+    margin: 0 0 0.25rem 0 !important;
+  }
+
   html.cc-consent-bandeau #cc-main .cm__desc {
-    padding-right: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
   html.cc-consent-bandeau #cc-main .cm__btns {
-    flex-shrink: 0 !important;
-    margin-top: 0 !important;
+    flex: 0 0 auto !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    justify-content: flex-end !important;
+    align-items: stretch !important;
+    gap: 0.625rem !important;
+    margin: 0 !important;
+    padding: 0 !important;
     border-top: none !important;
-    padding: 0 1.25rem 0 0 !important;
+    width: auto !important;
+  }
+
+  /* Lien Confidentialité : inline sous la description à gauche, discret */
+  html.cc-consent-bandeau #cc-main .cm__footer {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    border-top: none !important;
+    border-radius: 0 !important;
+    text-align: left !important;
+    font-size: 0.8125rem !important;
+    align-self: flex-start !important;
+  }
+
+  html.cc-consent-bandeau #cc-main .cm__footer .cm__links,
+  html.cc-consent-bandeau #cc-main .cm__footer .cm__link-group {
+    justify-content: flex-start !important;
+    text-align: left !important;
+    padding: 0 !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  html.cc-consent-bandeau #cc-main .cm {
+    padding: 0.875rem 2.5rem !important;      /* paysage:px-10 */
+  }
+}
+
+@media (min-width: 1280px) {
+  html.cc-consent-bandeau #cc-main .cm {
+    padding: 1rem 3.5rem !important;          /* bureau:px-14 */
   }
 }
 
 /* ============================================================
-   Responsive mobile
+   12. Responsive mobile (fenêtre, préférences, barre)
    ============================================================ */
 
 @media (max-width: 639px) {
+  /* Fenêtre : marges latérales confortables */
   #cc-main .cm {
     margin: 0 1rem !important;
     border-radius: 18px !important;
     max-width: calc(100% - 2rem) !important;
   }
 
-  html.cc-consent-bandeau #cc-main .cm {
-    margin: 0 !important;
-    max-width: none !important;
-    border-radius: 0 !important;
-  }
-
-  #cc-main .cm__btns {
+  /* Fenêtre bloquante : empilement des 3 boutons (impossible de tout caser en ligne) */
+  html.cc-consent-site #cc-main .cm__btns {
     flex-direction: column !important;
     gap: 0.5rem !important;
     padding: 0.875rem 1.25rem !important;
   }
 
-  #cc-main .cm__btn-group {
+  html.cc-consent-site #cc-main .cm__btn-group {
     width: 100% !important;
   }
 
-  #cc-main .cm__btn {
+  html.cc-consent-site #cc-main .cm__btn {
     width: 100% !important;
-    justify-content: center !important;
   }
 
+  /* -- Barre mobile : COMPACTE (refuser + accepter côte à côte, personnaliser dessous) -- */
+  html.cc-consent-bandeau #cc-main .cm {
+    margin: 0 !important;
+    max-width: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+  }
+
+  html.cc-consent-bandeau #cc-main .cm__body {
+    display: flex !important;
+    flex-direction: column !important;
+    margin: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+    padding: 0 !important;
+  }
+
+  html.cc-consent-bandeau #cc-main .cm__texts {
+    padding: 0 !important;
+  }
+
+  html.cc-consent-bandeau #cc-main .cm__links {
+    margin: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+    padding: 0 !important;
+  }
+
+  html.cc-consent-bandeau #cc-main .cm__title {
+    padding: 0.75rem 1rem 0 1rem !important;
+    margin: 0 0 0.25rem 0 !important;
+  }
+
+  html.cc-consent-bandeau #cc-main .cm__desc {
+    padding: 0 1rem !important;
+    font-size: 0.8125rem !important;
+    line-height: 1.5 !important;
+  }
+
+  html.cc-consent-bandeau #cc-main .cm__btns {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    grid-auto-flow: row !important;
+    gap: 0.5rem !important;
+    padding: 0.75rem 1rem !important;
+    margin: 0.625rem 0 0 0 !important;
+    border-top: 1px solid var(--cc-separator-border-color) !important;
+  }
+
+  html.cc-consent-bandeau #cc-main .cm__btn-group {
+    display: contents !important;
+  }
+
+  html.cc-consent-bandeau #cc-main .cm__btn {
+    width: 100% !important;
+    padding: 0 0.75rem !important;
+    font-size: 0.875rem !important;
+  }
+
+  /* Tout refuser (ordre 2) et Tout accepter (ordre 3) sur la 1ʳᵉ ligne */
+  html.cc-consent-bandeau #cc-main .cm__btn[data-role="necessary"] {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+  }
+  html.cc-consent-bandeau #cc-main .cm__btn[data-role="all"] {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+  }
+  /* Personnaliser (ordre 1) sous les deux, pleine largeur */
+  html.cc-consent-bandeau #cc-main .cm__btn[data-role="show"] {
+    grid-column: 1 / span 2 !important;
+    grid-row: 2 !important;
+  }
+
+  html.cc-consent-bandeau #cc-main .cm__footer {
+    padding: 0.5rem 1rem 0.75rem 1rem !important;
+    text-align: center !important;
+  }
+
+  /* Préférences : padding réduit, pas de grand vide sous les sections */
   #cc-main .pm {
     margin: 0.5rem !important;
     max-height: calc(100dvh - 1rem) !important;
     max-width: calc(100% - 1rem) !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
 
-  #cc-main .pm__footer {
+  #cc-main .pm__body {
+    flex: 1 !important;
+    min-height: 0 !important;
+  }
+
+  #cc-main .pm__section {
+    padding: 0.75rem 1rem !important;
+  }
+
+  /* La lib force column-reverse via .pm--flip : on repasse en column pour
+     garder « Tout refuser · Tout accepter » en haut et « Enregistrer » en bas. */
+  #cc-main .pm__footer,
+  #cc-main .pm--flip .pm__footer {
     flex-direction: column !important;
-    padding: 0.875rem 1.25rem !important;
+    padding: 0.75rem 1rem !important;
+    gap: 0.5rem !important;
   }
 
   #cc-main .pm__footer .pm__btn-group {
     width: 100% !important;
-    justify-content: stretch !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.5rem !important;
+  }
+
+  /* 1er groupe DOM : Tout accepter + Tout refuser → 2 colonnes, en HAUT */
+  #cc-main .pm__footer .pm__btn-group:first-child {
+    grid-template-columns: 1fr 1fr !important;
+    order: 1 !important;
+    direction: rtl !important;      /* Tout refuser visuellement à gauche */
+  }
+  #cc-main .pm__footer .pm__btn-group:first-child > .pm__btn {
+    direction: ltr !important;
+  }
+
+  /* 2e groupe DOM : Enregistrer mes choix → pleine largeur, en DESSOUS */
+  #cc-main .pm__footer .pm__btn-group:last-child {
+    grid-template-columns: 1fr !important;
+    order: 2 !important;
   }
 
   #cc-main .pm__btn {
     width: 100% !important;
-    justify-content: center !important;
+    padding: 0 0.75rem !important;
   }
 }
