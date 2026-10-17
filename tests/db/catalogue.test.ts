@@ -55,6 +55,9 @@ const FONCTIONS_DE_REGLES = [
   'soiree_visible',
 ];
 
+// Fonctions internes de prive (hors déclencheurs), appelées seulement par d'autres fonctions de prive.
+const FONCTIONS_INTERNES = ['rattacher_prochaine_date'];
+
 // Droits de table attendus pour les rôles de l'API, tels que les migrations RLS les accordent.
 // Toute différence (droit en trop ou manquant) doit être une décision, donc une mise à jour ici.
 const LECTURE = 'SELECT';
@@ -76,9 +79,12 @@ const DROITS_ATTENDUS = [
   { role: 'authenticated', table: 'abonnements_actualites', droits: 'DELETE, SELECT' },
   { role: 'authenticated', table: 'abonnements_push', droits: ADMIN },
   { role: 'authenticated', table: 'avis_soiree', droits: VOTE },
+  { role: 'authenticated', table: 'bilan_envois_emails', droits: LECTURE },
   { role: 'authenticated', table: 'calendrier', droits: ADMIN },
   { role: 'authenticated', table: 'consentements_cookies', droits: 'DELETE, SELECT' },
   { role: 'authenticated', table: 'contenus_vitrine', droits: ADMIN },
+  { role: 'authenticated', table: 'destinataires_emails', droits: LECTURE },
+  { role: 'authenticated', table: 'envois_emails', droits: LECTURE },
   { role: 'authenticated', table: 'epreuves', droits: ADMIN },
   { role: 'authenticated', table: 'etat_soiree', droits: LECTURE },
   { role: 'authenticated', table: 'file_notes', droits: LECTURE },
@@ -86,6 +92,8 @@ const DROITS_ATTENDUS = [
   { role: 'authenticated', table: 'imports_planning', droits: ADMIN },
   { role: 'authenticated', table: 'manades', droits: ADMIN },
   { role: 'authenticated', table: 'messages_contact', droits: LECTURE },
+  { role: 'authenticated', table: 'messages_inscrits', droits: LECTURE },
+  { role: 'authenticated', table: 'modeles_emails', droits: LECTURE },
   { role: 'authenticated', table: 'notes_jury', droits: VOTE },
   { role: 'authenticated', table: 'notes_public', droits: VOTE },
   { role: 'authenticated', table: 'palmares', droits: ADMIN },
@@ -94,6 +102,7 @@ const DROITS_ATTENDUS = [
   { role: 'authenticated', table: 'passages', droits: ADMIN },
   { role: 'authenticated', table: 'photos_vitrine', droits: ADMIN },
   { role: 'authenticated', table: 'profils', droits: LECTURE },
+  { role: 'authenticated', table: 'rattachements_emails', droits: LECTURE },
   { role: 'authenticated', table: 'soiree_juges', droits: ADMIN },
   { role: 'authenticated', table: 'soiree_manades', droits: ADMIN },
   { role: 'authenticated', table: 'soirees', droits: ADMIN },
@@ -149,8 +158,23 @@ describe('catalogue : tables et droits', () => {
         'titre',
         'url_confidentialite',
       ];
+      const COLONNES_MODELES_EMAILS = [
+        'actif',
+        'corps',
+        'encart',
+        'heure_envoi',
+        'jours_decalage',
+        'preheader',
+        'sujet',
+      ];
       expect(rows).toEqual([
         { table: 'messages_contact', colonne: 'traite', role: 'authenticated', droit: 'UPDATE' },
+        ...COLONNES_MODELES_EMAILS.map((colonne) => ({
+          table: 'modeles_emails',
+          colonne,
+          role: 'authenticated',
+          droit: 'UPDATE',
+        })),
         { table: 'parametres', colonne: 'app_ouverte_au_public', role: 'authenticated', droit: 'UPDATE' },
         ...COLONNES_PARAMETRES_COOKIES.map((colonne) => ({
           table: 'parametres_cookies',
@@ -264,6 +288,7 @@ describe('catalogue : fonctions', () => {
          where p.pronamespace = 'public'::regnamespace order by 1`,
       );
       expect(rows).toEqual([
+        { fonction: 'emails_a_traiter(timestamp with time zone)' },
         { fonction: 'enregistrer_choix_notifications(text)' },
         {
           fonction:
@@ -318,7 +343,7 @@ describe('catalogue : fonctions', () => {
       expect(rows).toEqual([]);
     }));
 
-  it('les fonctions de règles de prive restent exécutables par anon et authenticated', () =>
+  it('seules les fonctions de règles de prive sont exécutables par anon et authenticated', () =>
     dansUneTransaction(async (db) => {
       await commeSuperutilisateur(db);
       const { rows } = await db.query(
@@ -330,7 +355,10 @@ describe('catalogue : fonctions', () => {
          order by 1`,
       );
       expect(rows).toEqual(
-        FONCTIONS_DE_REGLES.map((fonction) => ({ fonction, anon: true, authenticated: true })),
+        [
+          ...FONCTIONS_DE_REGLES.map((fonction) => ({ fonction, anon: true, authenticated: true })),
+          ...FONCTIONS_INTERNES.map((fonction) => ({ fonction, anon: false, authenticated: false })),
+        ].sort((a, b) => (a.fonction < b.fonction ? -1 : 1)),
       );
     }));
 });
