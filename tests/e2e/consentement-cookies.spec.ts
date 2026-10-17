@@ -287,3 +287,58 @@ test.describe('accessibilité axe', () => {
     expect(graves).toEqual([]);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Égalité CNIL : « Tout refuser » et « Tout accepter » strictement même
+// hauteur et même ligne de base (y) dans la fenêtre, la barre et les
+// préférences, en mobile et en bureau.
+// ---------------------------------------------------------------------------
+
+async function hauteursEtY(page: Page, roleA: string, roleB: string, racine: string) {
+  // S'assurer que les deux boutons sont visibles et la mise en page stabilisée
+  // (le fetch des réglages peut re-rendre les boutons après l'affichage initial).
+  await page.locator(`${racine} [data-role="${roleA}"]`).waitFor({ state: 'visible' });
+  await page.locator(`${racine} [data-role="${roleB}"]`).waitFor({ state: 'visible' });
+  await page.evaluate(
+    () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))),
+  );
+  const a = await page.locator(`${racine} [data-role="${roleA}"]`).boundingBox();
+  const b = await page.locator(`${racine} [data-role="${roleB}"]`).boundingBox();
+  if (!a || !b) throw new Error('boutons introuvables');
+  return { a, b };
+}
+
+test.describe('égalité CNIL : Tout refuser et Tout accepter', () => {
+  test('même hauteur dans la fenêtre', async ({ page }) => {
+    await intercepterApiCookies(page);
+    await page.goto('/');
+    await expect(page.locator('#cc-main .cm')).toBeVisible({ timeout: 8000 });
+    const { a, b } = await hauteursEtY(page, 'all', 'necessary', '#cc-main .cm');
+    expect(Math.abs(a.height - b.height)).toBeLessThanOrEqual(1);
+    // Même ligne de base dès que la rangée tient sur une ligne (viewport >= 640).
+    const estMobile = (await page.viewportSize())!.width < 640;
+    if (!estMobile) {
+      expect(Math.abs(a.y - b.y)).toBeLessThanOrEqual(1);
+    }
+  });
+
+  test('même hauteur dans la barre', async ({ page }) => {
+    await intercepterApiCookies(page);
+    await page.goto('/noter');
+    await expect(page.locator('#cc-main .cm')).toBeVisible({ timeout: 8000 });
+    const { a, b } = await hauteursEtY(page, 'all', 'necessary', '#cc-main .cm');
+    expect(Math.abs(a.height - b.height)).toBeLessThanOrEqual(1);
+    // Barre bureau = ligne unique ; barre mobile = grille 2 colonnes sur la même ligne.
+    expect(Math.abs(a.y - b.y)).toBeLessThanOrEqual(1);
+  });
+
+  test('même hauteur et même y dans les préférences', async ({ page }) => {
+    await intercepterApiCookies(page);
+    await page.goto('/');
+    await page.locator('#cc-main .cm__btn[data-role="show"]').click();
+    await expect(page.locator('#cc-main .pm')).toBeVisible({ timeout: 8000 });
+    const { a, b } = await hauteursEtY(page, 'all', 'necessary', '#cc-main .pm');
+    expect(Math.abs(a.height - b.height)).toBeLessThanOrEqual(1);
+    expect(Math.abs(a.y - b.y)).toBeLessThanOrEqual(1);
+  });
+});

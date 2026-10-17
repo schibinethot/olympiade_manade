@@ -9,8 +9,10 @@
  * @see plan-consentement-cookies.md section « Admin »
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useSearchParams } from 'react-router';
 import { BOUTON, BOUTON_PLEIN, CadreAdmin, CARTE, CHAMP, useClientAdmin } from '../composants/admin/CadreAdmin';
+import { AideCookies } from '../composants/admin/AideCookies';
 
 // ---------------------------------------------------------------------------
 // Types alignés sur les colonnes de parametres_cookies
@@ -77,31 +79,96 @@ export default function AdminCookies() {
 // Onglets
 // ---------------------------------------------------------------------------
 
-type Onglet = 'reglages' | 'statistiques' | 'journal';
+type Onglet = 'aide' | 'reglages' | 'statistiques' | 'journal';
+
+const ONGLETS: ReadonlyArray<{ cle: Onglet; libelle: string }> = [
+  { cle: 'aide', libelle: 'Comment ça marche' },
+  { cle: 'reglages', libelle: 'Réglages' },
+  { cle: 'statistiques', libelle: 'Statistiques' },
+  { cle: 'journal', libelle: 'Journal' },
+];
+
+function estOnglet(valeur: string | null): valeur is Onglet {
+  return valeur === 'aide' || valeur === 'reglages' || valeur === 'statistiques' || valeur === 'journal';
+}
 
 function Contenu() {
-  const [onglet, setOnglet] = useState<Onglet>('reglages');
+  const [params, setParams] = useSearchParams();
+  const demande = params.get('onglet');
+  const onglet: Onglet = estOnglet(demande) ? demande : 'aide';
+  const refs = useRef<Array<HTMLButtonElement | null>>([]);
 
-  const styleOnglet = (actif: boolean) =>
-    `${BOUTON} ${actif ? 'bg-encre text-sable' : ''}`;
+  function activer(cle: Onglet, focalise = false) {
+    setParams(
+      (prec) => {
+        const copie = new URLSearchParams(prec);
+        if (cle === 'aide') copie.delete('onglet');
+        else copie.set('onglet', cle);
+        return copie;
+      },
+      { replace: true },
+    );
+    if (focalise) {
+      const index = ONGLETS.findIndex((o) => o.cle === cle);
+      // Laisser le temps à React de peindre le nouvel aria-selected
+      setTimeout(() => refs.current[index]?.focus(), 0);
+    }
+  }
+
+  function onTouche(evt: KeyboardEvent<HTMLButtonElement>, index: number) {
+    const dernier = ONGLETS.length - 1;
+    let suivant: number | null = null;
+    if (evt.key === 'ArrowRight') suivant = index === dernier ? 0 : index + 1;
+    else if (evt.key === 'ArrowLeft') suivant = index === 0 ? dernier : index - 1;
+    else if (evt.key === 'Home') suivant = 0;
+    else if (evt.key === 'End') suivant = dernier;
+    if (suivant === null) return;
+    evt.preventDefault();
+    activer(ONGLETS[suivant].cle, true);
+  }
 
   return (
     <div className="grid gap-5">
-      <nav aria-label="Onglets cookies" className="flex flex-wrap gap-2">
-        <button type="button" className={styleOnglet(onglet === 'reglages')} onClick={() => setOnglet('reglages')}>
-          Réglages
-        </button>
-        <button type="button" className={styleOnglet(onglet === 'statistiques')} onClick={() => setOnglet('statistiques')}>
-          Statistiques
-        </button>
-        <button type="button" className={styleOnglet(onglet === 'journal')} onClick={() => setOnglet('journal')}>
-          Journal
-        </button>
-      </nav>
+      <div
+        role="tablist"
+        aria-label="Onglets cookies"
+        className="flex flex-wrap gap-2"
+      >
+        {ONGLETS.map((o, i) => {
+          const actif = o.cle === onglet;
+          return (
+            <button
+              key={o.cle}
+              ref={(el) => {
+                refs.current[i] = el;
+              }}
+              type="button"
+              role="tab"
+              id={`onglet-cookies-${o.cle}`}
+              aria-selected={actif}
+              // Seul le panneau actif est rendu : l'onglet inactif ne pointe vers aucun élément absent.
+              aria-controls={actif ? `panneau-cookies-${o.cle}` : undefined}
+              tabIndex={actif ? 0 : -1}
+              onClick={() => activer(o.cle)}
+              onKeyDown={(e) => onTouche(e, i)}
+              className={`${BOUTON} ${actif ? 'bg-encre text-sable' : ''}`}
+            >
+              {o.libelle}
+            </button>
+          );
+        })}
+      </div>
 
-      {onglet === 'reglages' && <OngletReglages />}
-      {onglet === 'statistiques' && <OngletStatistiques />}
-      {onglet === 'journal' && <OngletJournal />}
+      <div
+        role="tabpanel"
+        id={`panneau-cookies-${onglet}`}
+        aria-labelledby={`onglet-cookies-${onglet}`}
+      >
+        {onglet === 'aide' && <AideCookies onAllerVers={(cible) => activer(cible, false)} />}
+        {onglet === 'reglages' && <OngletReglages />}
+        {onglet === 'statistiques' && <OngletStatistiques />}
+        {onglet === 'journal' && <OngletJournal />}
+      </div>
     </div>
   );
 }
