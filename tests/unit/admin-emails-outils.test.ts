@@ -98,11 +98,11 @@ describe('estimations et dates', () => {
 
   it('dit le prochain envoi comme une estimation, en nommant la date', () => {
     expect(prochainEnvoiEnClair({ etape: 'j_moins_7', calendrierId: 'sommieres', prevuLe: '2027-07-24T08:00:00Z', destinataires: 132 }, SOMMIERES))
-      .toBe('environ 132 inscrits de Sommières (sam. 31/07), sam. 24/07 à 10 h');
+      .toBe(`environ 132 inscrits de Sommières (sam.${NB}31/07), sam. 24/07 à 10 h`);
     expect(prochainEnvoiEnClair({ etape: 'veille', calendrierId: 'sommieres', prevuLe: '2027-07-30T16:00:00Z', destinataires: 1 }, SOMMIERES))
-      .toBe('environ 1 inscrit de Sommières (sam. 31/07), ven. 30/07 à 18 h');
+      .toBe(`environ 1 inscrit de Sommières (sam.${NB}31/07), ven. 30/07 à 18 h`);
     expect(prochainEnvoiEnClair({ etape: 'veille', calendrierId: 'sommieres', prevuLe: '2027-07-30T16:00:00Z', destinataires: 0 }, SOMMIERES))
-      .toBe(`ven. 30/07 à 18 h, Sommières (sam. 31/07)${NB}: aucun inscrit pour l’instant`);
+      .toBe(`ven. 30/07 à 18 h, Sommières (sam.${NB}31/07)${NB}: aucun inscrit pour l’instant`);
     expect(prochainEnvoiEnClair({ etape: 'veille', calendrierId: 'x', prevuLe: '2027-07-30T16:00:00Z', destinataires: 2 }))
       .toBe('environ 2 inscrits de la date, ven. 30/07 à 18 h');
     expect(prochainEnvoiEnClair(undefined)).toBeNull();
@@ -114,8 +114,8 @@ describe('estimations et dates', () => {
   });
 
   it('libelle une date du calendrier avec son statut, même illisible', () => {
-    expect(libelleOptionDate(SOMMIERES)).toBe('sam. 31/07/2027 · Sommières');
-    expect(libelleOptionDate({ ...BEZOUCE, statut: 'previsionnelle' })).toBe('jeu. 05/08/2027 · Bezouce (prévisionnelle)');
+    expect(libelleOptionDate(SOMMIERES)).toBe(`sam.${NB}31/07/2027 · Sommières`);
+    expect(libelleOptionDate({ ...BEZOUCE, statut: 'previsionnelle' })).toBe(`jeu.${NB}05/08/2027 · Bezouce (prévisionnelle)`);
     expect(libelleOptionDate({ ...BEZOUCE, date_soiree: '2027-02-31' })).toBe('2027-02-31 · Bezouce');
   });
 
@@ -363,8 +363,8 @@ describe('contexte de l’aperçu', () => {
     const { contexte, instant } = preparerApercu({ ...base, cle: 'j_moins_7' });
     expect(instant.toISOString()).toBe('2027-07-24T08:00:00.000Z');
     const rendu = rendreEmail(MODELES_DEFAUT.j_moins_7, contexte, { cible: 'apercu' });
-    expect(rendu.html).toContain('samedi 31 juillet 2027');
-    expect(rendu.sujet).toBe('L’Olympiade à Sommières, c’est dans 7 jours');
+    expect(rendu.html).toContain(`samedi 31${NB}juillet 2027`);
+    expect(rendu.sujet).toBe(`L’Olympiade à Sommières, c’est dans 7${NB}jours`);
     expect(rendu.html).toContain('Bonjour Camille,');
     // Pas de soirée liée : la ligne des manades et le lien pour noter disparaissent.
     expect(rendu.html).not.toContain('Manades engagées');
@@ -380,7 +380,7 @@ describe('contexte de l’aperçu', () => {
   it('montre l’encart de bienvenue quelques jours avant la date', () => {
     const avec = preparerApercu({ ...base, cle: 'bienvenue', reglage: { jours_decalage: null, heure_envoi: null } });
     expect(avec.contexte.encartDateProche).toBe(true);
-    expect(rendreEmail(MODELES_DEFAUT.bienvenue, avec.contexte, { cible: 'apercu' }).html).toContain('c’est dans 3 jours');
+    expect(rendreEmail(MODELES_DEFAUT.bienvenue, avec.contexte, { cible: 'apercu' }).html).toContain(`c’est dans 3${NB}jours`);
     const sans = preparerApercu({ ...base, cle: 'bienvenue', reglage: { jours_decalage: null, heure_envoi: null }, encart: false });
     expect(sans.contexte.encartDateProche).toBe(false);
     expect(sans.instant).toBe(MAINTENANT);
@@ -392,7 +392,7 @@ describe('contexte de l’aperçu', () => {
     expect(contexte.prochaines.map((date) => date.id)).toEqual(['le-cres']);
     expect(contexte.prochaines[0].lienJeViens).toBe(`${ORIGINE}/emails/je-viens`);
     const rendu = rendreEmail(MODELES_DEFAUT.prochaines_dates, contexte, { cible: 'apercu' });
-    expect(rendu.html).toContain('lun. 16/08 · Le Crès');
+    expect(rendu.html).toContain(`lun.${NB}16/08${NB}· Le Crès`);
   });
 
   it('exclut la date de l’email et garde 3 prochaines dates au plus', () => {

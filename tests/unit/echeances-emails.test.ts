@@ -5,6 +5,7 @@ import {
   dateDeBienvenue,
   echeance,
   envoisAVenir,
+  lireEmailsATraiter,
   type Destinataire,
   type EmailsATraiter,
   type Envoi,
@@ -85,15 +86,10 @@ const CAMILLE = 'dest-camille';
 function destinataire(changes: Partial<Destinataire> = {}): Destinataire {
   return {
     id: CAMILLE,
-    email: 'camille@exemple.fr',
-    prenom: 'Camille',
-    profil_id: 'profil-camille',
-    abonne: false,
     abonnement_a_confirmer: false,
     desinscrit: false,
     annonces: false,
     confirme_le: null,
-    inscrit_le: iso('2027-07-01 09:00'),
     ...changes,
   };
 }
@@ -102,22 +98,14 @@ function rattachement(calendrierId: string, creeLe: string, changes: Partial<Rat
   return { destinataire_id: CAMILLE, calendrier_id: calendrierId, origine: 'inscription', cree_le: iso(creeLe), ...changes };
 }
 
-let numeroEnvoi = 0;
 function envoi(etape: Etape, calendrierId: string | null, prevuLe: string, changes: Partial<Envoi> = {}): Envoi {
-  numeroEnvoi += 1;
   return {
-    id: `envoi-${numeroEnvoi}`,
     destinataire_id: CAMILLE,
     etape,
     calendrier_id: calendrierId,
-    message_id: null,
-    reel: true,
     statut: 'envoye',
     raison: null,
-    tentatives: 0,
     prevu_le: prevuLe,
-    envoye_le: prevuLe,
-    cree_le: prevuLe,
     ...changes,
   };
 }
@@ -161,8 +149,6 @@ function simuler(etat: EmailsATraiter, debut: string, fin: string, pasMinutes = 
           destinataire_id: prevu.destinataireId,
           statut: prevu.raison ? 'saute' : 'envoye',
           raison: prevu.raison ?? null,
-          envoye_le: prevu.raison ? null : maintenant.toISOString(),
-          cree_le: maintenant.toISOString(),
         }));
       }
     }
@@ -173,7 +159,7 @@ function simuler(etat: EmailsATraiter, debut: string, fin: string, pasMinutes = 
 /** Un spectateur confirmé à `moment`, rattaché à cet instant à `calendrierId` (origine inscription). */
 function inscrit(calendrierId: string, moment: string, changes: Partial<Destinataire> = {}) {
   return donnees({
-    destinataires: [destinataire({ confirme_le: iso(moment), inscrit_le: iso(moment), ...changes })],
+    destinataires: [destinataire({ confirme_le: iso(moment), ...changes })],
     rattachements: [rattachement(calendrierId, moment)],
   });
 }
@@ -535,7 +521,7 @@ describe('calculerEnvois : plafond journalier', () => {
         .toEqual(['jour_j Marsillargues plafond_jour']);
     }
     for (const ligne of [autre({ statut: 'echec' }), autre({ statut: 'saute' }), envoi('confirmation', null, iso('2027-07-30 08:00')),
-      envoi('message', null, iso('2027-07-30 08:00'), { message_id: 'message-1' })]) {
+      envoi('message', null, iso('2027-07-30 08:00'))]) {
       expect(calculerEnvois(avec(ligne), ete('2027-07-30 10:00')).aEnvoyer.map(decrireCourt)).toEqual(['jour_j Marsillargues']);
     }
   });
@@ -547,7 +533,7 @@ function decrireCourt(prevu: EnvoiPrevu) {
 
 describe('calculerEnvois : confirmation, bienvenue et cas limites', () => {
   it('confirmation puis bienvenue : la bienvenue n’existe pas tant que confirme_le est nul', () => {
-    const abonne = destinataire({ profil_id: null, prenom: null, abonne: true, abonnement_a_confirmer: true });
+    const abonne = destinataire({ abonnement_a_confirmer: true });
     const avant = donnees({ destinataires: [abonne] });
     expect(calculerEnvois(avant, ete('2027-07-20 15:00'))).toEqual({
       aEnvoyer: [{ destinataireId: CAMILLE, etape: 'confirmation', calendrierIds: [], prevuLe: iso('2027-07-20 15:00') }],
@@ -573,7 +559,7 @@ describe('calculerEnvois : confirmation, bienvenue et cas limites', () => {
   it('une adresse désinscrite qui se réabonne reçoit sa confirmation, et rien d’autre', () => {
     const etat = donnees({
       destinataires: [destinataire({
-        abonne: true, abonnement_a_confirmer: true, desinscrit: true, annonces: true, confirme_le: iso('2027-07-01 09:00'),
+        abonnement_a_confirmer: true, desinscrit: true, annonces: true, confirme_le: iso('2027-07-01 09:00'),
       })],
       rattachements: [rattachement(MARSILLARGUES, '2027-07-01 09:00')],
     });
@@ -585,15 +571,16 @@ describe('calculerEnvois : confirmation, bienvenue et cas limites', () => {
     const etat = inscrit(MARSILLARGUES, '2027-07-22 12:00');
     etat.envois.push(envoi('bienvenue', null, iso('2027-07-22 12:00')));
     expect(calculerEnvois(etat, ete('2027-07-30 10:00')).aEnvoyer.map(decrireCourt)).toEqual(['jour_j Marsillargues']);
-    // Le J-7 et la veille, jamais réservés, sont hors fenêtre au 30/07.
+    // La veille, jamais réservée, est hors fenêtre au 30/07 ; le J-7 (23/07), au-delà de l'horizon de 48 h
+    // d'un rattachement ancien, n'est plus examiné du tout.
     expect(calculerEnvois(etat, ete('2027-07-30 10:00')).sautes.map(decrireCourt))
-      .toEqual(['j_moins_7 Marsillargues fenetre_depassee', 'veille Marsillargues fenetre_depassee']);
+      .toEqual(['veille Marsillargues fenetre_depassee']);
     const inactifs = { ...etat, modeles: modeles({ j_moins_7: { actif: false }, veille: { actif: false }, jour_j: { actif: false } }) };
     expect(calculerEnvois(inactifs, ete('2027-07-30 10:00'))).toEqual({ aEnvoyer: [], sautes: [] });
     const absents = { ...etat, modeles: modeles().filter((modele) => !['j_moins_7', 'veille', 'jour_j'].includes(modele.cle)) };
     expect(calculerEnvois(absents, ete('2027-07-30 10:00'))).toEqual({ aEnvoyer: [], sautes: [] });
 
-    const abonne = donnees({ destinataires: [destinataire({ abonne: true, abonnement_a_confirmer: true })] });
+    const abonne = donnees({ destinataires: [destinataire({ abonnement_a_confirmer: true })] });
     expect(calculerEnvois({ ...abonne, modeles: modeles().filter((modele) => modele.cle !== 'confirmation') }, ete('2027-07-20 15:00')))
       .toEqual({ aEnvoyer: [], sautes: [] });
     const bienvenue = inscrit(MARSILLARGUES, '2027-07-22 12:00');
@@ -669,9 +656,11 @@ describe('dateDeBienvenue', () => {
     // Une date annulée ou repassée en prévisionnelle n'est jamais citée.
     expect(pour('2027-07-27 20:00', { statut: 'annulee' })).toEqual({ date: null, encartDateProche: false });
     expect(pour('2027-07-27 20:00', { statut: 'previsionnelle' })).toEqual({ date: null, encartDateProche: false });
-    // Soirée suspendue : la date confirmée reste citée, sans encart.
-    expect(pour('2027-07-27 20:00', { soiree: { slug: 'm', statut: 'annulee' } }))
-      .toEqual({ date: marsillargues({ soiree: { slug: 'm', statut: 'annulee' } }), encartDateProche: false });
+    // Soirée liée annulée ou reportée : la date n'est plus citée (mineur différé T3), même confirmée.
+    for (const statut of ['annulee', 'reportee'] as const) {
+      expect(pour('2027-07-27 20:00', { soiree: { slug: 'm', statut } })).toEqual({ date: null, encartDateProche: false });
+    }
+    expect(pour('2027-07-27 20:00', { soiree: { slug: 'm', statut: 'publiee' } }).date).not.toBeNull();
   });
 
   it('date lointaine renvoyée par la RPC pour la bienvenue (au-delà de J+17) : citée si confirmée, rien d’autre ne part', () => {
@@ -721,5 +710,76 @@ describe('envoisAVenir', () => {
       { etape: 'prochaines_dates', calendrierId: SOMMIERES, prevuLe: iso('2027-08-07 10:00'), destinataires: 5 },
     ]);
     expect(envoisAVenir(modeles({ prochaines_dates: { actif: false } }), dates, {}, ete('2027-07-29 12:00'), 10)).toEqual([]);
+  });
+});
+
+describe('vague finale : horizons, interrompus et forme compacte de la RPC', () => {
+  it('une étape passée depuis plus de 48 h n’est plus examinée, sauf pour un rattachement de moins de 48 h', () => {
+    // Rattachée le 22/07 : au 30/07, le J-7 (23/07) est oublié ; la veille (29/07 18:00, il y a 16 h) est sautée.
+    const ancienne = inscrit(MARSILLARGUES, '2027-07-22 12:00');
+    ancienne.envois.push(envoi('bienvenue', null, iso('2027-07-22 12:00')));
+    expect(calculerEnvois(ancienne, ete('2027-07-30 10:00')).sautes.map(decrireCourt)).toEqual(['veille Marsillargues fenetre_depassee']);
+    // « Je viens » le 30/07 à 09:00 : toutes les étapes déjà passées sont enregistrées, une fois.
+    const recente = inscrit(MARSILLARGUES, '2027-07-22 12:00');
+    recente.envois.push(envoi('bienvenue', null, iso('2027-07-22 12:00')));
+    recente.rattachements = [rattachement(MARSILLARGUES, '2027-07-30 09:00', { origine: 'je_viens' })];
+    expect(calculerEnvois(recente, ete('2027-07-30 10:00')).sautes.map(decrireCourt))
+      .toEqual(['j_moins_7 Marsillargues deja_passe_a_l_inscription', 'veille Marsillargues deja_passe_a_l_inscription']);
+  });
+
+  it('la bienvenue n’est examinée que dans les 24 h qui suivent la confirmation', () => {
+    const etat = inscrit(MARSILLARGUES, '2027-07-22 12:00');
+    expect(calculerEnvois(etat, ete('2027-07-23 11:59')).sautes.map(decrireCourt)).toContain('bienvenue fenetre_depassee');
+    expect(calculerEnvois(etat, ete('2027-07-23 12:01')).sautes.map(decrireCourt)).not.toContain('bienvenue fenetre_depassee');
+  });
+
+  it('un envoi interrompu (peut-être parti) occupe le plafond du jour (mineur T5)', () => {
+    const etat = inscrit(MARSILLARGUES, '2027-07-22 12:00');
+    etat.envois.push(
+      envoi('bienvenue', null, iso('2027-07-22 12:00')),
+      envoi('j_moins_7', MARSILLARGUES, iso('2027-07-23 10:00')),
+      envoi('veille', MARSILLARGUES, iso('2027-07-29 18:00')),
+      envoi('lendemain', BEZOUCE, iso('2027-07-30 08:00'), { statut: 'echec', raison: 'interrompu' }),
+    );
+    expect(calculerEnvois(etat, ete('2027-07-30 10:00')).sautes.map(decrireCourt)).toEqual(['jour_j Marsillargues plafond_jour']);
+    etat.envois[3] = { ...etat.envois[3], raison: 'envoi_impossible' };
+    expect(calculerEnvois(etat, ete('2027-07-30 10:00')).aEnvoyer.map(decrireCourt)).toEqual(['jour_j Marsillargues']);
+  });
+
+  it('lireEmailsATraiter : une ligne par personne, dates citées par leur position, horodatages en millisecondes', () => {
+    const dates = [marsillargues(), sommieres()];
+    const brut = {
+      modeles: modeles(), dates, prochaines: [],
+      destinataires: [
+        [CAMILLE, true, false, true, Date.parse('2027-07-01T08:00:00Z'),
+          [[0, 'inscription', Date.parse('2027-07-01T08:00:00Z')], [1, 'je_viens', Date.parse('2027-07-02T08:00:00Z')]],
+          [['veille', 0, 'envoye', null, Date.parse('2027-07-29T16:00:00Z')], ['annonce', 'cal-hors-dates', 'saute', 'plafond_jour', 0],
+            ['bienvenue', null, 'simule', null, Date.parse('2027-07-01T08:05:00Z')]]],
+        ['dest-sans-date', false, true, false, null, [], []],
+      ],
+    };
+    expect(lireEmailsATraiter(brut)).toEqual({
+      modeles: brut.modeles, dates, prochaines: [],
+      destinataires: [
+        { id: CAMILLE, abonnement_a_confirmer: true, desinscrit: false, annonces: true, confirme_le: '2027-07-01T08:00:00.000Z' },
+        { id: 'dest-sans-date', abonnement_a_confirmer: false, desinscrit: true, annonces: false, confirme_le: null },
+      ],
+      rattachements: [
+        { destinataire_id: CAMILLE, calendrier_id: MARSILLARGUES, origine: 'inscription', cree_le: '2027-07-01T08:00:00.000Z' },
+        { destinataire_id: CAMILLE, calendrier_id: SOMMIERES, origine: 'je_viens', cree_le: '2027-07-02T08:00:00.000Z' },
+      ],
+      envois: [
+        { destinataire_id: CAMILLE, etape: 'veille', calendrier_id: MARSILLARGUES, statut: 'envoye', raison: null, prevu_le: '2027-07-29T16:00:00.000Z' },
+        { destinataire_id: CAMILLE, etape: 'annonce', calendrier_id: 'cal-hors-dates', statut: 'saute', raison: 'plafond_jour', prevu_le: '1970-01-01T00:00:00.000Z' },
+        { destinataire_id: CAMILLE, etape: 'bienvenue', calendrier_id: null, statut: 'simule', raison: null, prevu_le: '2027-07-01T08:05:00.000Z' },
+      ],
+    });
+    for (const invalide of [
+      null, [], { ...brut, destinataires: undefined }, { ...brut, destinataires: [[CAMILLE, true]] },
+      { ...brut, destinataires: [[CAMILLE, true, false, true, null, [[5, 'inscription', 0]], []]] },
+      { ...brut, destinataires: [[CAMILLE, true, false, true, 'hier', [], []]] },
+    ]) {
+      expect(() => lireEmailsATraiter(invalide)).toThrow('réponse RPC invalide');
+    }
   });
 });

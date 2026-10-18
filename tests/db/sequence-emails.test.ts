@@ -15,6 +15,7 @@ import {
   supprimerBaseDeTest,
 } from './aide';
 import { IDS, modifier, semerSoiree } from './graine';
+import { lireEmailsATraiter } from '../../serveur/echeances-emails.mjs';
 
 const MIGRATION = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -132,25 +133,40 @@ async function cliquer(db: pg.Client, email: string): Promise<number> {
   return rowCount ?? 0;
 }
 
-/** Action « desinscrire » du serveur (tâche 5) : désinscription puis retrait de l'abonnement. */
+/**
+ * Action « desinscrire » du serveur : désinscription par identifiant, puis retrait de l'abonnement par la RPC
+ * (l'adresse ne passe jamais dans une URL).
+ */
 async function desinscrire(db: pg.Client, email: string): Promise<void> {
   await commeService(db);
-  await db.query(
-    `update public.destinataires_emails set desinscrit_le = now(), annonces = false where email = $1`,
+  const { rows } = await db.query(
+    `update public.destinataires_emails set desinscrit_le = now(), annonces = false where email = $1 returning id`,
     [email],
   );
-  await db.query(`delete from public.abonnements_actualites where email = $1`, [email]);
+  for (const { id } of rows) await db.query('select public.retirer_abonnement_destinataire($1)', [id]);
   await commeSuperutilisateur(db);
 }
 
-async function appelerRpc(db: pg.Client, maintenant: string | null = null, reel = true): Promise<DonneesRpc> {
+/** Réponse brute (forme compacte) de la RPC, en service_role. */
+async function rpcBrute(db: pg.Client, maintenant: string | null = null, reel = true): Promise<Record<string, unknown>> {
   await commeService(db);
   const { rows } = await db.query('select public.emails_a_traiter(coalesce($1::timestamptz, now()), $2) as r', [
     maintenant,
     reel,
   ]);
   await commeSuperutilisateur(db);
-  return rows[0].r as DonneesRpc;
+  return rows[0].r;
+}
+
+/** RPC décodée par lireEmailsATraiter ; l'adresse, absente de la réponse, est rajoutée pour la lisibilité des tests. */
+async function appelerRpc(db: pg.Client, maintenant: string | null = null, reel = true): Promise<DonneesRpc> {
+  const donnees = lireEmailsATraiter(await rpcBrute(db, maintenant, reel));
+  const { rows } = await db.query('select id, email from public.destinataires_emails');
+  const adresses = new Map(rows.map((l: { id: string; email: string }) => [l.id, l.email]));
+  return {
+    ...donnees,
+    destinataires: donnees.destinataires.map((d) => ({ ...d, email: adresses.get(d.id) ?? '' })),
+  } as unknown as DonneesRpc;
 }
 
 /** Semis des modèles par le serveur (tâche 5) : insertion sans écraser une ligne existante. */
@@ -441,8 +457,8 @@ describe('séquence d’e-mails : droits', () => {
          where has_table_privilege('service_role', 'public.' || t.nom, p.droit)
          group by t.nom order by 1`,
       );
+      // Rien sur abonnements_actualites hors du dépôt (colonnes en insertion) : retrait et purge passent par des RPC.
       expect(tables.rows).toEqual([
-        { table: 'abonnements_actualites', droits: 'DELETE' },
         { table: 'destinataires_emails', droits: 'DELETE, SELECT' },
         { table: 'envois_emails', droits: 'DELETE, INSERT, SELECT' },
         { table: 'messages_inscrits', droits: 'INSERT, SELECT' },
@@ -484,8 +500,14 @@ describe('séquence d’e-mails : droits', () => {
         'sujet',
       ]);
       expect(await colonnes('modeles_emails', 'UPDATE')).toEqual([]);
-      // La suppression par adresse (désinscription) doit pouvoir filtrer sur email.
-      expect(await colonnes('abonnements_actualites', 'SELECT')).toEqual(['email']);
+      // Plus aucune lecture par adresse : la désinscription passe par retirer_abonnement_destinataire(id).
+      expect(await colonnes('abonnements_actualites', 'SELECT')).toEqual([]);
+      expect(await colonnes('abonnements_actualites', 'INSERT')).toEqual([
+        'consentement_texte',
+        'consentement_version',
+        'email',
+        'source',
+      ]);
       expect(await colonnes('modeles_emails', 'UPDATE', 'authenticated')).toEqual([
         'actif',
         'corps',
@@ -501,14 +523,20 @@ describe('séquence d’e-mails : droits', () => {
         }
       }
       const rpc = await db.query(
-        `select r.role,
-                has_function_privilege(r.role, 'public.emails_a_traiter(timestamptz, boolean)', 'execute') as execute
-         from (values ('anon'), ('authenticated'), ('service_role')) as r (role) order by 1`,
+        `select f.fonction, r.role, has_function_privilege(r.role, f.fonction, 'execute') as execute
+         from (values ('public.emails_a_traiter(timestamptz, boolean)'),
+                      ('public.retirer_abonnement_destinataire(uuid)'),
+                      ('public.renvoyer_confirmation_email(text, timestamptz)'),
+                      ('public.purger_demandes_non_confirmees(timestamptz, integer)')) as f (fonction)
+         cross join (values ('anon'), ('authenticated'), ('service_role')) as r (role)
+         where has_function_privilege(r.role, f.fonction, 'execute')
+         order by 1, 2`,
       );
       expect(rpc.rows).toEqual([
-        { role: 'anon', execute: false },
-        { role: 'authenticated', execute: false },
-        { role: 'service_role', execute: true },
+        { fonction: 'public.emails_a_traiter(timestamptz, boolean)', role: 'service_role', execute: true },
+        { fonction: 'public.purger_demandes_non_confirmees(timestamptz, integer)', role: 'service_role', execute: true },
+        { fonction: 'public.renvoyer_confirmation_email(text, timestamptz)', role: 'service_role', execute: true },
+        { fonction: 'public.retirer_abonnement_destinataire(uuid)', role: 'service_role', execute: true },
       ]);
     }));
 });
@@ -596,16 +624,28 @@ describe('séquence d’e-mails : abonnés aux actualités', () => {
         desinscrit_le: opposition.desinscrit_le,
         confirme_le: lea.confirme_le,
       });
-      // Les anciennes confirmations sont supprimées ; la bienvenue ne part qu'une fois par adresse.
+      // Plafond (C6) : une adresse désinscrite reçoit au plus une demande réelle par 30 jours. Celle d'aujourd'hui
+      // reste (son lien reste le seul valable) ; la simulée est supprimée. La bienvenue ne part qu'une fois.
+      expect(await etapesEnvoyees(db, lea.id)).toEqual(['bienvenue', 'confirmation', 'j_moins_7']);
+      // 31 jours plus tard, la demande non confirmée est purgée, puis un nouveau dépôt en permet une nouvelle.
+      await modifier(db, `update public.destinataires_emails set premiere_demande_le = now() - interval '31 days' where id = $1`, [lea.id]);
+      await commeService(db);
+      await db.query('select public.retirer_abonnement_destinataire($1)', [lea.id]);
+      await abonner(db, 'lea@exemple.fr');
       expect(await etapesEnvoyees(db, lea.id)).toEqual(['bienvenue', 'j_moins_7']);
       await insererEnvoi(db, lea.id, 'confirmation');
       expect(await etapesEnvoyees(db, lea.id)).toEqual(['bienvenue', 'confirmation', 'j_moins_7']);
 
-      // Avant le clic : présente pour sa seule confirmation, désinscrite, sans rattachement exposé.
+      // Avant le clic : présente pour sa seule confirmation, désinscrite, sans rattachement exposé. Sa demande
+      // du mois est déjà réservée : en mode réel, plus rien à demander (plafond) ; en mode simulé, la demande reste.
       const avant = await appelerRpc(db);
       const elle = avant.destinataires.find((d) => d.id === lea.id);
-      expect(elle).toMatchObject({ abonnement_a_confirmer: true, desinscrit: true });
+      expect(elle).toMatchObject({ abonnement_a_confirmer: false, desinscrit: true });
       expect(avant.rattachements.filter((r) => r.destinataire_id === lea.id)).toEqual([]);
+      expect((await appelerRpc(db, null, false)).destinataires.find((d) => d.id === lea.id)).toMatchObject({
+        abonnement_a_confirmer: true,
+        desinscrit: true,
+      });
 
       // Le clic lève la désinscription ; sa date encore active est gardée, sans en ajouter une autre.
       expect(await cliquer(db, 'lea@exemple.fr')).toBe(1);
@@ -748,10 +788,14 @@ describe('séquence d’e-mails : clic de confirmation explicite', () => {
           `update public.destinataires_emails set abonnement_a_confirmer = true where email = 'lea@exemple.fr'`,
         ),
       ).toBe('42501');
-      // Purge d'une demande en attente : suppression de l'abonnement, sans aucun consentement fabriqué.
+      // Purge d'une demande en attente : retrait de l'abonnement (RPC, par identifiant), sans aucun consentement
+      // fabriqué. Le serveur ne supprime plus lui-même un abonnement.
       expect(
-        (await db.query(`delete from public.abonnements_actualites where email = 'lea@exemple.fr'`)).rowCount,
-      ).toBe(1);
+        await doitEtreRefuse(db, `delete from public.abonnements_actualites where email = 'lea@exemple.fr'`),
+      ).toBe('42501');
+      const [lea] = await destinataires(db, 'lea@exemple.fr');
+      await commeService(db);
+      await db.query('select public.retirer_abonnement_destinataire($1)', [lea.id]);
       expect(await destinataires(db, 'lea@exemple.fr')).toEqual([]);
     }));
 
@@ -1004,7 +1048,12 @@ describe('séquence d’e-mails : dates et envois', () => {
       const ancienne = await ajouterDate(db, -10, 'previsionnelle');
       const sansDate = await insererDestinataire(db, 'sans-date@exemple.fr', { confirme_le: '2026-10-01T10:00:00Z' });
       const active = await insererDestinataire(db, 'active@exemple.fr', { confirme_le: '2026-10-01T10:00:00Z' });
+      // Ancien spectateur (date passée suivie), sans consentement aux annonces ; le même, consentant.
       const expiree = await insererDestinataire(db, 'expiree@exemple.fr', { confirme_le: '2026-10-01T10:00:00Z' });
+      const consentante = await insererDestinataire(db, 'consentante@exemple.fr', {
+        confirme_le: '2026-10-01T10:00:00Z',
+        annonces: true,
+      });
       const nonConfirme = await insererDestinataire(db, 'attente@exemple.fr', { aConfirmer: true });
       const desinscrit = await insererDestinataire(db, 'stop@exemple.fr', {
         confirme_le: '2026-10-01T10:00:00Z',
@@ -1013,10 +1062,10 @@ describe('séquence d’e-mails : dates et envois', () => {
       await modifier(
         db,
         `insert into public.rattachements_emails (destinataire_id, calendrier_id, origine) values
-           ($1, $2, 'inscription'), ($3, $4, 'inscription')`,
-        [active, recente, expiree, ancienne],
+           ($1, $2, 'inscription'), ($3, $4, 'inscription'), ($5, $4, 'inscription')`,
+        [active, recente, expiree, ancienne, consentante],
       );
-      for (const id of [sansDate, active, expiree, nonConfirme, desinscrit]) {
+      for (const id of [sansDate, active, expiree, consentante, nonConfirme, desinscrit]) {
         expect((await rattachementsDe(db, id)).filter((r) => r.origine === 'premiere_confirmation'), id).toEqual([]);
       }
 
@@ -1042,7 +1091,10 @@ describe('séquence d’e-mails : dates et envois', () => {
       const premieres = async (id: string) =>
         (await rattachementsDe(db, id)).filter((r) => r.origine === 'premiere_confirmation');
       expect(await premieres(sansDate)).toEqual([{ calendrier_id: proche, origine: 'premiere_confirmation' }]);
-      expect(await premieres(expiree)).toEqual([{ calendrier_id: proche, origine: 'premiere_confirmation' }]);
+      // Revue juridique B2 : sans consentement aux annonces, un ancien spectateur n'est pas rattaché d'office à
+      // une nouvelle date (il la suivra par « Je viens ») ; consentant, il l'est.
+      expect(await premieres(expiree)).toEqual([]);
+      expect(await premieres(consentante)).toEqual([{ calendrier_id: proche, origine: 'premiere_confirmation' }]);
       expect(await premieres(active)).toEqual([]);
       expect(await premieres(nonConfirme)).toEqual([]);
       expect(await premieres(desinscrit)).toEqual([]);
@@ -1157,7 +1209,7 @@ describe('séquence d’e-mails : RPC emails_a_traiter', () => {
       const maintenant = '2027-07-22T08:00:00.000Z';
       const ilYa = (h: number) => new Date(Date.parse(maintenant) - h * 3600_000).toISOString();
 
-      await semerModeles(db, ['veille', 'bienvenue', 'confirmation']);
+      await semerModeles(db, ['veille', 'bienvenue', 'confirmation', 'annonce']);
       await viderCalendrier(db);
       await commeSuperutilisateur(db);
       const soiree = (
@@ -1221,25 +1273,33 @@ describe('séquence d’e-mails : RPC emails_a_traiter', () => {
         inscrit_le: ilYa(24 * 90),
         desinscrit_le: ilYa(24 * 5),
       });
-      await insererDestinataire(db, 'hier@exemple.fr', { confirme_le: ilYa(23) });
+      const hier = await insererDestinataire(db, 'hier@exemple.fr', { confirme_le: ilYa(23) });
       await insererDestinataire(db, 'avant-hier@exemple.fr', { confirme_le: ilYa(25) });
-      await insererDestinataire(db, 'annonces@exemple.fr', { annonces: true, confirme_le: ilYa(24 * 60) });
+      const annonces = await insererDestinataire(db, 'annonces@exemple.fr', { annonces: true, confirme_le: ilYa(24 * 60) });
       const desinscrit = await insererDestinataire(db, 'stop@exemple.fr', {
         confirme_le: ilYa(24 * 60),
         desinscrit_le: ilYa(24 * 2),
       });
 
-      // État exact des rattachements, sans ceux posés par les déclencheurs pendant la mise en place.
+      // État exact des rattachements, sans ceux posés par les déclencheurs pendant la mise en place. Rattaché suit
+      // aussi, depuis une heure, la date annulée du jour (« Je viens ») : rattachement récent.
       await db.query('delete from public.rattachements_emails');
       await db.query(
         `insert into public.rattachements_emails (destinataire_id, calendrier_id, origine, cree_le) values
-           ($1, $2, 'inscription', $5), ($3, $4, 'inscription', $5), ($6, $2, 'je_viens', $5), ($7, $2, 'inscription', $5)`,
-        [rattache, debut, horsFenetre, avant, ilYa(24 * 20), desinscrit, opposee],
+           ($1, $2, 'inscription', $5), ($3, $4, 'inscription', $5), ($6, $2, 'je_viens', $5), ($7, $2, 'inscription', $5),
+           ($1, $8, 'je_viens', $9)`,
+        [rattache, debut, horsFenetre, avant, ilYa(24 * 20), desinscrit, opposee, aujourdhui, ilYa(1)],
       );
-      await insererEnvoi(db, rattache, 'j_moins_7', { calendrierId: debut, creeLe: ilYa(24 * 15) }); // date de la fenêtre
-      await insererEnvoi(db, rattache, 'veille', { calendrierId: avant, creeLe: ilYa(24 * 20) }); // trop ancien
-      await insererEnvoi(db, rattache, 'annonce', { calendrierId: avant, creeLe: ilYa(24 * 5) }); // moins de 10 jours
-      await insererEnvoi(db, rattache, 'bienvenue', { creeLe: ilYa(24 * 60) }); // toujours renvoyé
+      // Envois renvoyés : ceux des 4 derniers jours, ceux d'un rattachement de moins de 48 h, les confirmations
+      // des adresses en attente, les annonces des dates de la fenêtre pour un consentant. Les autres, anciens, non.
+      await insererEnvoi(db, rattache, 'j_moins_7', { calendrierId: debut, creeLe: ilYa(24 * 15) }); // ancien
+      await insererEnvoi(db, rattache, 'veille', { calendrierId: debut, creeLe: ilYa(24 * 3) }); // 3 jours : renvoyé
+      await insererEnvoi(db, rattache, 'veille', { calendrierId: avant, creeLe: ilYa(24 * 20) }); // ancien
+      await insererEnvoi(db, rattache, 'annonce', { calendrierId: avant, creeLe: ilYa(24 * 5) }); // pas consentant
+      await insererEnvoi(db, rattache, 'bienvenue', { creeLe: ilYa(24 * 60) }); // confirmé il y a 60 jours
+      await insererEnvoi(db, rattache, 'j_moins_7', { calendrierId: aujourdhui, creeLe: ilYa(24 * 15) }); // rattachement récent
+      await insererEnvoi(db, hier, 'bienvenue', { creeLe: ilYa(22) }); // confirmé depuis moins de 24 h
+      await insererEnvoi(db, annonces, 'annonce', { calendrierId: proche, creeLe: ilYa(24 * 9) }); // date de la fenêtre
       await insererEnvoi(db, abonneAncien, 'confirmation', { creeLe: ilYa(24 * 31) });
       await insererEnvoi(db, abonneEnAttente, 'confirmation', { reel: false, statut: 'simule', creeLe: ilYa(24 * 89) });
       await insererEnvoi(db, echecAncien, 'confirmation', { statut: 'echec', creeLe: ilYa(24 * 31) });
@@ -1249,11 +1309,20 @@ describe('séquence d’e-mails : RPC emails_a_traiter', () => {
       // Le résultat ne dépend pas du fuseau de la session.
       await commeService(db);
       await db.query(`set local timezone = 'Pacific/Kiritimati'`);
+      const brute = await rpcBrute(db, maintenant, true);
+      // Forme compacte : une ligne par personne, sans adresse ni prénom.
+      expect(Object.keys(brute).sort()).toEqual(['dates', 'destinataires', 'modeles', 'prochaines']);
+      for (const ligne of brute.destinataires as unknown[][]) {
+        expect(ligne).toHaveLength(7);
+        expect(JSON.stringify(ligne)).not.toContain('@');
+      }
+      await commeService(db);
+      await db.query(`set local timezone = 'Pacific/Kiritimati'`);
       const r = await appelerRpc(db, maintenant, true);
 
       expect(Object.keys(r).sort()).toEqual(['dates', 'destinataires', 'envois', 'modeles', 'prochaines', 'rattachements']);
 
-      expect(r.modeles.map((m) => m.cle)).toEqual(['confirmation', 'bienvenue', 'veille']);
+      expect(r.modeles.map((m) => m.cle)).toEqual(['confirmation', 'bienvenue', 'veille', 'annonce']);
       expect(r.modeles[2]).toEqual({
         cle: 'veille',
         nom: 'Modèle veille',
@@ -1296,17 +1365,14 @@ describe('séquence d’e-mails : RPC emails_a_traiter', () => {
         'rattache@exemple.fr',
         'recent@exemple.fr',
       ]);
+      // Champs minimaux (l'adresse est rajoutée par l'aide du test, pas par la RPC).
       expect(Object.keys(r.destinataires[0]).sort()).toEqual([
-        'abonne',
         'abonnement_a_confirmer',
         'annonces',
         'confirme_le',
         'desinscrit',
         'email',
         'id',
-        'inscrit_le',
-        'prenom',
-        'profil_id',
       ]);
       const parEmail = new Map(r.destinataires.map((d) => [d.email, d]));
       expect(parEmail.get('opposee@exemple.fr')).toMatchObject({ desinscrit: true, abonnement_a_confirmer: true });
@@ -1314,41 +1380,63 @@ describe('séquence d’e-mails : RPC emails_a_traiter', () => {
 
       // Les rattachements d'une adresse désinscrite ne sont jamais renvoyés.
       expect(r.rattachements).toEqual([
-        { destinataire_id: rattache, calendrier_id: debut, origine: 'inscription', cree_le: expect.any(String) },
+        { destinataire_id: rattache, calendrier_id: debut, origine: 'inscription', cree_le: ilYa(24 * 20) },
+        { destinataire_id: rattache, calendrier_id: aujourdhui, origine: 'je_viens', cree_le: ilYa(1) },
       ]);
-      expect(Date.parse(r.rattachements[0].cree_le)).toBe(Date.parse(ilYa(24 * 20)));
 
       const libelle = new Map(r.destinataires.map((d) => [d.id, d.email.replace('@exemple.fr', '')]));
-      const envois = (donnees: DonneesRpc) =>
-        donnees.envois.map((e) => `${e.etape}:${libelle.get(e.destinataire_id as string)}`).sort();
+      const nomDate = new Map([[debut, 'debut'], [avant, 'avant'], [aujourdhui, 'aujourdhui'], [proche, 'proche']]);
+      const envois = (donnees: DonneesRpc) => donnees.envois
+        .map((e) => `${e.etape}:${libelle.get(e.destinataire_id as string)}:${nomDate.get(e.calendrier_id as string) ?? '-'}`)
+        .sort();
       expect(envois(r)).toEqual([
-        'annonce:rattache',
-        'bienvenue:rattache',
-        'confirmation:echec-recent',
-        'j_moins_7:rattache',
+        'annonce:annonces:proche',
+        'bienvenue:hier:-',
+        'confirmation:echec-recent:-',
+        'j_moins_7:rattache:aujourdhui',
+        'veille:rattache:debut',
       ]);
-      expect(Object.keys(r.envois[0]).sort()).toEqual([
-        'calendrier_id',
-        'cree_le',
-        'destinataire_id',
-        'envoye_le',
-        'etape',
-        'id',
-        'message_id',
-        'prevu_le',
-        'raison',
-        'reel',
-        'statut',
-        'tentatives',
-      ]);
+      expect(Object.keys(r.envois[0]).sort()).toEqual(['calendrier_id', 'destinataire_id', 'etape', 'prevu_le', 'raison', 'statut']);
+      expect(r.envois.find((e) => e.etape === 'veille')).toEqual({
+        destinataire_id: rattache, etape: 'veille', calendrier_id: debut, statut: 'envoye', raison: null, prevu_le: ilYa(24 * 3),
+      });
       // Mode log : seuls les envois simulés.
-      expect(envois(await appelerRpc(db, maintenant, false))).toEqual(['confirmation:attente']);
+      expect(envois(await appelerRpc(db, maintenant, false))).toEqual(['confirmation:attente:-']);
+
+      // Consentant aux annonces : présent dans la plage de l'annonce du jour (10:00 à 22:00), pas avant ; ni
+      // s'il a reçu une annonce depuis moins de 7 jours.
+      const emails = async (instant: string) => (await appelerRpc(db, instant, true)).destinataires.map((d) => d.email);
+      expect(await emails('2027-07-22T07:59:00.000Z')).not.toContain('annonces@exemple.fr');
+      expect(await emails('2027-07-22T20:00:00.000Z')).toContain('annonces@exemple.fr');
+      expect(await emails('2027-07-22T20:01:00.000Z')).not.toContain('annonces@exemple.fr');
+      await insererEnvoi(db, annonces, 'annonce', { calendrierId: fin, creeLe: ilYa(24 * 6) });
+      expect(await emails(maintenant)).not.toContain('annonces@exemple.fr');
+      await modifier(db, `delete from public.envois_emails where destinataire_id = $1 and calendrier_id = $2`, [annonces, fin]);
+      await modifier(db, `update public.modeles_emails set actif = false where cle = 'annonce'`);
+      expect(await emails(maintenant)).not.toContain('annonces@exemple.fr');
+      await modifier(db, `update public.modeles_emails set actif = true where cle = 'annonce'`);
+
+      // Sécurité M8 : une date dont la soirée liée est annulée ou reportée ne figure pas dans les prochaines.
+      await commeSuperutilisateur(db);
+      const reportee = (
+        await db.query(
+          `insert into public.soirees (slug, nom, date_soiree, vote_debut, vote_fin, statut)
+           values ('reportee-2027', 'Reportée 2027', '2027-09-01', '2027-09-01T19:00:00Z', '2027-09-01T23:00:00Z', 'reportee')
+           returning id`,
+        )
+      ).rows[0].id;
+      await db.query('update public.calendrier set soiree_id = $1 where id = $2', [reportee, septembre[0]]);
+      expect((await appelerRpc(db, maintenant, true)).prochaines.map((d) => d.id)).toEqual([proche, apres, ...septembre.slice(1, 5)]);
+      await db.query(`update public.soirees set statut = 'publiee' where id = $1`, [reportee]);
+      expect((await appelerRpc(db, maintenant, true)).prochaines.map((d) => d.id)).toEqual([proche, apres, ...septembre.slice(0, 4)]);
 
       // Annonces : il faut une date confirmée à venir dans la fenêtre. Au 01/06/2027, la fenêtre ne contient
       // qu'une date confirmée déjà passée (28/05) et une date prévisionnelle à venir (10/06).
       const passee = await ajouterDateFixe(db, '2027-05-28', 'confirmee');
       await ajouterDateFixe(db, '2027-06-10', 'previsionnelle');
       await db.query('delete from public.rattachements_emails where calendrier_id = $1', [passee]);
+      // Retour en juin : l'annonce de juillet n'a pas encore eu lieu (elle compterait dans les 7 jours glissants).
+      await db.query(`delete from public.envois_emails where destinataire_id = $1 and etape = 'annonce'`, [annonces]);
       const juin = await appelerRpc(db, '2027-06-01T08:00:00.000Z', true);
       expect(juin.destinataires.map((d) => d.email)).not.toContain('annonces@exemple.fr');
       // La même date prévisionnelle confirmée (pas la prochaine : personne n'y est rattaché) suffit.
@@ -1413,7 +1501,9 @@ describe('séquence d’e-mails : RPC emails_a_traiter', () => {
       expect(
         r.rattachements.map((x) => `${libelle.get(x.destinataire_id)}→${libelle.get(x.calendrier_id)}`).sort(),
       ).toEqual(['avant-hier→proche', 'printemps2→lointaine', 'printemps→lointaine', 'printemps→proche']);
-      expect(r.envois.map((e) => `${e.etape}:${libelle.get(e.calendrier_id as string)}`)).toEqual(['annonce:lointaine']);
+      // Envois restreints aux paires utiles (mineur T1) : l'annonce sautée de la date lointaine, vieille de 20 jours,
+      // pour une personne qui n'a pas consenti aux annonces, n'est plus renvoyée même si sa date l'est.
+      expect(r.envois).toEqual([]);
 
       // Confirmée il y a deux jours : ni la date lointaine ni le rattachement.
       await db.query('delete from public.rattachements_emails where destinataire_id in ($1, $2)', [printemps, printemps2]);

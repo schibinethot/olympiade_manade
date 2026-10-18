@@ -251,33 +251,29 @@ describe('validation serveur des abonnements aux actualités', () => {
 
 describe('confirmation par e-mail des abonnements aux actualités', () => {
   const MAINTENANT = Date.parse('2027-07-29T08:00:00Z');
-  const DESTINATAIRE = '11111111-1111-4111-8111-111111111111';
 
-  type Appel = { methode: string; url: URL };
+  type Appel = { methode: string; url: URL; corps: unknown };
 
-  /** Dépôt en 409 (adresse déjà en base), destinataire et dernier envoi de confirmation paramétrables. */
-  function base(destinataire: Record<string, unknown> | null, envois: Array<Record<string, unknown>>) {
+  /** Dépôt en 409 (adresse déjà en base) ; la RPC de renvoi répond 204. Les règles (24 h, plafond C6, désinscrite) sont en SQL. */
+  function base(statutRpc = 204) {
     const appels: Appel[] = [];
     const demander = (async (entree: URL | RequestInfo, init?: RequestInit) => {
       const url = new URL(String(entree));
       const methode = init?.method ?? 'GET';
-      appels.push({ methode, url });
+      appels.push({ methode, url, corps: typeof init?.body === 'string' ? JSON.parse(init.body) : init?.body });
       if (url.hostname === 'challenges.cloudflare.com') {
         return new Response(JSON.stringify({ success: true, action: 'actualites', hostname: '127.0.0.1' }));
       }
       if (url.pathname === '/rest/v1/abonnements_actualites') return new Response(JSON.stringify({ code: '23505', details: 'lea@exemple.fr' }), { status: 409 });
-      if (url.pathname === '/rest/v1/destinataires_emails') return new Response(JSON.stringify(destinataire ? [destinataire] : []));
-      if (url.pathname === '/rest/v1/envois_emails' && methode === 'GET') return new Response(JSON.stringify(envois));
-      if (url.pathname === '/rest/v1/envois_emails' && methode === 'DELETE') return new Response(null, { status: 204 });
+      if (url.pathname === '/rest/v1/rpc/renvoyer_confirmation_email') return new Response(null, { status: statutRpc });
       return new Response('{}', { status: 500 });
     }) as typeof fetch;
     return { appels, demander };
   }
 
-  const suppressions = (appels: Appel[]) => appels.filter((a) => a.methode === 'DELETE');
-  const lectureEnvois = (appels: Appel[]) => appels.some((a) => a.methode === 'GET' && a.url.pathname === '/rest/v1/envois_emails');
+  const appelsRpc = (appels: Appel[]) => appels.filter((a) => a.url.pathname === '/rest/v1/rpc/renvoyer_confirmation_email');
 
-  it('annonce la confirmation seulement si l’option est vraie', async () => {
+  it('annonce la confirmation seulement si l’option est vraie (booléen, ou fonction relue à chaque dépôt)', async () => {
     for (const confirmationActive of [undefined, false, true]) {
       const serveur = await lancer(configuration(async (url) => (String(url).includes('siteverify')
         ? new Response(JSON.stringify({ success: true, action: 'actualites', hostname: '127.0.0.1' }))
@@ -285,66 +281,48 @@ describe('confirmation par e-mail des abonnements aux actualités', () => {
       const reponse = await deposer(serveur.base);
       expect(await reponse.json()).toEqual({ ok: true, confirmation: confirmationActive === true });
     }
+    let active = false;
+    const serveur = await lancer(configuration(async (url) => (String(url).includes('siteverify')
+      ? new Response(JSON.stringify({ success: true, action: 'actualites', hostname: '127.0.0.1' }))
+      : new Response('', { status: 201 })), { confirmationActive: () => active, ipLimit: 10 }));
+    expect(await (await deposer(serveur.base)).json()).toEqual({ ok: true, confirmation: false });
+    active = true;
+    expect(await (await deposer(serveur.base)).json()).toEqual({ ok: true, confirmation: true });
   });
 
-  it('nouveau dépôt d’une demande en attente : supprime la confirmation de plus de 24 h pour qu’une nouvelle parte', async () => {
-    const { appels, demander } = base({ id: DESTINATAIRE, abonnement_a_confirmer: true }, [
-      { id: 'envoi-1', statut: 'envoye', cree_le: new Date(MAINTENANT - 25 * 3_600_000).toISOString() },
-    ]);
+  it('nouveau dépôt d’une adresse connue : la RPC de renvoi, en POST, adresse dans le corps et jamais dans une URL (I2)', async () => {
+    const { appels, demander } = base();
     const serveur = await lancer(configuration(demander, { confirmationActive: true, now: () => MAINTENANT }));
     const reponse = await deposer(serveur.base);
     expect(reponse.status).toBe(200);
     expect(await reponse.json()).toEqual({ ok: true, confirmation: true });
-    await vi.waitFor(() => expect(suppressions(appels)).toHaveLength(1));
-    const [suppression] = suppressions(appels);
-    expect(suppression.url.pathname).toBe('/rest/v1/envois_emails');
-    expect(suppression.url.searchParams.get('id')).toBe('eq.envoi-1');
-    const lecture = appels.find((a) => a.methode === 'GET' && a.url.pathname === '/rest/v1/envois_emails');
-    expect(lecture?.url.searchParams.get('destinataire_id')).toBe(`eq.${DESTINATAIRE}`);
-    expect(lecture?.url.searchParams.get('etape')).toBe('eq.confirmation');
-    expect(lecture?.url.searchParams.get('reel')).toBe('is.true');
-    expect(lecture?.url.searchParams.get('select')?.split(',')).toEqual(expect.arrayContaining(['id', 'statut', 'cree_le', 'envoye_le']));
-    const destinataire = appels.find((a) => a.url.pathname === '/rest/v1/destinataires_emails');
-    expect(destinataire?.url.searchParams.get('email')).toBe('eq.lea@exemple.fr');
+    await vi.waitFor(() => expect(appelsRpc(appels)).toHaveLength(1));
+    const [rpc] = appelsRpc(appels);
+    expect(rpc.methode).toBe('POST');
+    expect(rpc.corps).toEqual({ p_email: 'lea@exemple.fr', p_maintenant: new Date(MAINTENANT).toISOString() });
+    // Aucune requête vers la base ne porte l'adresse dans son URL.
+    for (const appel of appels) expect(appel.url.href, appel.url.pathname).not.toMatch(/lea(%40|@)exemple/i);
+    expect(appels.filter((a) => a.url.pathname === '/rest/v1/envois_emails' || a.url.pathname === '/rest/v1/destinataires_emails')).toEqual([]);
   });
 
-  it('au plus une confirmation par 24 h, sauf échec ou saut ; rien pour une adresse déjà confirmée', async () => {
-    const cas: Array<[Record<string, unknown> | null, Array<Record<string, unknown>>, number]> = [
-      [{ id: DESTINATAIRE, abonnement_a_confirmer: true }, [{ id: 'e', statut: 'envoye', cree_le: new Date(MAINTENANT - 2 * 3_600_000).toISOString() }], 0],
-      [{ id: DESTINATAIRE, abonnement_a_confirmer: true }, [{ id: 'e', statut: 'en_attente', cree_le: new Date(MAINTENANT - 60_000).toISOString() }], 0],
-      [{ id: DESTINATAIRE, abonnement_a_confirmer: true }, [{ id: 'e', statut: 'echec', cree_le: new Date(MAINTENANT - 2 * 3_600_000).toISOString() }], 1],
-      [{ id: DESTINATAIRE, abonnement_a_confirmer: true }, [{ id: 'e', statut: 'saute', cree_le: new Date(MAINTENANT - 60_000).toISOString() }], 1],
-      [{ id: DESTINATAIRE, abonnement_a_confirmer: true }, [], 0],
-      // L'âge se compte depuis le départ réel : réservée il y a 30 h, partie il y a 2 h (nouvel essai).
-      [{ id: DESTINATAIRE, abonnement_a_confirmer: true }, [{
-        id: 'e', statut: 'envoye', cree_le: new Date(MAINTENANT - 30 * 3_600_000).toISOString(), envoye_le: new Date(MAINTENANT - 2 * 3_600_000).toISOString(),
-      }], 0],
-      [{ id: DESTINATAIRE, abonnement_a_confirmer: true }, [{
-        id: 'e', statut: 'envoye', cree_le: new Date(MAINTENANT - 30 * 3_600_000).toISOString(), envoye_le: new Date(MAINTENANT - 25 * 3_600_000).toISOString(),
-      }], 1],
-    ];
-    for (const [destinataire, envois, attendues] of cas) {
-      const { appels, demander } = base(destinataire, envois);
+  it('un échec de la RPC est journalisé par son seul statut, sans adresse ni corps', async () => {
+    const erreurs: string[] = [];
+    const espion = vi.spyOn(console, 'error').mockImplementation((ligne: string) => { erreurs.push(ligne); });
+    try {
+      const { appels, demander } = base(500);
       const serveur = await lancer(configuration(demander, { confirmationActive: true, now: () => MAINTENANT }));
       expect(await (await deposer(serveur.base)).json()).toEqual({ ok: true, confirmation: true });
-      await vi.waitFor(() => expect(lectureEnvois(appels)).toBe(true));
-      await new Promise((ok) => setTimeout(ok, 20));
-      expect(suppressions(appels)).toHaveLength(attendues);
-    }
-
-    for (const destinataire of [{ id: DESTINATAIRE, abonnement_a_confirmer: false }, null]) {
-      const { appels, demander } = base(destinataire, [{ id: 'e', statut: 'echec', cree_le: new Date(MAINTENANT).toISOString() }]);
-      const serveur = await lancer(configuration(demander, { confirmationActive: true, now: () => MAINTENANT }));
-      await deposer(serveur.base);
-      await vi.waitFor(() => expect(appels.some((a) => a.url.pathname === '/rest/v1/destinataires_emails')).toBe(true));
-      await new Promise((ok) => setTimeout(ok, 20));
-      expect(lectureEnvois(appels)).toBe(false);
-      expect(suppressions(appels)).toHaveLength(0);
+      await vi.waitFor(() => expect(erreurs).toHaveLength(1));
+      expect(appelsRpc(appels)).toHaveLength(1);
+      expect(JSON.parse(erreurs[0])).toMatchObject({ message: 'renvoi de confirmation impossible', erreur: 'HTTP 500' });
+      expect(erreurs[0]).not.toContain('lea');
+    } finally {
+      espion.mockRestore();
     }
   });
 
   it('sans confirmation active, un nouveau dépôt ne touche pas aux envois', async () => {
-    const { appels, demander } = base({ id: DESTINATAIRE, abonnement_a_confirmer: true }, [{ id: 'e', statut: 'echec', cree_le: new Date(MAINTENANT).toISOString() }]);
+    const { appels, demander } = base();
     const serveur = await lancer(configuration(demander, { now: () => MAINTENANT }));
     expect(await (await deposer(serveur.base)).json()).toEqual({ ok: true, confirmation: false });
     await new Promise((ok) => setTimeout(ok, 20));

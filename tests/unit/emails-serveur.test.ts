@@ -11,7 +11,9 @@ import { finDeJourParis, signerLien, verifierLien } from '../../serveur/liens-em
 
 // ——— Faux PostgREST en mémoire ———
 // Il interprète les filtres, l'ordre, la limite, les embarquements à une table, on_conflict et Prefer,
-// et reproduit les déclencheurs utiles de la migration (clic de confirmation, retrait d'un abonnement).
+// et reproduit les déclencheurs utiles de la migration (clic de confirmation, retrait d'un abonnement) et
+// les RPC du serveur (emails_a_traiter en forme compacte, retrait, purge). Le vrai SQL est testé à part
+// (tests/db) et contre un vrai PostgREST (tests/postgrest).
 
 type Ligne = Record<string, unknown>;
 type Appel = { methode: string; chemin: string; params: URLSearchParams; corps: unknown; prefer: string; auth: string };
@@ -74,10 +76,15 @@ function correspond(valeur: unknown, filtre: string): boolean {
 
 const NON_FILTRES = new Set(['select', 'order', 'limit', 'offset', 'on_conflict', 'columns']);
 
+/** Identité de l'organisateur par défaut (pied des e-mails, condition du mode smtp). */
+const IDENTITE = { raison_sociale: 'Association des Manades', forme_juridique: 'association loi 1901', adresse: '1 place des Arènes, 30250 Sommières' };
+const LIGNE_IDENTITE = 'L’Olympiade des Manades est organisée par Association des Manades, association loi 1901, 1 place des Arènes, 30250 Sommières.';
+
 class FauxSupabase {
   tables: Record<string, Ligne[]> = {
     modeles_emails: [], destinataires_emails: [], rattachements_emails: [], messages_inscrits: [],
     envois_emails: [], abonnements_actualites: [], calendrier: [], palmares: [], profils: [],
+    identite_legale: [{ ...IDENTITE }],
   };
   appels: Appel[] = [];
   utilisateurs = new Map<string, { id: string; email: string }>();
@@ -112,6 +119,14 @@ class FauxSupabase {
       return utilisateur ? this.json(200, utilisateur) : this.json(401, { message: 'invalide' });
     }
     if (url.pathname === '/rest/v1/rpc/emails_a_traiter') return this.json(200, this.rpc(corps as { p_maintenant: string; p_reel: boolean }));
+    if (url.pathname === '/rest/v1/rpc/retirer_abonnement_destinataire') {
+      const d = this.tables.destinataires_emails.find((l) => l.id === (corps as { p_destinataire: string }).p_destinataire);
+      if (d) this.supprimerAbonnement(String(d.email));
+      return this.json(200, null);
+    }
+    if (url.pathname === '/rest/v1/rpc/purger_demandes_non_confirmees') {
+      return this.json(200, this.purger(corps as { p_maintenant: string; p_limite: number }));
+    }
     const table = url.pathname.replace('/rest/v1/', '');
     const lignes = this.tables[table];
     if (!lignes) return this.json(404, { code: 'PGRST205' });
@@ -141,11 +156,34 @@ class FauxSupabase {
       return representation ? this.json(200, cibles.map((l) => this.projeter(table, l, url.searchParams.get('select')))) : this.json(204, undefined);
     }
     if (methode === 'DELETE') {
+      // Le serveur ne supprime plus d'abonnement lui-même (droit retiré) : seules les RPC le font.
+      if (table === 'abonnements_actualites') return this.json(403, { code: '42501' });
       this.tables[table] = lignes.filter((l) => !cibles.includes(l));
-      if (table === 'abonnements_actualites') for (const a of cibles) this.retirerAbonne(String(a.email));
       return this.json(204, undefined);
     }
     return this.json(405, {});
+  }
+
+  /** Suppression d'un abonnement par son adresse (côté base) et déclencheur de retrait. */
+  private supprimerAbonnement(email: string) {
+    const avant = this.tables.abonnements_actualites.length;
+    this.tables.abonnements_actualites = this.tables.abonnements_actualites.filter((a) => a.email !== email);
+    if (this.tables.abonnements_actualites.length < avant) this.retirerAbonne(email);
+  }
+
+  /** public.purger_demandes_non_confirmees : 30 jours après l'envoi réel, ou après le dépôt si rien n'est parti. */
+  private purger({ p_maintenant, p_limite }: { p_maintenant: string; p_limite: number }) {
+    const limite = Date.parse(p_maintenant) - 30 * 86_400_000;
+    const cibles = this.tables.destinataires_emails.filter((d) => {
+      const abonnement = this.tables.abonnements_actualites.find((a) => a.email === d.email);
+      if (!d.abonnement_a_confirmer || !abonnement) return false;
+      const confirmations = this.tables.envois_emails.filter((e) => e.destinataire_id === d.id && e.etape === 'confirmation' && e.reel);
+      const partie = confirmations.some((e) => e.statut === 'envoye' && Date.parse(String(e.envoye_le)) < limite);
+      const enCours = confirmations.some((e) => e.statut === 'envoye' || e.statut === 'en_attente');
+      return partie || (Date.parse(String(abonnement.cree_le ?? d.inscrit_le)) < limite && !enCours);
+    }).slice(0, p_limite);
+    for (const d of cibles) this.supprimerAbonnement(String(d.email));
+    return cibles.length;
   }
 
   private clesUniques(table: string): string[] | null {
@@ -255,28 +293,38 @@ class FauxSupabase {
     Object.assign(d, { abonne: false, abonnement_a_confirmer: false, annonces: d.desinscrit_le !== null ? false : d.annonces });
   }
 
+  /** Réponse compacte de emails_a_traiter (voir la migration) : tout le monde, toutes les dates, tous les envois du mode. */
+  rpcAppels = 0;
   private rpc({ p_maintenant, p_reel }: { p_maintenant: string; p_reel: boolean }) {
+    this.rpcAppels += 1;
     const t = this.tables;
     const jour = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date(p_maintenant));
-    const confirmes = new Set(t.destinataires_emails.filter((d) => d.confirme_le && !d.desinscrit_le).map((d) => d.id));
     const dates = t.calendrier.map((c) => ({
       id: c.id, nom: c.nom, ville: c.ville, arenes: c.arenes, date_soiree: c.date_soiree, heure: c.heure, statut: c.statut,
       lien_billetterie: c.lien_billetterie, infos_pratiques: c.infos_pratiques, soiree: c.soiree, manades: c.manades, vainqueur: c.vainqueur,
     }));
+    const position = (id: unknown) => {
+      const i = dates.findIndex((d) => d.id === id);
+      return i >= 0 ? i : (id ?? null);
+    };
+    const ms = (valeur: unknown) => (valeur === null || valeur === undefined ? null : Date.parse(String(valeur)));
     return {
       modeles: t.modeles_emails.map((m) => ({
         cle: m.cle, nom: m.nom, actif: m.actif, sujet: m.sujet, preheader: m.preheader, corps: m.corps, encart: m.encart,
         jours_decalage: m.jours_decalage, heure_envoi: m.heure_envoi,
       })),
       dates,
-      prochaines: dates.filter((d) => d.statut === 'confirmee' && String(d.date_soiree) > jour).slice(0, 6),
-      destinataires: t.destinataires_emails.map((d) => ({
-        id: d.id, email: d.email, prenom: d.prenom, profil_id: d.profil_id, abonne: d.abonne,
-        abonnement_a_confirmer: d.abonnement_a_confirmer, desinscrit: d.desinscrit_le !== null, annonces: d.annonces,
-        confirme_le: d.confirme_le, inscrit_le: d.inscrit_le,
-      })),
-      rattachements: t.rattachements_emails.filter((r) => confirmes.has(r.destinataire_id)),
-      envois: t.envois_emails.filter((e) => e.reel === p_reel),
+      prochaines: dates.filter((d) => d.statut === 'confirmee' && String(d.date_soiree) > jour
+        && !['annulee', 'reportee'].includes(String((d.soiree as { statut?: string } | null)?.statut))).slice(0, 6),
+      destinataires: t.destinataires_emails.map((d) => [
+        d.id, d.abonnement_a_confirmer === true, d.desinscrit_le !== null && d.desinscrit_le !== undefined, d.annonces === true, ms(d.confirme_le),
+        d.confirme_le && !d.desinscrit_le
+          ? t.rattachements_emails.filter((r) => r.destinataire_id === d.id && dates.some((x) => x.id === r.calendrier_id))
+            .map((r) => [position(r.calendrier_id), r.origine, ms(r.cree_le)])
+          : [],
+        t.envois_emails.filter((e) => e.destinataire_id === d.id && e.reel === p_reel)
+          .map((e) => [e.etape, position(e.calendrier_id), e.statut, e.raison ?? null, ms(e.prevu_le)]),
+      ]),
     };
   }
 }
@@ -284,6 +332,13 @@ class FauxSupabase {
 // ——— Données ———
 
 const MAINTENANT = Date.parse('2027-07-29T08:05:00Z'); // jeudi 29/07/2027, 10:05 à Paris
+const BILAN_VIDE = { reserves: 0, envoyes: 0, simules: 0, echecs: 0, sautes: 0, liberes: 0 };
+const MINUTE = 60_000;
+/** Jeton d'un lien : fragment `#j=` des pages, requête `?j=` du POST en un clic. */
+function jetonDe(url: string) {
+  const adresse = new URL(url);
+  return new URLSearchParams(adresse.hash.slice(1)).get('j') ?? adresse.searchParams.get('j');
+}
 
 function modeles(): Ligne[] {
   return ETAPES.map((cle) => ({ cle, actif: true, ...MODELES_DEFAUT[cle] }));
@@ -450,7 +505,7 @@ describe('planificateur des e-mails', () => {
   it('mode off : passer() ne fait aucun appel réseau', async () => {
     const { base, emails } = preparer({ mode: 'off' });
     scenarioDeBase(base);
-    expect(await emails.passer()).toEqual({ reserves: 0, envoyes: 0, simules: 0, echecs: 0, sautes: 0 });
+    expect(await emails.passer()).toEqual(BILAN_VIDE);
     expect(base.appels).toHaveLength(0);
   });
 
@@ -459,7 +514,7 @@ describe('planificateur des e-mails', () => {
       const { base, emails } = preparer({ cleLiens });
       scenarioDeBase(base);
       expect(emails.configure).toBe(false);
-      expect(await emails.passer()).toEqual({ reserves: 0, envoyes: 0, simules: 0, echecs: 0, sautes: 0 });
+      expect(await emails.passer()).toEqual(BILAN_VIDE);
       expect(base.appels).toHaveLength(0);
       const serveur = await lancer(emails);
       expect((await lien(serveur, { jeton: 'x.y', action: 'decrire' })).status).toBe(503);
@@ -467,7 +522,7 @@ describe('planificateur des e-mails', () => {
     }
   });
 
-  it('SMTP en échec trois fois : nouvel essai à +5 puis +10 min, puis echec définitif avec tentatives = 3', async () => {
+  it('SMTP en échec réessayable : nouveaux essais 5, 30 puis 120 min après, puis echec définitif avec tentatives = 4', async () => {
     const horloge = { t: MAINTENANT };
     const { base, emails, courriel } = preparer({ mode: 'smtp', courriel: faussePoste('smtp', true), horloge });
     scenarioDeBase(base);
@@ -479,26 +534,45 @@ describe('planificateur des e-mails', () => {
     // prevu_le garde l'échéance d'origine ; envoye_le note l'heure de l'essai.
     expect(ligne()).toMatchObject({ statut: 'en_attente', tentatives: 1, reel: true, raison: 'envoi_impossible', prevu_le: echeance, envoye_le: echeance });
 
-    horloge.t += 60_000;
+    let essai = MAINTENANT;
+    for (const [delai, tentatives] of [[5, 2], [30, 3]] as const) {
+      horloge.t = essai + (delai - 1) * MINUTE;
+      await emails.passer();
+      expect(courriel.envoyer, `avant +${delai}`).toHaveBeenCalledTimes(tentatives - 1);
+      horloge.t = essai + delai * MINUTE;
+      await emails.passer();
+      expect(courriel.envoyer, `à +${delai}`).toHaveBeenCalledTimes(tentatives);
+      expect(ligne()).toMatchObject({ statut: 'en_attente', tentatives, prevu_le: echeance, envoye_le: new Date(horloge.t).toISOString() });
+      essai = horloge.t;
+    }
+    horloge.t = essai + 119 * MINUTE;
+    await emails.passer();
+    expect(courriel.envoyer).toHaveBeenCalledTimes(3);
+    horloge.t = essai + 120 * MINUTE;
+    expect(await emails.passer()).toMatchObject({ echecs: 1 });
+    expect(ligne()).toMatchObject({ statut: 'echec', tentatives: 4, raison: 'envoi_impossible', prevu_le: echeance });
+    expect(courriel.envoyer).toHaveBeenCalledTimes(4);
+
+    horloge.t += 60 * MINUTE;
+    await emails.passer();
+    expect(courriel.envoyer).toHaveBeenCalledTimes(4);
+    // L'éligibilité est filtrée par PostgREST : une lecture par nombre de tentatives, avec son délai.
+    const lectures = base.appels.filter((a) => a.methode === 'GET' && a.chemin === '/rest/v1/envois_emails' && a.params.get('raison') === 'eq.envoi_impossible');
+    expect(new Set(lectures.map((a) => `${a.params.get('tentatives')} ${a.params.get('envoye_le')?.slice(0, 4)}`))).toEqual(new Set(['eq.1 lte.', 'eq.2 lte.', 'eq.3 lte.']));
+  });
+
+  it('un refus SMTP définitif (5xx pour ce message) passe en echec sans nouvel essai', async () => {
+    const horloge = { t: MAINTENANT };
+    const courriel = { mode: 'smtp' as const, pret: true, envoyer: vi.fn(async () => ({ mode: 'smtp', envoye: false, echec: true, definitif: true })) };
+    const { base, emails } = preparer({ mode: 'smtp', courriel, horloge });
+    scenarioDeBase(base);
+    base.tables.destinataires_emails = base.tables.destinataires_emails.filter((d) => d.id === ID.alice);
+    expect(await emails.passer()).toMatchObject({ echecs: 1 });
+    expect(base.tables.envois_emails.find((e) => e.etape === 'bienvenue' && e.destinataire_id === ID.alice))
+      .toMatchObject({ statut: 'echec', raison: 'refus_definitif', tentatives: 1 });
+    horloge.t += 200 * MINUTE;
     await emails.passer();
     expect(courriel.envoyer).toHaveBeenCalledTimes(1);
-
-    horloge.t = MAINTENANT + 5 * 60_000;
-    await emails.passer();
-    expect(ligne()).toMatchObject({ statut: 'en_attente', tentatives: 2, prevu_le: echeance, envoye_le: new Date(horloge.t).toISOString() });
-
-    horloge.t += 9 * 60_000;
-    await emails.passer();
-    expect(courriel.envoyer).toHaveBeenCalledTimes(2);
-
-    horloge.t += 60_000;
-    expect(await emails.passer()).toMatchObject({ echecs: 1 });
-    expect(ligne()).toMatchObject({ statut: 'echec', tentatives: 3, raison: 'envoi_impossible', prevu_le: echeance });
-    expect(courriel.envoyer).toHaveBeenCalledTimes(3);
-
-    horloge.t += 60 * 60_000;
-    await emails.passer();
-    expect(courriel.envoyer).toHaveBeenCalledTimes(3);
   });
 
   it('mode smtp : List-Unsubscribe un clic seulement (sans mailto), adresse nue, statut envoye', async () => {
@@ -601,7 +675,7 @@ describe('planificateur des e-mails', () => {
     expect(pour('alice@exemple.fr')?.text).not.toContain(`Ville ${ID.aout}`);
     expect(pour('alice@exemple.fr')?.html).not.toContain('/emails/je-viens');
     expect(pour('bruno@exemple.fr')?.text).toContain(`Ville ${ID.aout}`);
-    expect(pour('bruno@exemple.fr')?.html).toContain('/emails/je-viens?j=');
+    expect(pour('bruno@exemple.fr')?.html).toContain('/emails/je-viens#j=');
   });
 
   it('relit le destinataire après la réclamation : une désinscription survenue entre-temps l’emporte', async () => {
@@ -646,7 +720,7 @@ describe('planificateur des e-mails', () => {
     expect(emails.confirmationActive).toBe(false);
     await emails.demarrer();
     const appelsAvant = base.appels.length;
-    expect(await emails.passer()).toEqual({ reserves: 0, envoyes: 0, simules: 0, echecs: 0, sautes: 0 });
+    expect(await emails.passer()).toEqual(BILAN_VIDE);
     expect(base.appels).toHaveLength(appelsAvant);
     expect(courriel.envoyer).not.toHaveBeenCalled();
     expect(journal.some((l) => (l as { level?: string; message?: string }).level === 'warn'
@@ -730,7 +804,7 @@ describe('planificateur des e-mails', () => {
     const message = courriel.envoyer.mock.calls[0][0] as { html: string; text: string };
     expect(message.text).toContain(`Ville ${ID.aout}`);
     expect(message.text).toContain(`Ville ${ID.aout2}`);
-    expect((message.html.match(/\/emails\/je-viens\?j=/g) ?? []).length).toBeGreaterThanOrEqual(2);
+    expect((message.html.match(/\/emails\/je-viens#j=/g) ?? []).length).toBeGreaterThanOrEqual(2);
     expect(base.tables.envois_emails.filter((e) => e.statut === 'envoye')).toHaveLength(2);
   });
 
@@ -795,14 +869,26 @@ describe('planificateur des e-mails', () => {
     await emails.passer();
     const anciens = purges().find((a) => a.chemin === '/rest/v1/envois_emails');
     expect(anciens?.params.get('cree_le')).toBe('lt.2026-07-29T01:30:00.000Z');
-    const abonnements = purges().filter((a) => a.chemin === '/rest/v1/abonnements_actualites');
-    expect(abonnements.map((a) => a.params.get('email'))).toEqual(['eq.chloe@exemple.fr']);
+    // Les demandes jamais confirmées : une RPC, en POST, sans adresse dans aucune URL (sécurité I2, juridique C5).
+    const rpc = base.appels.filter((a) => a.chemin === '/rest/v1/rpc/purger_demandes_non_confirmees');
+    expect(rpc.map((a) => a.corps)).toEqual([{ p_maintenant: '2027-07-29T01:30:00.000Z', p_limite: 500 }]);
+    expect(base.appels.some((a) => /exemple\.fr/.test(a.params.toString()))).toBe(false);
     expect(base.tables.abonnements_actualites).toEqual([{ email: 'denis@exemple.fr' }]);
+    expect(base.tables.destinataires_emails.map((d) => d.email)).toEqual(['denis@exemple.fr']);
 
-    const avant = purges().length;
+    const avant = base.appels.length;
     horloge.t += 60 * 60_000;
     await emails.passer();
-    expect(purges()).toHaveLength(avant);
+    expect(base.appels.slice(avant).filter((a) => a.methode === 'DELETE' || a.chemin.includes('purger'))).toHaveLength(0);
+  });
+
+  it('purge en mode log : le journal seulement ; les demandes attendent le passage en smtp', async () => {
+    const horloge = { t: Date.parse('2027-07-29T01:30:00Z') };
+    const { base, emails } = preparer({ mode: 'log', horloge });
+    base.tables.modeles_emails = modeles();
+    await emails.passer();
+    expect(base.appels.filter((a) => a.chemin === '/rest/v1/rpc/purger_demandes_non_confirmees')).toHaveLength(0);
+    expect(base.appels.filter((a) => a.methode === 'DELETE' && a.chemin === '/rest/v1/envois_emails')).toHaveLength(1);
   });
 
   it('demarrer() sème les 9 modèles sans écraser une ligne existante, et retente après un échec', async () => {
@@ -852,16 +938,26 @@ describe('planificateur des e-mails', () => {
 describe('liens publics des e-mails', () => {
   const jeton = (charge: Parameters<typeof signerLien>[1]) => signerLien(CLE, charge);
 
-  it('GET (scanner de liens) : 405 et aucune écriture', async () => {
+  it('GET (scanner de liens) : 405 sur les pages, 303 vers la page de désinscription pour le lien en un clic, aucune écriture', async () => {
     const { base, emails } = preparer();
     scenarioDeBase(base);
     const serveur = await lancer(emails);
     const j = jeton({ t: 'desinscription', d: ID.alice });
-    for (const chemin of ['/api/emails/lien', `/api/emails/desinscription?j=${j}`]) {
-      const reponse = await fetch(`${serveur}${chemin}`);
-      expect(reponse.status).toBe(405);
-      expect(reponse.headers.get('allow')).toBe('POST');
+    const page = await fetch(`${serveur}/api/emails/lien`);
+    expect(page.status).toBe(405);
+    expect(page.headers.get('allow')).toBe('POST');
+    // Sécurité M2 : ouvert dans un navigateur, le lien en un clic mène à la page, jeton en fragment, sans écriture.
+    for (const methode of ['GET', 'HEAD']) {
+      const unClic = await fetch(`${serveur}/api/emails/desinscription?j=${j}`, { method: methode, redirect: 'manual' });
+      expect(unClic.status, methode).toBe(303);
+      expect(unClic.headers.get('location'), methode).toBe(`/emails/desinscription#j=${j}`);
+      expect(unClic.headers.get('referrer-policy'), methode).toBe('no-referrer');
+      expect(unClic.headers.get('cache-control'), methode).toBe('no-store');
     }
+    // Un jeton qui n'en a pas la forme n'est pas recopié dans la redirection.
+    const piege = await fetch(`${serveur}/api/emails/desinscription?j=${encodeURIComponent('x"><script>')}`, { redirect: 'manual' });
+    expect(piege.headers.get('location')).toBe('/emails/desinscription');
+    expect((await fetch(`${serveur}/api/emails/desinscription?j=${j}`, { method: 'PUT' })).status).toBe(405);
     expect(base.appels.filter((a) => a.methode === 'PATCH' || a.methode === 'DELETE' || a.methode === 'POST')).toHaveLength(0);
   });
 
@@ -872,7 +968,7 @@ describe('liens publics des e-mails', () => {
     base.tables.destinataires_emails[0].annonces = true;
     const serveur = await lancer(emails);
 
-    const confirmation = await lien(serveur, { jeton: jeton({ t: 'confirmation', d: ID.alice, e: MAINTENANT + 60_000 }), action: 'decrire' });
+    const confirmation = await lien(serveur, { jeton: jeton({ t: 'confirmation', d: ID.alice, n: randomUUID(), e: MAINTENANT + 60_000 }), action: 'decrire' });
     expect(confirmation.status).toBe(200);
     expect(await confirmation.json()).toEqual({ ok: true, etat: { type: 'confirmation', abonne: true, annonces: true, desinscrit: false } });
 
@@ -892,7 +988,7 @@ describe('liens publics des e-mails', () => {
     const { base, emails } = preparer();
     scenarioDeBase(base);
     const serveur = await lancer(emails);
-    const expire = jeton({ t: 'confirmation', d: ID.alice, e: MAINTENANT - 1 });
+    const expire = jeton({ t: 'confirmation', d: ID.alice, n: randomUUID(), e: MAINTENANT - 1 });
     expect((await lien(serveur, { jeton: expire, action: 'decrire' })).status).toBe(410);
     expect((await lien(serveur, { jeton: expire, action: 'confirmer' })).status).toBe(410);
     const valide = jeton({ t: 'desinscription', d: ID.alice });
@@ -954,13 +1050,25 @@ describe('liens publics des e-mails', () => {
     }
   });
 
-  it('confirmer : un seul PATCH du clic, idempotent', async () => {
+  it('confirmer : la demande du lien doit exister encore (M1), puis un seul PATCH du clic, idempotent', async () => {
     const { base, emails } = preparer();
     scenarioDeBase(base);
     Object.assign(base.tables.destinataires_emails[0], { abonne: true, abonnement_a_confirmer: true, confirme_le: null });
     base.tables.abonnements_actualites = [{ email: 'alice@exemple.fr' }];
+    const demande = envoi(ID.alice, 'confirmation', null, { reel: true, statut: 'envoye' });
+    base.tables.envois_emails.push(demande);
     const serveur = await lancer(emails);
-    const j = jeton({ t: 'confirmation', d: ID.alice, e: MAINTENANT + 60_000 });
+    const j = jeton({ t: 'confirmation', d: ID.alice, n: String(demande.id), e: MAINTENANT + 60_000 });
+
+    // Lien d'une demande remplacée (nouveau dépôt, renvoi, purge) : 410, rien n'est écrit.
+    const ancien = jeton({ t: 'confirmation', d: ID.alice, n: randomUUID(), e: MAINTENANT + 60_000 });
+    for (const action of ['decrire', 'confirmer']) expect((await lien(serveur, { jeton: ancien, action })).status, action).toBe(410);
+    expect(base.ecritures()).toHaveLength(0);
+    // Le lien d'une autre personne ne vaut rien non plus pour cette ligne.
+    const intrus = jeton({ t: 'confirmation', d: ID.bruno, n: String(demande.id), e: MAINTENANT + 60_000 });
+    Object.assign(base.tables.destinataires_emails[1], { abonnement_a_confirmer: true });
+    expect((await lien(serveur, { jeton: intrus, action: 'confirmer' })).status).toBe(410);
+    Object.assign(base.tables.destinataires_emails[1], { abonnement_a_confirmer: false });
 
     expect(await (await lien(serveur, { jeton: j, action: 'confirmer' })).json()).toEqual({ ok: true, etat: 'fait' });
     const patchs = base.appels.filter((a) => a.methode === 'PATCH');
@@ -970,11 +1078,18 @@ describe('liens publics des e-mails', () => {
     expect(patchs[0].params.get('abonnement_a_confirmer')).toBe('is.true');
     expect(patchs[0].corps).toEqual({ abonnement_confirme_le: new Date(MAINTENANT).toISOString() });
     expect(base.tables.destinataires_emails[0]).toMatchObject({ abonnement_a_confirmer: false, annonces: true });
+    const lecture = [...base.appels].reverse().find((a) => a.chemin === '/rest/v1/envois_emails' && a.methode === 'GET');
+    expect(lecture?.params.get('id')).toBe(`eq.${demande.id}`);
+    expect(lecture?.params.get('destinataire_id')).toBe(`eq.${ID.alice}`);
+    expect(lecture?.params.get('etape')).toBe('eq.confirmation');
 
+    // Déjà confirmée : succès neutre, même si la demande a disparu depuis.
+    base.tables.envois_emails = base.tables.envois_emails.filter((e) => e !== demande);
     expect(await (await lien(serveur, { jeton: j, action: 'confirmer' })).json()).toEqual({ ok: true, etat: 'deja_fait' });
+    expect((await lien(serveur, { jeton: j, action: 'decrire' })).status).toBe(200);
   });
 
-  it('desinscrire : PATCH desinscrit_le et annonces, PUIS suppression de l’abonnement (la ligne d’opposition reste)', async () => {
+  it('desinscrire : PATCH desinscrit_le et annonces, PUIS retrait de l’abonnement par RPC (identifiant dans le corps)', async () => {
     const { base, emails } = preparer();
     scenarioDeBase(base);
     Object.assign(base.tables.destinataires_emails[0], { abonne: true, annonces: true, annonces_le: 'x', annonces_texte: 'x', annonces_version: 'x' });
@@ -986,10 +1101,11 @@ describe('liens publics des e-mails', () => {
     const ecritures = base.ecritures();
     expect(ecritures.map((a) => `${a.methode} ${a.chemin}`)).toEqual([
       'PATCH /rest/v1/destinataires_emails',
-      'DELETE /rest/v1/abonnements_actualites',
+      'POST /rest/v1/rpc/retirer_abonnement_destinataire',
     ]);
     expect(ecritures[0].corps).toEqual({ desinscrit_le: new Date(MAINTENANT).toISOString(), annonces: false });
-    expect(ecritures[1].params.get('email')).toBe('eq.alice@exemple.fr');
+    expect(ecritures[1].corps).toEqual({ p_destinataire: ID.alice });
+    expect(base.appels.some((a) => a.params.toString().includes('exemple.fr'))).toBe(false);
     expect(base.tables.abonnements_actualites).toHaveLength(0);
     expect(base.tables.destinataires_emails.find((d) => d.id === ID.alice)).toMatchObject({ desinscrit_le: new Date(MAINTENANT).toISOString(), annonces: false, abonne: false });
 
@@ -1159,19 +1275,50 @@ describe('endpoints admin des e-mails', () => {
     expect(base.ecritures()).toHaveLength(0);
   });
 
-  it('/etat : mode, planificateur prêt, présence de la clé, dernier passage et bilan', async () => {
-    const { base, emails } = preparer({ mode: 'log' });
+  it('/etat : mode, prêt, raisons, clé, barrière, dernier passage, bilan et dernière erreur (C-0.3)', async () => {
+    const horloge = { t: MAINTENANT };
+    const { base, emails } = preparer({ mode: 'log', horloge });
     scenarioDeBase(base);
     const serveur = await lancer(emails);
     const { jeton } = admin(base);
     const lire = async () => (await fetch(`${serveur}/api/admin/emails/etat`, { headers: { Authorization: `Bearer ${jeton}` } })).json();
-    expect(await lire()).toEqual({ mode: 'log', pret: true, cleLiens: true, barriereActive: false, dernierPassage: null, dernierBilan: null });
+    expect(await lire()).toEqual({
+      mode: 'log', pret: true, raisonsInactif: [], cleLiens: true, barriereActive: false, dernierPassage: null, dernierBilan: null, derniereErreur: null,
+    });
     await emails.passer();
     expect(await lire()).toEqual({
-      mode: 'log', pret: true, cleLiens: true, barriereActive: false, dernierPassage: new Date(MAINTENANT).toISOString(),
-      dernierBilan: expect.objectContaining({ reserves: 2, simules: 2 }),
+      mode: 'log', pret: true, raisonsInactif: [], cleLiens: true, barriereActive: false, dernierPassage: new Date(MAINTENANT).toISOString(),
+      dernierBilan: expect.objectContaining({ reserves: 2, simules: 2 }), derniereErreur: null,
     });
+    // Un passage en échec pose la dernière erreur, courte, sans adresse ni détail PostgREST ; le suivant l'efface.
+    base.intercepter = (appel) => (appel.chemin === '/rest/v1/envois_emails' && appel.methode === 'PATCH'
+      ? new Response(JSON.stringify({ code: '57014', message: 'alice@exemple.fr', details: 'secret' }), { status: 503 })
+      : null);
+    horloge.t += 6 * MINUTE;
+    await emails.passer();
+    const enPanne = await lire();
+    expect(enPanne.derniereErreur).toEqual({ instant: expect.any(String), message: 'passage du planificateur impossible (HTTP 503)' });
+    expect(JSON.stringify(enPanne)).not.toMatch(/alice|secret|57014/);
+    base.intercepter = null;
+    horloge.t += MINUTE;
+    await emails.passer();
+    expect((await lire()).derniereErreur).toBeNull();
     expect((await fetch(`${serveur}/api/admin/emails/etat`, { method: 'POST', headers: { Authorization: `Bearer ${jeton}` } })).status).toBe(405);
+  });
+
+  it('/etat : chaque raison d’inactivité a son code', async () => {
+    const env = { VITE_SUPABASE_URL: SUPABASE, SUPABASE_SERVICE_ROLE_KEY: 'cle-service', CONTACT_ORIGIN: ORIGINE, EMAILS_CLE_LIENS: CLE };
+    const smtp = { SMTP_HOST: 'smtp.exemple.fr', SMTP_USER: 'u', SMTP_PASS: 'p', EMAILS_FROM: EXPEDITEUR };
+    const raisons = (variables: Record<string, string>, plus: { barriereActive?: boolean } = {}) => emailsDepuisEnvironnement(variables, plus).etat().raisonsInactif;
+    expect(raisons({})).toEqual(['mode_off', 'cle_liens', 'origine', 'supabase']);
+    expect(raisons({ ...env, EMAILS_MODE: 'log' })).toEqual([]);
+    expect(raisons({ ...env, EMAILS_MODE: 'off' })).toEqual(['mode_off']);
+    expect(raisons({ ...env, EMAILS_MODE: 'smtp', SMTP_HOST: 'h' })).toEqual(['smtp_incomplet', 'expediteur', 'identite']);
+    expect(raisons({ ...env, ...smtp, EMAILS_MODE: 'smtp', EMAILS_FROM: '' })).toEqual(['expediteur', 'identite']);
+    expect(raisons({ ...env, ...smtp, EMAILS_MODE: 'smtp' }, { barriereActive: true })).toEqual(['barriere', 'identite']);
+    expect(raisons({ ...env, EMAILS_CLE_LIENS: 'courte', EMAILS_MODE: 'log' })).toEqual(['cle_liens']);
+    // En smtp, l'identité de l'organisateur se lit au premier passage : « identite » tant qu'elle n'est pas connue.
+    expect(raisons({ ...env, ...smtp, EMAILS_MODE: 'smtp' })).toEqual(['identite']);
   });
 });
 
@@ -1180,7 +1327,7 @@ describe('configuration et textes figés', () => {
     const emails = emailsDepuisEnvironnement({});
     expect(emails.configure).toBe(false);
     expect(emails.mode).toBe('off');
-    expect(await emails.passer()).toEqual({ reserves: 0, envoyes: 0, simules: 0, echecs: 0, sautes: 0 });
+    expect(await emails.passer()).toEqual(BILAN_VIDE);
     await emails.demarrer();
     emails.arreter();
     const actif = emailsDepuisEnvironnement({
@@ -1190,15 +1337,328 @@ describe('configuration et textes figés', () => {
     expect(actif.configure).toBe(true);
     expect(actif.mode).toBe('log');
     expect(actif.confirmationActive).toBe(false);
-    const reel = emailsDepuisEnvironnement({
-      VITE_SUPABASE_URL: SUPABASE, SUPABASE_SERVICE_ROLE_KEY: 'cle-service', CONTACT_ORIGIN: ORIGINE, EMAILS_CLE_LIENS: CLE,
-      SMTP_MODE: 'smtp', SMTP_HOST: 'smtp.exemple.fr', SMTP_USER: 'u', SMTP_PASS: 'p', EMAILS_FROM: EXPEDITEUR,
-    });
+    // En smtp, « vérifiez votre boîte mail » seulement quand la confirmation part vraiment : identité connue.
+    const { emails: reel, base } = preparer({ mode: 'smtp' });
+    expect(reel.confirmationActive).toBe(false);
+    await reel.passer();
     expect(reel.confirmationActive).toBe(true);
+    base.tables.identite_legale = [];
+    const { emails: sansIdentite, base: base2 } = preparer({ mode: 'smtp' });
+    base2.tables.identite_legale = [];
+    await sansIdentite.passer();
+    expect(sansIdentite.confirmationActive).toBe(false);
   });
 
   it('la migration contient CONSENTEMENT_ANNONCES_TEXTE à l’identique', () => {
     const migration = readFileSync(new URL('../../supabase/migrations/20261017160000_sequence_emails.sql', import.meta.url), 'utf8');
     expect(migration).toContain(`'${CONSENTEMENT_ANNONCES_TEXTE}'`);
+  });
+});
+
+// ——— Propositions QA (couture calculerEnvois ↔ examiner) ———
+
+describe('QA : coutures du planificateur', () => {
+  it('should send the confirmation when a désinscrit address re-subscribes', async () => {
+    const { base, emails, courriel } = preparer({ mode: 'smtp' });
+    base.tables.modeles_emails = modeles();
+    base.tables.calendrier = [date(ID.aout, '2027-08-06')];
+    base.tables.destinataires_emails = [destinataire(ID.chloe, 'chloe@exemple.fr', {
+      abonne: true, abonnement_a_confirmer: true, desinscrit_le: '2027-07-01T10:00:00Z', annonces: false,
+    })];
+    base.tables.abonnements_actualites = [{ email: 'chloe@exemple.fr' }];
+
+    expect(await emails.passer()).toMatchObject({ reserves: 1, envoyes: 1 });
+    const message = courriel.envoyer.mock.calls[0][0] as { to: string; html: string };
+    expect(message.to).toBe('chloe@exemple.fr');
+    expect(message.html).toContain('/emails/confirmation#j=');
+    expect(base.tables.envois_emails).toEqual([expect.objectContaining({ etape: 'confirmation', statut: 'envoye', reel: true })]);
+    // Le lien porte la ligne de cette demande (sécurité M1).
+    const lien = /href="([^"]*\/emails\/confirmation#j=[^"]+)"/.exec(message.html)?.[1] ?? '';
+    expect(verifierLien(CLE, jetonDe(lien.replaceAll('&amp;', '&')) ?? '', MAINTENANT, 'confirmation'))
+      .toMatchObject({ d: ID.chloe, n: base.tables.envois_emails[0].id });
+  });
+
+  it('should skip a reserved veille when its date is moved before the send', async () => {
+    const horloge = { t: Date.parse('2027-07-29T16:05:00Z') }; // 18:05 à Paris, veille du 30/07
+    const { base, emails, courriel } = preparer({ mode: 'smtp', horloge });
+    base.tables.modeles_emails = modeles();
+    base.tables.calendrier = [date(ID.demain, '2027-08-02')]; // déplacée du 30/07 au 02/08 après la réservation
+    base.tables.destinataires_emails = [destinataire(ID.bruno, 'bruno@exemple.fr')];
+    base.tables.rattachements_emails = [{ destinataire_id: ID.bruno, calendrier_id: ID.demain, origine: 'inscription', cree_le: '2027-06-01T10:00:00Z' }];
+    base.tables.envois_emails = [
+      envoi(ID.bruno, 'bienvenue', null, { reel: true, statut: 'envoye' }),
+      envoi(ID.bruno, 'veille', ID.demain, { reel: true, statut: 'en_attente', envoye_le: null, prevu_le: '2027-07-29T16:00:00Z', cree_le: '2027-07-29T16:00:00Z' }),
+    ];
+    expect(await emails.passer()).toMatchObject({ liberes: 1, envoyes: 0 });
+    expect(courriel.envoyer).not.toHaveBeenCalled();
+    // La ligne est libérée (supprimée), la nouvelle veille se réserve à sa propre échéance : le 01/08 à 18:00.
+    expect(base.tables.envois_emails.filter((e) => e.etape === 'veille')).toEqual([]);
+    horloge.t = Date.parse('2027-08-01T16:00:00Z');
+    expect(await emails.passer()).toMatchObject({ reserves: 1, envoyes: 1 });
+    expect(base.tables.envois_emails.find((e) => e.etape === 'veille')).toMatchObject({ statut: 'envoye', prevu_le: '2027-08-01T16:00:00.000Z' });
+  });
+});
+
+describe('vague finale : planificateur', () => {
+  it('relit les dates du lot après la réclamation (sécurité I1) : une date annulée pendant le passage ne part pas', async () => {
+    for (const [changement, raison] of [
+      [{ statut: 'annulee' }, 'date_annulee'],
+      [{ soiree: { slug: 's', statut: 'reportee' } }, 'soiree_suspendue'],
+      [null, 'date_absente'],
+    ] as const) {
+      const { base, emails, courriel } = preparer({ mode: 'smtp' });
+      scenarioDeBase(base);
+      base.tables.destinataires_emails = base.tables.destinataires_emails.filter((d) => d.id === ID.bruno);
+      base.tables.envois_emails.push(envoi(ID.bruno, 'jour_j', ID.aujourdhui, {
+        reel: true, statut: 'en_attente', envoye_le: null, prevu_le: '2027-07-29T08:00:00Z', cree_le: '2027-07-29T08:00:00Z',
+      }));
+      // La date change APRÈS la RPC du calcul et la lecture des dus, au moment de la réclamation.
+      base.intercepter = (appel) => {
+        if (appel.methode === 'PATCH' && (appel.corps as Ligne | undefined)?.raison === 'en_cours') {
+          if (changement) Object.assign(base.tables.calendrier[1], changement);
+          else base.tables.calendrier = base.tables.calendrier.filter((c) => c.id !== ID.aujourdhui);
+        }
+        return null;
+      };
+      await emails.passer();
+      expect(courriel.envoyer, raison).not.toHaveBeenCalled();
+      expect(base.tables.envois_emails.find((e) => e.etape === 'jour_j'), raison).toMatchObject({ statut: 'saute', raison });
+    }
+  });
+
+  it('relecture impossible après la réclamation (F5) : les lignes sont rendues, rien ne part, le passage suivant les envoie', async () => {
+    const horloge = { t: MAINTENANT };
+    const { base, emails, courriel } = preparer({ mode: 'smtp', horloge });
+    scenarioDeBase(base);
+    base.tables.destinataires_emails = base.tables.destinataires_emails.filter((d) => d.id === ID.alice);
+    let panne = true;
+    base.intercepter = (appel) => (panne && appel.methode === 'GET' && appel.chemin === '/rest/v1/destinataires_emails'
+      ? new Response(JSON.stringify({ code: '57014' }), { status: 503 })
+      : null);
+    await emails.passer();
+    expect(courriel.envoyer).not.toHaveBeenCalled();
+    const ligne = () => base.tables.envois_emails.find((e) => e.etape === 'bienvenue' && e.destinataire_id === ID.alice);
+    expect(ligne()).toMatchObject({ statut: 'en_attente', raison: null, envoye_le: null });
+    const rendue = base.appels.find((a) => a.methode === 'PATCH' && a.params.get('raison') === 'eq.en_cours' && a.params.has('id'));
+    expect(rendue?.params.get('id')).toBe(`in.(${ligne()?.id})`);
+    expect(rendue?.corps).toEqual({ raison: null, envoye_le: null });
+    expect(emails.etat().derniereErreur).toMatchObject({ message: 'passage du planificateur impossible (HTTP 503)' });
+    panne = false;
+    horloge.t += MINUTE;
+    await emails.passer();
+    expect(courriel.envoyer).toHaveBeenCalledTimes(1);
+    expect(ligne()).toMatchObject({ statut: 'envoye' });
+  });
+
+  it('une erreur avant la tentative d’envoi rend le groupe ; après, la ligne reste « en_cours » (au plus une fois)', async () => {
+    const { base, emails, courriel } = preparer({ mode: 'smtp' });
+    scenarioDeBase(base);
+    base.tables.destinataires_emails = base.tables.destinataires_emails.filter((d) => d.id === ID.bruno);
+    base.tables.envois_emails.push(
+      envoi(ID.bruno, 'jour_j', ID.aujourdhui, { reel: true, statut: 'en_attente', envoye_le: null, prevu_le: '2027-07-29T08:00:00Z', cree_le: '2027-07-29T08:00:00Z' }),
+      envoi(ID.bruno, 'lendemain', ID.demain, { reel: true, statut: 'en_attente', envoye_le: null, prevu_le: '2027-07-29T08:00:00Z', cree_le: '2027-07-29T08:00:00Z' }),
+    );
+    // Le saut du lendemain (date prévisionnelle… ici : échéance qui ne correspond pas) ne peut pas s'écrire.
+    base.intercepter = (appel) => (appel.methode === 'DELETE' && appel.chemin === '/rest/v1/envois_emails' && appel.params.get('raison') === 'eq.en_cours'
+      ? new Response(JSON.stringify({ code: '57014' }), { status: 503 })
+      : null);
+    await emails.passer();
+    expect(courriel.envoyer).toHaveBeenCalledTimes(1);
+    expect(base.tables.envois_emails.find((e) => e.etape === 'lendemain')).toMatchObject({ statut: 'en_attente', raison: null });
+    expect(base.tables.envois_emails.find((e) => e.etape === 'jour_j')).toMatchObject({ statut: 'envoye' });
+  });
+
+  it('arreter() (SIGTERM) : le groupe en cours finit, les autres lignes réclamées sont rendues, plus rien n’est réclamé', async () => {
+    const { base, emails, courriel } = preparer({ mode: 'smtp' });
+    base.tables.modeles_emails = modeles();
+    base.tables.calendrier = [date(ID.aujourdhui, '2027-07-29')];
+    for (let i = 0; i < 15; i++) {
+      const id = `77777777-7777-4777-8777-0000000000${String(i).padStart(2, '0')}`;
+      base.tables.destinataires_emails.push(destinataire(id, `p${i}@exemple.fr`));
+      base.tables.envois_emails.push(envoi(id, 'jour_j', ID.aujourdhui, {
+        reel: true, statut: 'en_attente', envoye_le: null, prevu_le: '2027-07-29T08:00:00Z', cree_le: '2027-07-29T08:00:00Z',
+      }));
+    }
+    /** @type {Promise<void> | null} */
+    let arret: Promise<void> | null = null;
+    courriel.envoyer.mockImplementation(async () => {
+      if (!arret) arret = emails.arreter();
+      return { mode: 'smtp', envoye: true, echec: false };
+    });
+    const passage = emails.passer();
+    await passage;
+    await arret;
+    expect(courriel.envoyer).toHaveBeenCalledTimes(1);
+    const parStatut = (statut: string, raison: string | null) => base.tables.envois_emails.filter((e) => e.statut === statut && e.raison === raison).length;
+    // Lot de 10 réclamé : 1 envoyé, 9 rendus ; le lot suivant (5) n'a jamais été réclamé.
+    expect(parStatut('envoye', null)).toBe(1);
+    expect(parStatut('en_attente', null)).toBe(14);
+    expect(base.tables.envois_emails.some((e) => e.raison === 'en_cours')).toBe(false);
+    // Plus aucun passage après l'arrêt.
+    const avant = base.appels.length;
+    expect(await emails.passer()).toEqual(BILAN_VIDE);
+    expect(base.appels).toHaveLength(avant);
+  });
+
+  it('premier passage en smtp : les envois simulés encore en attente passent en saute « mode_change »', async () => {
+    const { base, emails, courriel } = preparer({ mode: 'smtp' });
+    scenarioDeBase(base);
+    base.tables.envois_emails.push(
+      envoi(ID.bruno, 'jour_j', ID.aujourdhui, { reel: false, statut: 'en_attente', envoye_le: null, prevu_le: '2027-07-29T08:00:00Z' }),
+      envoi(ID.alice, 'confirmation', null, { reel: false, statut: 'en_attente', envoye_le: null }),
+    );
+    await emails.passer();
+    expect(base.tables.envois_emails.filter((e) => !e.reel && e.statut === 'saute').map((e) => e.raison)).toEqual(['mode_change', 'mode_change']);
+    expect(courriel.envoyer.mock.calls.length).toBeGreaterThan(0);
+    const avant = base.appels.filter((a) => a.params.get('reel') === 'is.false' && a.methode === 'PATCH').length;
+    await emails.passer();
+    expect(base.appels.filter((a) => a.params.get('reel') === 'is.false' && a.methode === 'PATCH')).toHaveLength(avant);
+    // En mode log, rien de tel.
+    const log = preparer({ mode: 'log' });
+    scenarioDeBase(log.base);
+    log.base.tables.envois_emails.push(envoi(ID.bruno, 'veille', ID.demain, { reel: false, statut: 'en_attente', envoye_le: null, prevu_le: '2027-07-29T08:00:00Z' }));
+    await log.emails.passer();
+    expect(log.base.tables.envois_emails.some((e) => e.raison === 'mode_change')).toBe(false);
+  });
+
+  it('identité de l’organisateur (B4) : ligne du pied ; absente, rien ne part en smtp, le log continue sans elle', async () => {
+    const smtp = preparer({ mode: 'smtp' });
+    scenarioDeBase(smtp.base);
+    await smtp.emails.passer();
+    const message = smtp.courriel.envoyer.mock.calls[0][0] as { html: string; text: string };
+    expect(message.html).toContain(LIGNE_IDENTITE);
+    expect(message.text).toContain(LIGNE_IDENTITE);
+
+    for (const absente of [[], null] as const) {
+      const sans = preparer({ mode: 'smtp' });
+      scenarioDeBase(sans.base);
+      if (absente === null) {
+        // Table absente de la base (pas encore déployée) : PostgREST répond 404 PGRST205.
+        sans.base.intercepter = (appel) => (appel.chemin === '/rest/v1/identite_legale' ? new Response(JSON.stringify({ code: 'PGRST205' }), { status: 404 }) : null);
+      } else sans.base.tables.identite_legale = [...absente];
+      expect(await sans.emails.passer()).toEqual(BILAN_VIDE);
+      expect(sans.courriel.envoyer).not.toHaveBeenCalled();
+      expect(sans.base.appels.some((a) => a.chemin === '/rest/v1/rpc/emails_a_traiter')).toBe(false);
+      expect(sans.emails.etat()).toMatchObject({ pret: false, raisonsInactif: ['identite'] });
+    }
+    // Sans nom (raison sociale), pas d'identité : on n'invente rien.
+    const sansNom = preparer({ mode: 'smtp' });
+    scenarioDeBase(sansNom.base);
+    sansNom.base.tables.identite_legale = [{ raison_sociale: null, forme_juridique: 'SAS', adresse: 'Nîmes' }];
+    await sansNom.emails.passer();
+    expect(sansNom.courriel.envoyer).not.toHaveBeenCalled();
+
+    const log = preparer({ mode: 'log' });
+    scenarioDeBase(log.base);
+    log.base.tables.identite_legale = [];
+    expect(await log.emails.passer()).toMatchObject({ simules: 2 });
+    expect((log.courriel.envoyer.mock.calls[0][0] as { html: string }).html).not.toContain('organisée par');
+    expect(log.emails.etat()).toMatchObject({ pret: true, raisonsInactif: [] });
+  });
+
+  it('cadence : le calcul (RPC) toutes les 5 min, les dus chaque minute ; la RPC est journalisée sans donnée personnelle', async () => {
+    const horloge = { t: MAINTENANT };
+    const { base, emails, journal } = preparer({ mode: 'log', horloge });
+    scenarioDeBase(base);
+    for (let minute = 0; minute < 11; minute++) {
+      await emails.passer();
+      horloge.t += MINUTE;
+    }
+    expect(base.rpcAppels).toBe(3); // à 0, 5 et 10 min
+    const lecturesDus = base.appels.filter((a) => a.methode === 'GET' && a.chemin === '/rest/v1/envois_emails' && a.params.get('raison') === 'is.null');
+    expect(lecturesDus).toHaveLength(11);
+    const calculs = journal.filter((l) => (l as { message?: string }).message === 'calcul des envois') as Record<string, unknown>[];
+    expect(calculs).toHaveLength(3);
+    expect(calculs[0]).toEqual({
+      level: 'info', timestamp: expect.any(String), message: 'calcul des envois', octets: expect.any(Number), dureeMs: expect.any(Number),
+      destinataires: 2, envois: expect.any(Number),
+    });
+    expect(Number(calculs[0].octets)).toBeGreaterThan(100);
+    expect(JSON.stringify(calculs)).not.toMatch(/@|Camille/);
+  });
+
+  it('M8 : « Je viens » refuse une date dont la soirée liée est annulée ou reportée', async () => {
+    const { base, emails } = preparer();
+    scenarioDeBase(base);
+    const serveur = await lancer(emails);
+    const j = signerLien(CLE, { t: 'je_viens', d: ID.bruno, c: ID.demain, e: finDeJourParis('2027-07-30') });
+    for (const statut of ['annulee', 'reportee']) {
+      base.tables.calendrier[0].soiree = { slug: 's', statut };
+      expect((await lien(serveur, { jeton: j, action: 'decrire' })).status, statut).toBe(410);
+      expect((await lien(serveur, { jeton: j, action: 'je_viens' })).status, statut).toBe(410);
+    }
+    base.tables.calendrier[0].soiree = { slug: 's', statut: 'publiee' };
+    expect(await (await lien(serveur, { jeton: j, action: 'je_viens' })).json()).toEqual({ ok: true, etat: 'fait' });
+  });
+});
+
+describe('vague finale : endpoints admin', () => {
+  it('M4 : 60 requêtes admin par IP et par 10 min, refusées avant tout appel à Supabase', async () => {
+    const { base, emails } = preparer({ mode: 'log' });
+    scenarioDeBase(base);
+    const serveur = await lancer(emails);
+    const { jeton } = admin(base);
+    const lire = () => fetch(`${serveur}/api/admin/emails/etat`, { headers: { Authorization: `Bearer ${jeton}` } });
+    for (let i = 0; i < 60; i++) expect((await lire()).status).toBe(200);
+    const avant = base.appels.filter((a) => a.chemin === '/auth/v1/user').length;
+    const refus = await lire();
+    expect(refus.status).toBe(429);
+    expect(refus.headers.get('retry-after')).toBe('600');
+    expect((await fetch(`${serveur}/api/admin/emails/test`, { method: 'POST', headers: { Authorization: 'Bearer forge' } })).status).toBe(429);
+    expect(base.appels.filter((a) => a.chemin === '/auth/v1/user')).toHaveLength(avant);
+  });
+
+  it('M3 : la clé d’idempotence du message n° 8, unique en base, vaut pour toutes les répliques', async () => {
+    const base = new FauxSupabase(() => MAINTENANT);
+    scenarioDeBase(base);
+    base.tables.rattachements_emails.push({ destinataire_id: ID.bruno, calendrier_id: ID.demain, origine: 'je_viens', cree_le: '2027-07-01T00:00:00Z' });
+    const replique = () => creerEmails({
+      supabaseUrl: SUPABASE, publishableKey: 'cle-publique', serviceRoleKey: 'cle-service', origine: ORIGINE, cleLiens: CLE,
+      courriel: faussePoste('smtp') as never, fetchFn: base.fetch, maintenant: () => MAINTENANT, timers: false, journal: () => {},
+    });
+    const [a, b] = [await lancer(replique()), await lancer(replique())];
+    const { jeton } = admin(base);
+    const cle = randomUUID();
+    const corps = { calendrierId: ID.demain, sujet: 'Changement d’horaire', corps: 'La soirée commence à 22 h.', cle };
+    const poster = (serveur: string, contenu: unknown) => fetch(`${serveur}/api/admin/emails/message`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${jeton}` }, body: JSON.stringify(contenu),
+    });
+    expect(await (await poster(a, corps)).json()).toEqual({ ok: true, destinataires: 2 });
+    expect(await (await poster(b, corps)).json()).toEqual({ ok: true, destinataires: 2 });
+    expect(base.tables.messages_inscrits).toEqual([expect.objectContaining({ cle, destinataires: 2 })]);
+    expect(base.tables.envois_emails.filter((e) => e.etape === 'message')).toHaveLength(2);
+    // Même clé, autre contenu : refusé.
+    expect((await poster(b, { ...corps, corps: 'Autre texte.' })).status).toBe(409);
+    // Clé malformée : 400.
+    expect((await poster(a, { ...corps, cle: 'pas-un-uuid' })).status).toBe(400);
+    expect(base.tables.messages_inscrits).toHaveLength(1);
+  });
+
+  it('mail de test : mêmes règles que l’envoi réel (« Je viens » et dates annoncées dans l’annonce seulement), identité au pied', async () => {
+    const { base, emails, courriel } = preparer({ mode: 'log' });
+    scenarioDeBase(base);
+    base.tables.calendrier.push(date(ID.aout, '2027-08-06'));
+    const serveur = await lancer(emails);
+    const { jeton } = admin(base);
+    const tester = (cle: string, corps: string) => fetch(`${serveur}/api/admin/emails/test`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${jeton}` },
+      body: JSON.stringify({ cle, brouillon: { sujet: 'Essai', preheader: '', corps, encart: null }, calendrierId: ID.demain }),
+    });
+    const corps = 'Rappel.\n\n[[Je viens|{{lien_je_viens}}]]\n\n{{dates_annoncees}}\n\n{{prochaines_dates}}';
+    expect((await tester('veille', corps)).status).toBe(200);
+    expect((await tester('annonce', corps)).status).toBe(200);
+    const [veille, annonce] = courriel.envoyer.mock.calls.map((c) => c[0] as { html: string; text: string; etape: string });
+    expect(veille.html).not.toContain('/emails/je-viens">Je viens');
+    expect(veille.text).not.toContain(`Ville ${ID.demain}, Arènes`);
+    expect(veille.text).toContain(`Ville ${ID.aout}`); // prochaines dates : la personne de test a consenti
+    expect(annonce.text).toContain(`Je viens : ${ORIGINE}/emails/je-viens`);
+    expect(annonce.text).toContain(`Ville ${ID.demain}, Arènes`);
+    expect(veille.html).toContain(LIGNE_IDENTITE);
+    expect(veille.etape).toBe('test:veille');
+    // Pied de la confirmation : sa propre raison, et aucune liste d'autres dates.
+    expect((await tester('confirmation', 'Confirmez.\n\n{{prochaines_dates}}')).status).toBe(200);
+    const confirmation = courriel.envoyer.mock.calls[2][0] as { text: string };
+    expect(confirmation.text).toContain('formulaire d’actualités');
+    expect(confirmation.text).not.toContain(`Ville ${ID.aout}`);
   });
 });

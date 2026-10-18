@@ -104,6 +104,15 @@ describe('creerServeur', () => {
     }
   });
 
+  it('pages des liens d’e-mail : jamais de Referer (le jeton ne fuit pas, sécurité M6), les autres pages inchangées', async () => {
+    for (const chemin of ['/emails/confirmation', '/emails/desinscription', '/emails/je-viens', '/emails/je-viens?j=ancien']) {
+      expect((await fetch(base + chemin)).headers.get('referrer-policy'), chemin).toBe('no-referrer');
+    }
+    for (const chemin of ['/', '/inscription', '/emailsx']) {
+      expect((await fetch(base + chemin)).headers.get('referrer-policy'), chemin).toBe('strict-origin-when-cross-origin');
+    }
+  });
+
   it('envoie HSTS derrière HTTPS, réponses en texte brut comprises', async () => {
     const https = { 'x-forwarded-proto': 'https' };
     for (const [chemin, statut] of [

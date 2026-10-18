@@ -4,8 +4,10 @@ import { cleLiensValide, finDeJourParis, signerLien, verifierLien, liensPour } f
 const CLE = 'a'.repeat(64);
 const AUTRE_CLE = 'b'.repeat(64);
 
+/** Jeton d'un lien : dans le fragment (`#j=`) des pages, dans la requête (`?j=`) du POST en un clic. */
 function jetonDe(url: string) {
-  return new URL(url).searchParams.get('j') as string;
+  const adresse = new URL(url);
+  return (new URLSearchParams(adresse.hash.slice(1)).get('j') ?? adresse.searchParams.get('j')) as string;
 }
 
 describe('liens signés', () => {
@@ -29,29 +31,37 @@ describe('liens signés', () => {
   });
 
   it('refuse une charge expirée', () => {
-    const jeton = signerLien(CLE, { t: 'confirmation', d: 'dest-1', e: 1000 });
-    expect(verifierLien(CLE, jeton, 999)).toMatchObject({ t: 'confirmation' });
+    const jeton = signerLien(CLE, { t: 'confirmation', d: 'dest-1', n: 'envoi-1', e: 1000 });
+    expect(verifierLien(CLE, jeton, 999)).toMatchObject({ t: 'confirmation', n: 'envoi-1' });
     expect(verifierLien(CLE, jeton, 1001)).toBeNull();
   });
 
-  it('liensPour : URLs, absence d’expiration pour la désinscription, 7 jours pour la confirmation', () => {
+  it('une confirmation porte la ligne d’envoi de sa demande (sécurité M1) : sans elle, refusée', () => {
+    expect(verifierLien(CLE, signerLien(CLE, { t: 'confirmation', d: 'dest-1', e: 1000 }), 0)).toBeNull();
+    expect(verifierLien(CLE, signerLien(CLE, { t: 'confirmation', d: 'dest-1', n: 12, e: 1000 } as never), 0)).toBeNull();
+  });
+
+  it('liensPour : jeton dans le fragment des pages (M6), dans la requête du POST en un clic ; 7 jours pour la confirmation', () => {
     const maintenant = Date.UTC(2026, 6, 20, 12, 0, 0);
     const liens = liensPour({ origine: 'https://exemple.fr', cle: CLE, destinataireId: 'dest-1', maintenant });
-    expect(liens.desinscription).toMatch(/^https:\/\/exemple\.fr\/emails\/desinscription\?j=/);
-    expect(liens.desinscriptionUnClic).toMatch(/^https:\/\/exemple\.fr\/api\/emails\/desinscription\?j=/);
-    expect(liens.confirmation).toMatch(/^https:\/\/exemple\.fr\/emails\/confirmation\?j=/);
+    expect(liens.desinscription).toMatch(/^https:\/\/exemple\.fr\/emails\/desinscription#j=[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
+    expect(liens.desinscriptionUnClic).toMatch(/^https:\/\/exemple\.fr\/api\/emails\/desinscription\?j=[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
+    const confirmation = liens.confirmation('envoi-7');
+    expect(confirmation).toMatch(/^https:\/\/exemple\.fr\/emails\/confirmation#j=/);
+    expect(new URL(liens.desinscription).search).toBe('');
+    expect(new URL(confirmation).search).toBe('');
     const loin = maintenant + 400 * 86_400_000;
     expect(verifierLien(CLE, jetonDe(liens.desinscription), loin)).toEqual({ t: 'desinscription', d: 'dest-1' });
     expect(verifierLien(CLE, jetonDe(liens.desinscriptionUnClic), loin)).toEqual({ t: 'desinscription', d: 'dest-1' });
-    const jeton = jetonDe(liens.confirmation);
-    expect(verifierLien(CLE, jeton, maintenant + 7 * 86_400_000)).toMatchObject({ t: 'confirmation', d: 'dest-1' });
+    const jeton = jetonDe(confirmation);
+    expect(verifierLien(CLE, jeton, maintenant + 7 * 86_400_000)).toMatchObject({ t: 'confirmation', d: 'dest-1', n: 'envoi-7' });
     expect(verifierLien(CLE, jeton, maintenant + 7 * 86_400_000 + 1)).toBeNull();
   });
 
   it('je_viens : valable le 31/07 à 23:00 (Paris), invalide le 01/08 à 00:01', () => {
     const liens = liensPour({ origine: 'https://exemple.fr', cle: CLE, destinataireId: 'dest-1', maintenant: Date.UTC(2026, 6, 1) });
     const lien = liens.jeViens('cal-1', '2026-07-31');
-    expect(lien).toMatch(/^https:\/\/exemple\.fr\/emails\/je-viens\?j=/);
+    expect(lien).toMatch(/^https:\/\/exemple\.fr\/emails\/je-viens#j=/);
     const jeton = jetonDe(lien);
     // 31/07 23:00 Paris = 21:00 UTC (heure d’été) ; 01/08 00:01 Paris = 31/07 22:01 UTC
     expect(verifierLien(CLE, jeton, Date.UTC(2026, 6, 31, 21, 0))).toMatchObject({ t: 'je_viens', d: 'dest-1', c: 'cal-1' });

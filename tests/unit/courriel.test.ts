@@ -1,6 +1,20 @@
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, readFileSync } from 'node:fs';
 import net from 'node:net';
-import { describe, expect, it } from 'vitest';
-import { composerCourriel, construireMessage, courrielDepuisEnvironnement, emailsDepuisEnvironnement, envoyerSmtp, masquerEmail } from '../../serveur/courriel.mjs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import tls from 'node:tls';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import {
+  composerCourriel,
+  construireMessage,
+  courrielDepuisEnvironnement,
+  echecDefinitif,
+  emailsDepuisEnvironnement,
+  envoyerSmtp,
+  masquerEmail,
+  modeEmails,
+} from '../../serveur/courriel.mjs';
 import { creerContact } from '../../serveur/contact.mjs';
 
 describe('courriel organisateur', () => {
@@ -12,14 +26,15 @@ describe('courriel organisateur', () => {
     });
   });
 
-  it('journalise le message en mode log, sans réseau', async () => {
+  it('journalise le message en mode log, sans réseau, sans corps ni adresse en clair (mineur T4)', async () => {
     const journaux: unknown[] = [];
     const courriel = courrielDepuisEnvironnement({ SMTP_MODE: 'log', CONTACT_EMAIL_TO: 'orga@exemple.fr' }, {
       journal: (ligne) => journaux.push(ligne),
     });
     const resultat = await courriel.envoyer({ prenom: 'Léa', email: 'lea@exemple.fr', message: 'Quelle est la date ?' });
     expect(resultat).toMatchObject({ mode: 'log', envoye: false, echec: false });
-    expect(JSON.stringify(journaux[0])).toContain('lea@exemple.fr');
+    expect(journaux).toEqual([{ level: 'info', message: 'courriel de contact journalisé', to: 'o***@exemple.fr', longueur: expect.any(Number) }]);
+    for (const secret of ['lea@exemple.fr', 'orga@exemple.fr', 'Quelle est la date', 'Léa']) expect(JSON.stringify(journaux)).not.toContain(secret);
   });
 
   it('délègue l’envoi SMTP injecté et signale un réglage incomplet', async () => {
@@ -150,44 +165,65 @@ describe('envoyerSmtp : adresses d’enveloppe', () => {
 describe('emailsDepuisEnvironnement', () => {
   const smtp = { SMTP_MODE: 'smtp', SMTP_HOST: 'smtp.exemple.fr', SMTP_PORT: '587', SMTP_USER: 'u', SMTP_PASS: 'p', EMAILS_FROM: 'Olympiade <bonjour@exemple.fr>' };
 
-  it('journalise en mode log sans corps ni adresse en clair', async () => {
+  it('journalise en mode log l’étape, sans objet, corps ni adresse en clair (sécurité M5)', async () => {
     const journaux: unknown[] = [];
     const emails = emailsDepuisEnvironnement({ SMTP_MODE: 'log' }, { journal: (ligne) => journaux.push(ligne) });
-    const resultat = await emails.envoyer({ to: 'camille@exemple.fr', subject: 'Sujet', text: 'secret du corps', html: '<p>secret</p>' });
-    expect(resultat).toEqual({ mode: 'log', envoye: false, echec: false });
-    expect(journaux).toEqual([{ level: 'info', message: 'email journalisé', to: 'c***@exemple.fr', subject: 'Sujet' }]);
+    const resultat = await emails.envoyer({ to: 'camille@exemple.fr', subject: 'Bonjour Camille', text: 'secret du corps', html: '<p>secret</p>', etape: 'veille' });
+    expect(resultat).toEqual({ mode: 'log', envoye: false, echec: false, definitif: false });
+    expect(journaux).toEqual([{ level: 'info', message: 'email journalisé', to: 'c***@exemple.fr', etape: 'veille' }]);
     expect(JSON.stringify(journaux)).not.toContain('camille@exemple.fr');
+    expect(JSON.stringify(journaux)).not.toContain('Camille');
     expect(JSON.stringify(journaux)).not.toContain('secret');
   });
 
   it('ne fait rien en mode off', async () => {
     const emails = emailsDepuisEnvironnement({});
     expect(emails.mode).toBe('off');
-    await expect(emails.envoyer({ to: 'a@b.fr', subject: 's', text: 't' })).resolves.toEqual({ mode: 'off', envoye: false, echec: false });
+    await expect(emails.envoyer({ to: 'a@b.fr', subject: 's', text: 't' })).resolves.toEqual({ mode: 'off', envoye: false, echec: false, definitif: false });
   });
 
-  it('exige toutes les valeurs en smtp et délègue au transport', async () => {
-    expect(emailsDepuisEnvironnement({ ...smtp, EMAILS_FROM: '' }).pret).toBe(false);
-    expect(emailsDepuisEnvironnement({ ...smtp, SMTP_PASS: '' }).pret).toBe(false);
+  it('EMAILS_MODE pilote la séquence, SMTP_MODE à défaut ; une valeur inconnue vaut off (F6)', () => {
+    expect(modeEmails({ EMAILS_MODE: 'log', SMTP_MODE: 'smtp' })).toBe('log');
+    expect(modeEmails({ EMAILS_MODE: ' smtp ', SMTP_MODE: 'log' })).toBe('smtp');
+    expect(modeEmails({ EMAILS_MODE: '', SMTP_MODE: 'log' })).toBe('log');
+    expect(modeEmails({ SMTP_MODE: 'smtp' })).toBe('smtp');
+    expect(modeEmails({ EMAILS_MODE: 'smpt', SMTP_MODE: 'smtp' })).toBe('off');
+    expect(modeEmails({})).toBe('off');
+    // La recette de la séquence en log ne touche pas au contact, qui reste en smtp.
+    const env = { ...smtp, EMAILS_MODE: 'log', CONTACT_EMAIL_FROM: 'site@exemple.fr', CONTACT_EMAIL_TO: 'orga@exemple.fr' };
+    expect(emailsDepuisEnvironnement(env).mode).toBe('log');
+    expect(courrielDepuisEnvironnement(env).mode).toBe('smtp');
+  });
+
+  it('exige toutes les valeurs en smtp, dit ce qui manque, et délègue au transport', async () => {
+    expect(emailsDepuisEnvironnement({ ...smtp, EMAILS_FROM: '' })).toMatchObject({ pret: false, manques: ['expediteur'] });
+    expect(emailsDepuisEnvironnement({ ...smtp, SMTP_PASS: '' })).toMatchObject({ pret: false, manques: ['smtp_incomplet'] });
+    expect(emailsDepuisEnvironnement({ SMTP_MODE: 'smtp' })).toMatchObject({ pret: false, manques: ['smtp_incomplet', 'expediteur'] });
+    expect(emailsDepuisEnvironnement({ SMTP_MODE: 'log' })).toMatchObject({ pret: true, manques: [] });
     const appels: Array<{ from: string; to: string; html?: string; headers?: Record<string, string> }> = [];
     const emails = emailsDepuisEnvironnement(smtp, { envoyer: async (_cfg, message) => { appels.push(message); } });
     expect(emails.pret).toBe(true);
-    await expect(emails.envoyer({ to: 'a@b.fr', subject: 's', text: 't', html: '<p>t</p>', headers: { 'X-A': 'b' } })).resolves.toEqual({ mode: 'smtp', envoye: true, echec: false });
+    await expect(emails.envoyer({ to: 'a@b.fr', subject: 's', text: 't', html: '<p>t</p>', headers: { 'X-A': 'b' } }))
+      .resolves.toEqual({ mode: 'smtp', envoye: true, echec: false, definitif: false });
     expect(appels[0]).toMatchObject({ from: 'Olympiade <bonjour@exemple.fr>', to: 'a@b.fr', html: '<p>t</p>', headers: { 'X-A': 'b' } });
     const casse = emailsDepuisEnvironnement(smtp, { envoyer: async () => { throw new Error('boum'); }, journal: () => undefined });
-    await expect(casse.envoyer({ to: 'a@b.fr', subject: 's', text: 't' })).resolves.toEqual({ mode: 'smtp', envoye: false, echec: true });
+    await expect(casse.envoyer({ to: 'a@b.fr', subject: 's', text: 't' })).resolves.toEqual({ mode: 'smtp', envoye: false, echec: true, definitif: false });
+    const refuse = emailsDepuisEnvironnement(smtp, {
+      envoyer: async () => { throw Object.assign(new Error('SMTP refusé (550)'), { codeSmtp: 550, etapeSmtp: 'to' }); }, journal: () => undefined,
+    });
+    await expect(refuse.envoyer({ to: 'a@b.fr', subject: 's', text: 't' })).resolves.toEqual({ mode: 'smtp', envoye: false, echec: true, definitif: true });
     const journaux: unknown[] = [];
     const incomplet = emailsDepuisEnvironnement({ SMTP_MODE: 'smtp' }, { journal: (ligne) => journaux.push(ligne) });
-    await expect(incomplet.envoyer({ to: 'a@b.fr', subject: 's', text: 't' })).resolves.toEqual({ mode: 'smtp', envoye: false, echec: true });
+    await expect(incomplet.envoyer({ to: 'a@b.fr', subject: 's', text: 't' })).resolves.toEqual({ mode: 'smtp', envoye: false, echec: true, definitif: false });
     expect(journaux).toEqual([{ level: 'error', message: 'smtp non configuré' }]);
   });
 
-  it('refuse un destinataire invalide sans appeler le transport, et force construireMessage', async () => {
+  it('refuse un destinataire invalide sans appeler le transport (définitif), et force construireMessage', async () => {
     const appels: Array<{ headers?: Record<string, string> }> = [];
     const journaux: unknown[] = [];
     const emails = emailsDepuisEnvironnement(smtp, { envoyer: async (_cfg, message) => { appels.push(message); }, journal: (ligne) => journaux.push(ligne) });
     for (const to of ['a@b.fr\r\nRCPT TO:<x@y.fr>', 'a@b.fr> NOTIFY=NEVER', 'a@b.fr <c@d.fr>', 'sans-arobase', 'a@b']) {
-      await expect(emails.envoyer({ to, subject: 's', text: 't' })).resolves.toEqual({ mode: 'smtp', envoye: false, echec: true });
+      await expect(emails.envoyer({ to, subject: 's', text: 't' })).resolves.toEqual({ mode: 'smtp', envoye: false, echec: true, definitif: true });
     }
     expect(appels).toHaveLength(0);
     expect(journaux).toHaveLength(5);
@@ -201,5 +237,157 @@ describe('emailsDepuisEnvironnement', () => {
     const message = construireMessage({ from: 'a@exemple.fr', to: 'b@exemple.fr', subject: 's', text: 't', headers: {} });
     expect(message).toMatch(/\r\nDate: /);
     expect(message).toMatch(/\r\nMessage-ID: </);
+  });
+});
+
+// ——— Faux serveur SMTP (STARTTLS réel, certificat de test généré à la volée) ———
+
+type Refus = { commande: 'AUTH' | 'RCPT' | 'DATA' | 'CORPS'; code: number };
+type Scenario = { quit: 'muet' | 'repond'; refus?: Refus };
+
+let certificat: { cle: string; cert: string };
+
+beforeAll(() => {
+  const dossier = mkdtempSync(join(tmpdir(), 'smtp-test-'));
+  execFileSync('openssl', [
+    'req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '1', '-subj', '/CN=127.0.0.1',
+    '-addext', 'subjectAltName=IP:127.0.0.1', '-keyout', join(dossier, 'cle.pem'), '-out', join(dossier, 'cert.pem'),
+  ], { stdio: 'ignore' });
+  certificat = { cle: readFileSync(join(dossier, 'cle.pem'), 'utf8'), cert: readFileSync(join(dossier, 'cert.pem'), 'utf8') };
+});
+
+const serveursSmtp: net.Server[] = [];
+afterAll(async () => {
+  await Promise.all(serveursSmtp.map((serveur) => new Promise((ok) => serveur.close(ok))));
+});
+
+/** Dialogue SMTP minimal : EHLO, STARTTLS, AUTH LOGIN, MAIL, RCPT, DATA, corps, QUIT. */
+async function fauxSmtp(scenario: Scenario) {
+  const recu: string[] = [];
+  const connexions: net.Socket[] = [];
+  const serveur = net.createServer((brut) => {
+    connexions.push(brut);
+    brut.write('220 faux\r\n');
+    let tampon = '';
+    let corps = false;
+    /** @param {net.Socket | tls.TLSSocket} s */
+    const traiter = (s: net.Socket, ligne: string) => {
+      recu.push(corps ? `corps:${ligne}` : ligne.split(' ')[0]);
+      const refus = (commande: Refus['commande']) => scenario.refus?.commande === commande ? `${scenario.refus.code} refus\r\n` : null;
+      if (corps) {
+        if (ligne !== '.') return;
+        corps = false;
+        s.write(refus('CORPS') ?? '250 accepte\r\n');
+        return;
+      }
+      if (/^EHLO/.test(ligne)) s.write(s === brut ? '250-faux\r\n250 STARTTLS\r\n' : '250 ok\r\n');
+      else if (ligne === 'STARTTLS') {
+        s.write('220 go\r\n');
+        brut.removeAllListeners('data');
+        const securise = new tls.TLSSocket(brut, { isServer: true, key: certificat.cle, cert: certificat.cert });
+        connexions.push(securise);
+        let t = '';
+        securise.on('data', (morceau) => {
+          t += morceau.toString('utf8');
+          let fin;
+          while ((fin = t.indexOf('\r\n')) >= 0) {
+            const l = t.slice(0, fin);
+            t = t.slice(fin + 2);
+            traiter(securise, l);
+          }
+        });
+        securise.on('error', () => undefined);
+      } else if (ligne === 'AUTH LOGIN') s.write(refus('AUTH') ?? '334 VXNlcm5hbWU6\r\n');
+      else if (recu.at(-2) === 'AUTH') s.write('334 UGFzc3dvcmQ6\r\n');
+      else if (recu.at(-3) === 'AUTH') s.write('235 ok\r\n');
+      else if (/^MAIL FROM/.test(ligne)) s.write('250 ok\r\n');
+      else if (/^RCPT TO/.test(ligne)) s.write(refus('RCPT') ?? '250 ok\r\n');
+      else if (ligne === 'DATA') {
+        const r = refus('DATA');
+        if (r) s.write(r);
+        else {
+          corps = true;
+          s.write('354 envoyez\r\n');
+        }
+      } else if (ligne === 'QUIT') {
+        if (scenario.quit === 'repond') s.end('221 au revoir\r\n');
+        // « muet » : ni réponse ni fermeture.
+      }
+    };
+    brut.on('data', (morceau) => {
+      tampon += morceau.toString('utf8');
+      let fin;
+      while ((fin = tampon.indexOf('\r\n')) >= 0) {
+        const ligne = tampon.slice(0, fin);
+        tampon = tampon.slice(fin + 2);
+        traiter(brut, ligne);
+      }
+    });
+    brut.on('error', () => undefined);
+  });
+  await new Promise<void>((ok) => serveur.listen(0, '127.0.0.1', ok));
+  serveursSmtp.push(serveur);
+  const port = (serveur.address() as net.AddressInfo).port;
+  return {
+    recu,
+    smtp: { host: '127.0.0.1', port, user: 'u', pass: 'p', ca: certificat.cert },
+    fermer: () => { for (const c of connexions) c.destroy(); },
+  };
+}
+
+const MESSAGE = { from: 'Olympiade <bonjour@exemple.fr>', to: 'camille@exemple.fr', subject: 'Sujet', text: 'Corps.', html: '<p>Corps.</p>', headers: {} };
+
+describe('envoyerSmtp : fin de dialogue et refus (F1)', () => {
+  it('résout dès le 250 du corps : un serveur muet au QUIT, puis le délai qui expire, ne font pas un échec', async () => {
+    const faux = await fauxSmtp({ quit: 'muet' });
+    const debut = Date.now();
+    await expect(envoyerSmtp({ ...faux.smtp, timeoutMs: 400 }, MESSAGE)).resolves.toBeUndefined();
+    expect(Date.now() - debut).toBeLessThan(400);
+    // Le délai de 400 ms expire ensuite sans rien changer (aucun rejet non traité) ; QUIT est bien parti.
+    await new Promise((ok) => setTimeout(ok, 600));
+    expect(faux.recu).toContain('QUIT');
+    expect(faux.recu.filter((l) => l.startsWith('corps:')).length).toBeGreaterThan(0);
+    faux.fermer();
+  });
+
+  it('un serveur qui répond au QUIT : succès aussi', async () => {
+    const faux = await fauxSmtp({ quit: 'repond' });
+    await expect(envoyerSmtp({ ...faux.smtp, timeoutMs: 2_000 }, MESSAGE)).resolves.toBeUndefined();
+    faux.fermer();
+  });
+
+  it('un refus 5xx pour ce message est définitif ; un 4xx, un 5xx d’authentification ou un délai se réessaient', async () => {
+    const cas: [Refus, boolean][] = [
+      [{ commande: 'RCPT', code: 550 }, true],
+      [{ commande: 'CORPS', code: 554 }, true],
+      [{ commande: 'DATA', code: 451 }, false],
+      [{ commande: 'RCPT', code: 452 }, false],
+      [{ commande: 'AUTH', code: 535 }, false],
+    ];
+    for (const [refus, definitif] of cas) {
+      const faux = await fauxSmtp({ quit: 'repond', refus });
+      const erreur = await envoyerSmtp({ ...faux.smtp, timeoutMs: 2_000 }, MESSAGE).then(() => null, (e: unknown) => e);
+      expect(erreur, `${refus.commande} ${refus.code}`).toMatchObject({ codeSmtp: refus.code });
+      expect(echecDefinitif(erreur), `${refus.commande} ${refus.code}`).toBe(definitif);
+      // Même verdict au travers du transport de la séquence.
+      const emails = emailsDepuisEnvironnement(
+        { SMTP_MODE: 'smtp', SMTP_HOST: '127.0.0.1', SMTP_PORT: String(faux.smtp.port), SMTP_USER: 'u', SMTP_PASS: 'p', EMAILS_FROM: MESSAGE.from },
+        { envoyer: (cfg, message) => envoyerSmtp({ ...cfg, ca: certificat.cert, timeoutMs: 2_000 }, message), journal: () => undefined },
+      );
+      await expect(emails.envoyer({ to: MESSAGE.to, subject: 's', text: 't' }), `${refus.commande} ${refus.code}`)
+        .resolves.toMatchObject({ echec: true, definitif });
+      faux.fermer();
+    }
+    // Un délai dépassé (serveur muet dès l'accueil) se réessaie.
+    const muet = net.createServer(() => undefined);
+    await new Promise<void>((ok) => muet.listen(0, '127.0.0.1', ok));
+    serveursSmtp.push(muet);
+    const delai = await envoyerSmtp({ host: '127.0.0.1', port: (muet.address() as net.AddressInfo).port, user: 'u', pass: 'p', timeoutMs: 200 }, MESSAGE)
+      .then(() => null, (e: unknown) => e);
+    expect(String(delai)).toMatch(/Délai SMTP dépassé/);
+    expect(echecDefinitif(delai)).toBe(false);
+    // Un message invalide (en-tête interdit) est définitif, sans connexion.
+    expect(echecDefinitif(await envoyerSmtp({ host: '127.0.0.1', port: 1, user: 'u', pass: 'p' }, { ...MESSAGE, headers: { From: 'x' } })
+      .then(() => null, (e: unknown) => e))).toBe(true);
   });
 });
