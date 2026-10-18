@@ -243,8 +243,11 @@ describe('emailsDepuisEnvironnement', () => {
 // ——— Faux serveur SMTP (STARTTLS réel, certificat de test généré à la volée) ———
 
 type Refus = { commande: 'AUTH' | 'MAIL' | 'RCPT' | 'DATA' | 'CORPS'; code: number };
-/** `corps` : après le corps, le serveur répond (défaut), se tait (« muet ») ou coupe la connexion (« coupe »). */
-type Scenario = { quit: 'muet' | 'repond'; refus?: Refus; corps?: 'muet' | 'coupe' };
+/**
+ * `corps` : après le corps, le serveur répond (défaut), se tait (« muet ») ou coupe la connexion (« coupe ») ;
+ * `delaiCorpsMs` : il répond, mais après ce délai (relais lent).
+ */
+type Scenario = { quit: 'muet' | 'repond'; refus?: Refus; corps?: 'muet' | 'coupe'; delaiCorpsMs?: number };
 
 let certificat: { cle: string; cert: string };
 
@@ -284,7 +287,9 @@ async function fauxSmtp(scenario: Scenario) {
           brut.destroy();
           return;
         }
-        s.write(refus('CORPS') ?? '250 accepte\r\n');
+        const reponse = refus('CORPS') ?? '250 accepte\r\n';
+        if (scenario.delaiCorpsMs) setTimeout(() => { if (!s.destroyed) s.write(reponse); }, scenario.delaiCorpsMs);
+        else s.write(reponse);
         return;
       }
       if (/^EHLO/.test(ligne)) s.write(s === brut ? '250-faux\r\n250 STARTTLS\r\n' : '250 ok\r\n');
@@ -406,7 +411,7 @@ describe('envoyerSmtp : fin de dialogue et refus (F1)', () => {
   it('corps reçu sans réponse (délai) ou connexion coupée après le corps : incertain et définitif, jamais réessayé (Important n° 2)', async () => {
     for (const corps of ['muet', 'coupe'] as const) {
       const faux = await fauxSmtp({ quit: 'repond', corps });
-      const erreur = await envoyerSmtp({ ...faux.smtp, timeoutMs: 300 }, MESSAGE).then(() => null, (e: unknown) => e);
+      const erreur = await envoyerSmtp({ ...faux.smtp, timeoutMs: 2_000, timeoutCorpsMs: 300 }, MESSAGE).then(() => null, (e: unknown) => e);
       // Le relais a bien reçu le corps : il a pu l'accepter.
       expect(faux.recu.filter((l) => l.startsWith('corps:')).length, corps).toBeGreaterThan(0);
       expect(erreur, corps).toMatchObject({ incertain: true, definitif: true });
@@ -417,11 +422,34 @@ describe('envoyerSmtp : fin de dialogue et refus (F1)', () => {
       const autre = await fauxSmtp({ quit: 'repond', corps });
       const emails = emailsDepuisEnvironnement(
         { SMTP_MODE: 'smtp', SMTP_HOST: '127.0.0.1', SMTP_PORT: String(autre.smtp.port), SMTP_USER: 'u', SMTP_PASS: 'p', EMAILS_FROM: MESSAGE.from },
-        { envoyer: (cfg, message) => envoyerSmtp({ ...cfg, ca: certificat.cert, timeoutMs: 300 }, message), journal: () => undefined },
+        { envoyer: (cfg, message) => envoyerSmtp({ ...cfg, ca: certificat.cert, timeoutMs: 2_000, timeoutCorpsMs: 300 }, message), journal: () => undefined },
       );
       await expect(emails.envoyer({ to: MESSAGE.to, subject: 's', text: 't' }), corps)
         .resolves.toMatchObject({ envoye: false, echec: true, definitif: true, incertain: true });
       autre.fermer();
     }
+  });
+
+  it('le 250 a son propre délai après le corps : un relais lent au-delà du délai du dialogue réussit (mineur n° 9)', async () => {
+    // Dialogue borné à 300 ms, mais le relais met 600 ms à accepter le corps : l'envoi réussit, il n'est pas incertain.
+    const lent = await fauxSmtp({ quit: 'repond', delaiCorpsMs: 600 });
+    const debut = Date.now();
+    await expect(envoyerSmtp({ ...lent.smtp, timeoutMs: 300 }, MESSAGE)).resolves.toBeUndefined();
+    expect(Date.now() - debut).toBeGreaterThanOrEqual(550);
+    lent.fermer();
+    // Le délai du 250 reste borné : au-delà de timeoutCorpsMs, incertain.
+    const tropLent = await fauxSmtp({ quit: 'repond', delaiCorpsMs: 1_000 });
+    const erreur = await envoyerSmtp({ ...tropLent.smtp, timeoutMs: 300, timeoutCorpsMs: 400 }, MESSAGE).then(() => null, (e: unknown) => e);
+    expect(String(erreur)).toMatch(/après le corps/);
+    expect(erreur).toMatchObject({ incertain: true, definitif: true });
+    tropLent.fermer();
+    // Avant le corps, le délai du dialogue s'applique toujours.
+    const muet = net.createServer(() => undefined);
+    await new Promise<void>((ok) => muet.listen(0, '127.0.0.1', ok));
+    serveursSmtp.push(muet);
+    const avant = await envoyerSmtp({ host: '127.0.0.1', port: (muet.address() as net.AddressInfo).port, user: 'u', pass: 'p', timeoutMs: 200 }, MESSAGE)
+      .then(() => null, (e: unknown) => e);
+    expect(String(avant)).toMatch(/Délai SMTP dépassé\.$/);
+    expect(avant).not.toHaveProperty('incertain');
   });
 });

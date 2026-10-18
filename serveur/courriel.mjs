@@ -191,7 +191,9 @@ export function echecDefinitif(erreur) {
  * QUIT part ensuite sans attendre sa réponse, et un délai ou une erreur qui suivent sont ignorés. Un message accepté
  * n'est donc jamais compté comme un échec. Corps envoyé mais ni 250 ni refus (délai dépassé, coupure) : le relais a pu
  * l'accepter, l'erreur porte `incertain` et `definitif` (aucun nouvel essai, donc aucun doublon).
- * @param {{ host: string, port: number, user: string, pass: string, timeoutMs?: number, ca?: string | Buffer }} smtp
+ * @param {{ host: string, port: number, user: string, pass: string, timeoutMs?: number, timeoutCorpsMs?: number, ca?: string | Buffer }} smtp
+ *   `timeoutMs` : délai du dialogue jusqu'à l'envoi du corps (10 s) ; `timeoutCorpsMs` : attente du 250 après le corps
+ *   (60 s, RFC 5321 §4.5.3.2.6 : un délai trop court à ce moment rend l'envoi incertain, donc jamais réessayé) ;
  *   `ca` : autorité de certification supplémentaire (relais interne, tests)
  * @param {{ from: string, to: string, subject: string, text: string, html?: string, replyTo?: string, headers?: Record<string, string> }} message
  */
@@ -212,6 +214,7 @@ export function envoyerSmtp(smtp, message) {
     return Promise.reject(Object.assign(erreur instanceof Error ? erreur : new Error('Message invalide.'), { definitif: true }));
   }
   const timeoutMs = smtp.timeoutMs ?? 10_000;
+  const timeoutCorpsMs = smtp.timeoutCorpsMs ?? 60_000;
   return new Promise((resolve, reject) => {
     /** Vrai dès que le corps est accepté : plus rien ne peut faire échouer cet envoi. */
     let accepte = false;
@@ -225,7 +228,8 @@ export function envoyerSmtp(smtp, message) {
       reject(erreur);
     };
     const socket = net.connect(smtp.port, smtp.host);
-    const delai = setTimeout(() => echec(new Error('Délai SMTP dépassé.')), timeoutMs);
+    /** Délai en cours : celui du dialogue, puis, une fois le corps parti, celui de l'attente du 250. */
+    let delai = setTimeout(() => echec(new Error('Délai SMTP dépassé.')), timeoutMs);
     delai.unref?.();
     let tampon = '';
     /** @type {import('node:net').Socket | import('node:tls').TLSSocket} */
@@ -303,6 +307,11 @@ export function envoyerSmtp(smtp, message) {
       }
       if (etape === 'data' && code === 354) {
         etape = 'corps';
+        // RFC 5321 §4.5.3.2.6 : le 250 peut tarder (jusqu'à 10 min). Le délai du dialogue cède la place au sien : trop
+        // court, il rendrait l'envoi incertain (jamais réessayé) alors que le relais traite encore le message.
+        clearTimeout(delai);
+        delai = setTimeout(() => echec(new Error('Délai SMTP dépassé après le corps.')), timeoutCorpsMs);
+        delai.unref?.();
         return envoyer(`${contenu}\r\n.`);
       }
       if (etape === 'corps' && code === 250) {
