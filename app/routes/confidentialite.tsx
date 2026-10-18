@@ -66,9 +66,9 @@ export default function Confidentialite() {
               <strong>Abonnement aux actualités</strong>&nbsp;: adresse email, date, texte et version du consentement,
               recueillis dans l’encart de l’accueil. La case d’accord est décochée par défaut et une vérification anti-robot
               protège l’inscription. Un email de confirmation vous est envoyé&nbsp;: vous devez cliquer sur son bouton pour
-              valider votre adresse. Sans confirmation, l’adresse est supprimée 30 jours après l’envoi de cet email, ou
-              30 jours après la demande si cet email n’a pas pu partir. Une même adresse inscrite comme spectatrice ou
-              spectateur et abonnée aux actualités n’a qu’une seule fiche d’envoi.
+              valider votre adresse. Sans confirmation, l’adresse est supprimée 30 jours après l’envoi de cet email, ou,
+              si cet email n’a pas pu partir, 30 jours après la demande ou après la dernière tentative d’envoi. Une même
+              adresse inscrite comme spectatrice ou spectateur et abonnée aux actualités n’a qu’une seule fiche d’envoi.
             </li>
             <li>
               <strong>Emails liés à vos dates</strong>&nbsp;: la ou les dates que vous suivez (conservées tant que votre
@@ -162,8 +162,8 @@ export default function Confidentialite() {
             </li>
             <li>Journal des emails envoyés (date, type d’email, date concernée, résultat)&nbsp;: 12 mois, puis supprimé.</li>
             <li>
-              Adresses jamais confirmées&nbsp;: supprimées 30 jours après l’envoi de l’email de confirmation, ou 30 jours
-              après la demande si cet email n’a pas pu partir.
+              Adresses jamais confirmées&nbsp;: supprimées 30 jours après l’envoi de l’email de confirmation, ou, si cet
+              email n’a pas pu partir, 30 jours après la demande ou après la dernière tentative d’envoi.
             </li>
             <li>Comptes spectateurs inactifs&nbsp;: supprimés après 24 mois d’inactivité.</li>
             <li>Mesures techniques agrégées et derniers signaux d’activité&nbsp;: conservation de 30 jours.</li>

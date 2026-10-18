@@ -76,7 +76,15 @@ test('les bases légales des emails, la désinscription et les sous-traitants su
   await expect(section(page, 'Données collectées')).toContainText('Vous devez avoir au moins 15 ans, ou l’accord d’un titulaire de l’autorité parentale.');
   await expect(section(page, 'Destinataires')).toContainText('Google (Google Analytics, Google Ads) et Meta (Meta Pixel)');
   await expect(section(page, 'Durée de conservation')).toContainText('au plus 3 ans après votre dernière action');
-  await expect(section(page, 'Durée de conservation')).toContainText('ou 30 jours après la demande si cet email n’a pas pu partir');
+  // Purge des demandes jamais confirmées (règle B) : 30 jours après la demande ou après la dernière tentative.
+  await expect(section(page, 'Durée de conservation')).toContainText(
+    'ou, si cet email n’a pas pu partir, 30 jours après la demande ou après la dernière tentative d’envoi.',
+  );
+  await expect(section(page, 'Données collectées')).toContainText(
+    'Sans confirmation, l’adresse est supprimée 30 jours après l’envoi de cet email, ou, si cet email n’a pas pu partir, '
+      + '30 jours après la demande ou après la dernière tentative d’envoi.',
+  );
+  await expect(page.getByText(/30 jours après la demande si cet email/)).toHaveCount(0);
   await expect(section(page, 'Traceurs et stockage local')).toContainText('Nos emails ne contiennent aucun pixel de suivi');
   const soustraitants = section(page, 'Sous-traitants et transferts');
   await expect(soustraitants.getByRole('listitem').filter({ hasText: 'TPMGE' })).toContainText('pour le compte de l’organisateur');
