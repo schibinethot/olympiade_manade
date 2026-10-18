@@ -4,15 +4,24 @@
 //
 // Le texte de l'admin et toutes les valeurs sont échappés. Seule cette syntaxe produit du balisage :
 //   ligne vide                        sépare deux paragraphes
+//   # Titre                           titre de l'e-mail (un par e-mail), seul sur sa ligne
 //   **gras**                          gras
 //   [texte](url)                      lien ; url = https://… ou {{lien_*}}, tout autre schéma reste du texte
 //   - élément                         élément de liste
 //   [[Texte du bouton|url]]           bouton, seul sur sa ligne
-//   {{prochaines_dates}}              liste de dates, seule sur sa ligne (de même {{dates_annoncees}})
+//   {{prochaines_dates}}              tableau de dates avec « Je viens », seul sur sa ligne (de même {{dates_annoncees}})
 //
-// Règle « au fur et à mesure » : une ligne (élément de liste, bouton) qui contient une variable sans
-// valeur disparaît. Sauf {{prenom}} : la variable et l'espace qui la précède sont retirés, la ligne
-// reste. Une variable inconnue est rendue vide, sans retirer la ligne.
+// Règle « au fur et à mesure » : une ligne (paragraphe, élément de liste, bouton) qui contient une variable
+// sans valeur disparaît. Sauf {{prenom}} : la variable et l'espace qui la précède sont retirés, la ligne
+// reste. Une variable inconnue est rendue vide, sans retirer la ligne. Un {{lien_*}} seul, hors d'un lien,
+// affiche le nom de domaine.
+
+import { CONSENTEMENT_ANNONCES_TEXTE, CONSENTEMENT_ANNONCES_VERSION } from './consentements.mjs';
+import { jourDesSoirees, lireJour } from './fuseau-paris.mjs';
+
+// Textes de consentement : source unique serveur/consentements.mjs (copié à l'identique dans la migration
+// 20261017160000_sequence_emails.sql). Réexportés pour les appelants existants.
+export { CONSENTEMENT_ANNONCES_TEXTE, CONSENTEMENT_ANNONCES_VERSION, lireJour };
 
 /**
  * Une ligne `dates` de la RPC `emails_a_traiter` (tâche 1).
@@ -35,10 +44,18 @@
 /** @typedef {DateEnrichie & { lienJeViens: string | null }} DateAnnoncee */
 
 /**
+ * Contexte du rendu. Champs ajoutés par la vague finale (facultatifs pour les appelants anciens) :
+ * - `etape` : la raison de l'envoi, dans le pied, dépend du type d'e-mail (revue juridique C1) ;
+ * - `annonces` : la personne a consenti aux annonces ; sans lui, {{lien_dates}} n'est fourni que pour
+ *   l'annonce et les prochaines dates (revue juridique B3) ;
+ * - `organisateur` : ligne d'identité du pied (revue juridique B4) ; absente si nulle.
  * @typedef {{
  *   prenom: string | null,
  *   maintenant: Date,
  *   origine: string,
+ *   etape?: Etape,
+ *   annonces?: boolean,
+ *   organisateur?: string | null,
  *   date: DateEnrichie | null,
  *   prochaines: DateAnnoncee[],
  *   annoncees: DateAnnoncee[],
@@ -80,12 +97,7 @@ export const ETAPES = Object.freeze(/** @type {const} */ ([
  * }} VariableEmail
  */
 
-// Copié à l'identique dans la migration 20261017160000_sequence_emails.sql.
-export const CONSENTEMENT_ANNONCES_TEXTE = 'J’accepte de recevoir par email l’annonce des prochaines dates de l’Olympiade des Manades.';
-export const CONSENTEMENT_ANNONCES_VERSION = '2026-10-17';
-
 const NB = '\u00a0';
-const FUSEAU = 'Europe/Paris';
 const SITE = 'https://olympiadedesmanades.fr';
 /** À partir de cette heure, le jour même s'écrit « ce soir » plutôt que « aujourd'hui ». */
 const HEURE_DU_SOIR = 18;
@@ -93,11 +105,11 @@ const HEURE_DU_SOIR = 18;
 /** @type {readonly VariableEmail[]} */
 export const VARIABLES = Object.freeze(/** @type {VariableEmail[]} */ ([
   { cle: 'prenom', libelle: 'Prénom', groupe: 'Personne', exemple: 'Camille' },
-  { cle: 'date', libelle: 'Date', groupe: 'Date', exemple: 'samedi 31 juillet 2027' },
-  { cle: 'date_courte', libelle: 'Date courte', groupe: 'Date', exemple: 'sam. 31/07' },
+  { cle: 'date', libelle: 'Date', groupe: 'Date', exemple: `samedi 31${NB}juillet 2027` },
+  { cle: 'date_courte', libelle: 'Date courte', groupe: 'Date', exemple: `sam.${NB}31/07` },
   { cle: 'jour', libelle: 'Jour', groupe: 'Date', exemple: 'samedi' },
-  { cle: 'heure', libelle: 'Heure', groupe: 'Date', exemple: '21 h 30' },
-  { cle: 'compte_a_rebours', libelle: 'Compte à rebours', groupe: 'Date', exemple: 'dans 7 jours' },
+  { cle: 'heure', libelle: 'Heure', groupe: 'Date', exemple: `21${NB}h${NB}30` },
+  { cle: 'compte_a_rebours', libelle: 'Compte à rebours', groupe: 'Date', exemple: `dans 7${NB}jours` },
   { cle: 'jours_restants', libelle: 'Jours restants', groupe: 'Date', exemple: '7' },
   { cle: 'annee', libelle: 'Année', groupe: 'Date', exemple: '2027' },
   { cle: 'nom_evenement', libelle: 'Nom de l’événement', groupe: 'Lieu', exemple: 'Rencontre des manades' },
@@ -106,14 +118,14 @@ export const VARIABLES = Object.freeze(/** @type {VariableEmail[]} */ ([
   { cle: 'infos_pratiques', libelle: 'Infos pratiques', groupe: 'Infos', exemple: 'Parking gratuit derrière les arènes.' },
   { cle: 'manades', libelle: 'Manades engagées', groupe: 'Infos', exemple: 'Arlatenco, Vinuesa, Bon' },
   { cle: 'vainqueur', libelle: 'Vainqueur', groupe: 'Infos', exemple: 'Manade Vinuesa' },
-  { cle: 'prochaines_dates', libelle: 'Prochaines dates (liste)', groupe: 'Infos', exemple: 'sam. 31/07 · Sommières, Arènes Gilles Arnaud · 21 h 30' },
-  { cle: 'dates_annoncees', libelle: 'Dates annoncées (liste)', groupe: 'Infos', exemple: 'ven. 30/07 · Marsillargues, Arènes Marcel Guillarmet · 21 h 30' },
+  { cle: 'prochaines_dates', libelle: 'Prochaines dates (liste)', groupe: 'Infos', exemple: `sam.${NB}31/07${NB}· Sommières, Arènes Gilles Arnaud${NB}· 21${NB}h${NB}30` },
+  { cle: 'dates_annoncees', libelle: 'Dates annoncées (liste)', groupe: 'Infos', exemple: `ven.${NB}30/07${NB}· Marsillargues, Arènes Marcel Guillarmet${NB}· 21${NB}h${NB}30` },
   { cle: 'lien_billetterie', libelle: 'Lien de la billetterie', groupe: 'Liens', exemple: 'https://billetterie.exemple.fr' },
   { cle: 'lien_noter', libelle: 'Lien pour noter', groupe: 'Liens', exemple: `${SITE}/noter` },
   { cle: 'lien_classement', libelle: 'Lien du classement', groupe: 'Liens', exemple: `${SITE}/classements` },
   { cle: 'lien_dates', libelle: 'Lien du calendrier', groupe: 'Liens', exemple: `${SITE}/dates` },
-  { cle: 'lien_je_viens', libelle: `Lien «${NB}Je viens${NB}»`, groupe: 'Liens', exemple: `${SITE}/emails/je-viens?j=…` },
-  { cle: 'lien_confirmation', libelle: 'Lien de confirmation', groupe: 'Liens', exemple: `${SITE}/emails/confirmation?j=…` },
+  { cle: 'lien_je_viens', libelle: `Lien «${NB}Je viens${NB}»`, groupe: 'Liens', exemple: `${SITE}/emails/je-viens#j=…` },
+  { cle: 'lien_confirmation', libelle: 'Lien de confirmation', groupe: 'Liens', exemple: `${SITE}/emails/confirmation#j=…` },
 ]).map((variable) => Object.freeze(variable)));
 
 const CONNUES = new Set(VARIABLES.map((variable) => variable.cle));
@@ -127,16 +139,21 @@ function typo(/** @type {string} */ texte) {
 
 const lignes = (/** @type {string[]} */ ...contenu) => contenu.join('\n');
 
+// Textes du prototype de la revue design (titres, billetterie en lien ou en bouton, pré-en-têtes), corrigés par
+// la revue juridique, qui prévaut : phrase d'opposition dans la bienvenue (B1), lien vers les prochaines dates
+// du lendemain réservé aux consentants par {{lien_dates}} (B3), objet du lendemain (S3).
 /** @type {Record<Etape, ModeleDefaut>} */
 const MODELES_BRUTS = {
   confirmation: {
     nom: 'Confirmation de l’adresse',
     sujet: 'Confirmez votre adresse email',
-    preheader: 'Un clic, et vous recevrez les nouvelles de l’Olympiade des Manades.',
+    preheader: 'Une dernière étape avant de recevoir les nouvelles de l’Olympiade des Manades.',
     corps: lignes(
+      '# Plus qu\'une étape',
+      '',
       'Bonjour {{prenom}},',
       '',
-      'Merci de suivre l’Olympiade des Manades ! Il reste une étape : confirmer votre adresse.',
+      'Merci de suivre l’Olympiade des Manades ! Confirmez votre adresse pour recevoir les rappels, les dates et les résultats.',
       '',
       '[[Confirmer mon adresse|{{lien_confirmation}}]]',
       '',
@@ -151,11 +168,15 @@ const MODELES_BRUTS = {
     sujet: 'Bienvenue à l’Olympiade des Manades !',
     preheader: 'Rappels, notes et résultats : voici ce que vous allez recevoir.',
     corps: lignes(
+      '# Le soir venu, vous notez aussi',
+      '',
       'Bonjour {{prenom}},',
       '',
-      'Bienvenue à l’Olympiade des Manades ! Le soir venu, le public note les manades, en direct, aux côtés du jury.',
+      'Votre adresse est confirmée : bienvenue à l’Olympiade des Manades, où le public note les manades en direct, aux côtés du jury.',
       '',
       'Avant votre soirée, vous recevrez l’heure, les arènes et la billetterie. Le lendemain, le vainqueur et le classement.',
+      '',
+      'Vous ne souhaitez pas recevoir ces rappels ? Le lien de désinscription, en bas de chaque email, les arrête à tout moment, sans connexion.',
       '',
       'Votre prochaine date : **{{date}}** à {{ville}}.',
       '',
@@ -163,15 +184,12 @@ const MODELES_BRUTS = {
     ),
     encart: lignes(
       '**{{nom_evenement}} à {{ville}}, c’est {{compte_a_rebours}} !**',
-      '- Date : {{date}}',
       '- Heure : {{heure}}',
       '- Arènes : {{arenes}}',
-      '- Billetterie : {{lien_billetterie}}',
+      '- Billetterie : [réserver mes places]({{lien_billetterie}})',
       '{{infos_pratiques}}',
       '',
       '[[Je note les manades|{{lien_noter}}]]',
-      '',
-      'Vous recevrez la suite au fur et à mesure.',
     ),
     jours_decalage: null,
     heure_envoi: null,
@@ -179,18 +197,21 @@ const MODELES_BRUTS = {
   j_moins_7: {
     nom: 'Une semaine avant',
     sujet: 'L’Olympiade à {{ville}}, c’est {{compte_a_rebours}}',
-    preheader: 'Tout ce qu’il faut savoir avant votre soirée.',
+    preheader: 'Rendez-vous {{date}} : l’heure, les arènes et les manades engagées.',
     corps: lignes(
+      '# {{ville}}, {{compte_a_rebours}}',
+      '',
       'Bonjour {{prenom}},',
       '',
-      'L’Olympiade des Manades, c’est {{compte_a_rebours}} : **{{date}}** à {{ville}}.',
+      'L’Olympiade des Manades vous attend **{{date}}** à {{ville}}.',
       '',
       '- Heure : {{heure}}',
       '- Arènes : {{arenes}}',
       '- Manades engagées : {{manades}}',
-      '- Billetterie : {{lien_billetterie}}',
       '',
-      'Un conseil : inscrivez-vous dès maintenant pour noter les manades, car le soir venu le réseau sature souvent dans les arènes. [Je m’inscris]({{lien_noter}})',
+      '[[Réserver mes places|{{lien_billetterie}}]]',
+      '',
+      'Un conseil : inscrivez-vous dès maintenant pour noter les manades, car le soir venu le réseau sature souvent dans les arènes. [Je m’inscris pour noter]({{lien_noter}})',
       '',
       'À bientôt à {{ville}} !',
     ),
@@ -203,13 +224,15 @@ const MODELES_BRUTS = {
     sujet: 'C’est {{compte_a_rebours}} : l’Olympiade à {{ville}} !',
     preheader: 'L’heure, les arènes et les infos pratiques pour votre soirée.',
     corps: lignes(
+      '# C\'est {{compte_a_rebours}}, à {{ville}}',
+      '',
       'Bonjour {{prenom}},',
       '',
-      'C’est {{compte_a_rebours}} ! Rendez-vous {{date}} à {{ville}}.',
+      'Rendez-vous **{{date}}** à {{ville}}.',
       '',
       '- Heure : {{heure}}',
       '- Arènes : {{arenes}}',
-      '- Billetterie : {{lien_billetterie}}',
+      '- Billetterie : [réserver mes places]({{lien_billetterie}})',
       '',
       '{{infos_pratiques}}',
       '',
@@ -224,11 +247,13 @@ const MODELES_BRUTS = {
   jour_j: {
     nom: 'Le jour J',
     sujet: 'C’est {{compte_a_rebours}} à {{ville}} !',
-    preheader: 'L’heure, les arènes et les infos pratiques du jour.',
+    preheader: 'Votre lien pour noter les manades, à garder pour ce soir.',
     corps: lignes(
+      '# C\'est {{compte_a_rebours}}',
+      '',
       'Bonjour {{prenom}},',
       '',
-      'C’est {{compte_a_rebours}} : l’Olympiade des Manades vous attend à {{ville}}.',
+      'L’Olympiade des Manades vous attend à {{ville}}.',
       '',
       '- Heure : {{heure}}',
       '- Arènes : {{arenes}}',
@@ -245,18 +270,18 @@ const MODELES_BRUTS = {
   },
   lendemain: {
     nom: 'Le lendemain',
-    sujet: 'Merci pour la soirée à {{ville}} !',
-    preheader: 'Merci pour cette soirée, et rendez-vous pour la suite de la saison.',
+    sujet: 'Les résultats de la soirée à {{ville}}',
+    preheader: 'Le vainqueur et le classement complet de la soirée.',
     corps: lignes(
+      '# {{vainqueur}}, vainqueur à {{ville}}',
+      '',
       'Bonjour {{prenom}},',
       '',
-      'Merci d’avoir suivi l’Olympiade des Manades à {{ville}}, le {{date}} !',
+      'Merci d’avoir suivi l’Olympiade des Manades à {{ville}}, le {{date}}.',
       '',
-      'Vainqueur de la soirée : **{{vainqueur}}**',
+      '[[Voir le classement complet|{{lien_classement}}]]',
       '',
-      '[Voir le classement complet]({{lien_classement}})',
-      '',
-      'La saison continue ! [Voir les prochaines dates]({{lien_dates}})',
+      'La saison continue : [voir les prochaines dates]({{lien_dates}}).',
       '',
       'À bientôt dans les arènes !',
     ),
@@ -266,12 +291,14 @@ const MODELES_BRUTS = {
   },
   prochaines_dates: {
     nom: 'Les prochaines dates',
-    sujet: 'La saison continue : les prochaines dates de l’Olympiade',
-    preheader: 'Les prochaines soirées de la saison.',
+    sujet: 'La saison continue : vos prochaines dates',
+    preheader: 'Dites-nous à quelle soirée vous viendrez.',
     corps: lignes(
+      '# Après {{ville}}, la suite',
+      '',
       'Bonjour {{prenom}},',
       '',
-      'Merci encore d’avoir suivi l’Olympiade des Manades à {{ville}}, le {{date}}. La saison continue !',
+      'L’Olympiade des Manades poursuit sa route. Dites-nous où vous viendrez :',
       '',
       '{{prochaines_dates}}',
       '',
@@ -284,11 +311,13 @@ const MODELES_BRUTS = {
   annonce: {
     nom: 'Annonce d’une date',
     sujet: 'L’Olympiade des Manades revient {{compte_a_rebours}}',
-    preheader: 'Les prochaines soirées de l’Olympiade des Manades.',
+    preheader: 'Le {{date}} à {{ville}} : serez-vous dans les arènes ?',
     corps: lignes(
+      '# {{ville}}, {{compte_a_rebours}}',
+      '',
       'Bonjour {{prenom}},',
       '',
-      'L’Olympiade des Manades revient {{compte_a_rebours}}, le {{date}} à {{ville}} !',
+      'L’Olympiade des Manades revient le **{{date}}** à {{ville}}. Dites-nous si vous venez :',
       '',
       '{{dates_annoncees}}',
       '',
@@ -298,6 +327,7 @@ const MODELES_BRUTS = {
     jours_decalage: -10,
     heure_envoi: '10:00',
   },
+  // Inchangé : sa phrase « Écrivez ici… » sert de garde (le texte d'exemple ne part jamais tel quel).
   message: {
     nom: 'Message aux inscrits d’une date',
     sujet: 'Olympiade à {{ville}} : une information importante',
@@ -337,35 +367,17 @@ export const MODELES_DEFAUT = /** @type {Readonly<Record<Etape, Readonly<ModeleD
 const JOUR_LONG = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', timeZone: 'UTC' });
 const JOUR_COURT = new Intl.DateTimeFormat('fr-FR', { weekday: 'short', timeZone: 'UTC' });
 const MOIS_LONG = new Intl.DateTimeFormat('fr-FR', { month: 'long', timeZone: 'UTC' });
-const JOUR_PARIS = new Intl.DateTimeFormat('en-US', { timeZone: FUSEAU, year: 'numeric', month: 'numeric', day: 'numeric' });
 
-/** Minuit UTC du jour civil de Paris où tombe `instant`. */
-function jourParis(/** @type {Date} */ instant) {
-  const parties = JOUR_PARIS.formatToParts(instant);
-  const lire = (/** @type {string} */ type) => Number(parties.find((partie) => partie.type === type)?.value);
-  return Date.UTC(lire('year'), lire('month') - 1, lire('day'));
-}
-
-/**
- * Jour calendaire strict (le 31/02 est refusé), à minuit UTC. Partagé avec echeances-emails.mjs.
- * @param {string} dateIso « AAAA-MM-JJ »
- */
-export function lireJour(dateIso) {
-  const morceaux = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateIso);
-  const utc = morceaux ? new Date(Date.UTC(Number(morceaux[1]), Number(morceaux[2]) - 1, Number(morceaux[3]))) : null;
-  if (!morceaux || !utc || utc.getUTCDate() !== Number(morceaux[3])) throw new RangeError(`Date invalide : ${dateIso}`);
-  return { annee: morceaux[1], mois: morceaux[2], jour: morceaux[3], utc };
-}
-
-/** « 21:30:00 » → « 21 h 30 », « 10:00 » → « 10 h ». */
+/** « 21:30:00 » → « 21 h 30 », « 10:00 » → « 10 h » (espaces insécables). */
 function formaterHeure(/** @type {string | null} */ heure) {
   const morceaux = heure ? /^(\d{1,2}):(\d{2})/.exec(heure) : null;
   if (!morceaux) return null;
   const heures = Number(morceaux[1]);
-  return morceaux[2] === '00' ? `${heures} h` : `${heures} h ${morceaux[2]}`;
+  return morceaux[2] === '00' ? `${heures}${NB}h` : `${heures}${NB}h${NB}${morceaux[2]}`;
 }
 
 /**
+ * Formats d'une date, avec les espaces insécables qui empêchent « 31 / juillet » ou « sam. / 31/07 ».
  * @param {string} dateIso « AAAA-MM-JJ »
  * @param {string | null} heure « HH:MM:SS » ou « HH:MM »
  * @returns {{ date: string, date_courte: string, jour: string, heure: string | null, annee: string }}
@@ -375,8 +387,8 @@ export function formaterDate(dateIso, heure) {
   const quantieme = Number(jour) === 1 ? '1er' : String(Number(jour));
   const jourLong = JOUR_LONG.format(utc);
   return {
-    date: `${jourLong} ${quantieme} ${MOIS_LONG.format(utc)} ${annee}`,
-    date_courte: `${JOUR_COURT.format(utc)} ${jour}/${mois}`,
+    date: `${jourLong} ${quantieme}${NB}${MOIS_LONG.format(utc)} ${annee}`,
+    date_courte: `${JOUR_COURT.format(utc)}${NB}${jour}/${mois}`,
     jour: jourLong,
     heure: formaterHeure(heure),
     annee,
@@ -384,8 +396,10 @@ export function formaterDate(dateIso, heure) {
 }
 
 /**
- * Jours de Paris entre `maintenant` et la date : « dans 7 jours », « demain », « ce soir » (ou
- * « aujourd'hui » avant 18 h), « hier ». Au-delà de la veille passée, pas de texte.
+ * Jours entre le « jour des soirées » de `maintenant` (bascule à 06:00, Paris) et la date : « dans 7 jours »,
+ * « demain », « ce soir » (ou « aujourd'hui » avant 18 h), « hier ». Une inscription à 00 h 30, pendant la
+ * soirée, lit donc encore « ce soir ». Au-delà de la veille passée, pas de texte. Un instant invalide lève une
+ * erreur.
  * @param {string} dateIso
  * @param {string | null} heure
  * @param {Date} maintenant
@@ -393,22 +407,25 @@ export function formaterDate(dateIso, heure) {
  */
 export function compteARebours(dateIso, heure, maintenant) {
   const cible = lireJour(dateIso).utc.getTime();
-  const jours = Math.round((cible - jourParis(maintenant)) / 86_400_000);
+  const jours = Math.round((cible - lireJour(jourDesSoirees(maintenant.getTime())).utc.getTime()) / 86_400_000);
   const heures = heure ? Number(heure.split(':')[0]) : null;
   /** @type {string | null} */
   let texte = null;
-  if (jours > 1) texte = `dans ${jours} jours`;
+  if (jours > 1) texte = `dans ${jours}${NB}jours`;
   else if (jours === 1) texte = 'demain';
   else if (jours === 0) texte = heures !== null && heures >= HEURE_DU_SOIR ? 'ce soir' : 'aujourd’hui';
   else if (jours === -1) texte = 'hier';
   return { texte, jours };
 }
 
-/** « sam. 31/07 · Sommières, Arènes Gilles Arnaud · 21 h 30 » */
+/** Date prévisionnelle : sa ligne le dit. */
+const A_CONFIRMER = 'date à confirmer';
+
+/** « sam. 31/07 · Sommières, Arènes Gilles Arnaud · 21 h 30 » (« · date à confirmer » si prévisionnelle). */
 function libelleDate(/** @type {DateEnrichie} */ date) {
   const { date_courte, heure } = formaterDate(date.date_soiree, date.heure);
   const lieu = [nettoyer(date.ville), nettoyer(date.arenes)].filter(Boolean).join(', ');
-  return [date_courte, lieu, heure].filter(Boolean).join(' · ');
+  return [date_courte, lieu, heure, date.statut === 'previsionnelle' ? A_CONFIRMER : null].filter(Boolean).join(`${NB}· `);
 }
 
 // ——— Variables ———
@@ -440,6 +457,20 @@ function urlSure(/** @type {string | null | undefined} */ valeur) {
   return propre && RE_URL_VALEUR.test(propre) ? propre : null;
 }
 
+/** Nom de domaine d'une URL sûre, sans « www. » : texte d'un {{lien_*}} seul. */
+function domaine(/** @type {string} */ url) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
+}
+
+/** Heures des infos pratiques saisies par l'admin : « 20 h 30 » ne se coupe pas. */
+function insecablesHeures(/** @type {string | null} */ texte) {
+  return texte === null ? null : texte.replace(/(\d) h (\d)/g, `$1${NB}h${NB}$2`).replace(/(\d) h\b/g, `$1${NB}h`);
+}
+
 /**
  * @typedef {{
  *   cible: CibleEmail,
@@ -447,8 +478,12 @@ function urlSure(/** @type {string | null | undefined} */ valeur) {
  *   valeurs: Map<string, string | null>,
  *   listes: Map<string, DateAnnoncee[]>,
  *   prenomAbsent: boolean,
+ *   dansEncart: boolean,
  * }} Rendu
  */
+
+/** Étapes qui, par nature, annoncent d'autres dates : {{lien_dates}} y est fourni sans condition (B3). */
+const ETAPES_D_ANNONCE = new Set(['annonce', 'prochaines_dates']);
 
 /**
  * @param {ContexteEmail} contexte
@@ -463,7 +498,10 @@ function preparer(contexte, cible) {
   /** @type {Map<string, string | null>} */
   const valeurs = new Map(VARIABLES.map((variable) => [variable.cle, null]));
   valeurs.set('prenom', nettoyer(contexte.prenom));
-  valeurs.set('lien_dates', urlSure(`${base}/dates`));
+  // Revue juridique B3 : le lien vers les autres dates n'est fourni qu'à une personne qui a consenti aux
+  // annonces, ou dans l'annonce et les prochaines dates (envoyées aux seuls consentants).
+  const datesPermises = contexte.annonces === true || (contexte.etape !== undefined && ETAPES_D_ANNONCE.has(contexte.etape));
+  valeurs.set('lien_dates', datesPermises ? urlSure(`${base}/dates`) : null);
   valeurs.set('lien_je_viens', urlSure(contexte.liens.jeViens));
   valeurs.set('lien_confirmation', urlSure(contexte.liens.confirmation));
   if (date) {
@@ -481,7 +519,7 @@ function preparer(contexte, cible) {
       ['nom_evenement', nettoyer(date.nom)],
       ['ville', nettoyer(date.ville)],
       ['arenes', nettoyer(date.arenes)],
-      ['infos_pratiques', nettoyer(date.infos_pratiques)],
+      ['infos_pratiques', insecablesHeures(nettoyer(date.infos_pratiques))],
       ['manades', nettoyer((date.manades ?? []).filter(Boolean).join(', '))],
       ['vainqueur', nettoyer(date.vainqueur)],
       ['lien_billetterie', urlSure(date.lien_billetterie)],
@@ -493,7 +531,7 @@ function preparer(contexte, cible) {
     ['prochaines_dates', contexte.prochaines ?? []],
     ['dates_annoncees', contexte.annoncees ?? []],
   ]);
-  return { cible, base, valeurs, listes, prenomAbsent: valeurs.get('prenom') === null };
+  return { cible, base, valeurs, listes, prenomAbsent: valeurs.get('prenom') === null, dansEncart: false };
 }
 
 /** Valeur texte d'une variable, ou null si elle est inconnue ou vide. */
@@ -529,7 +567,9 @@ function resoudreUrl(/** @type {string} */ source, /** @type {Rendu} */ rendu) {
 
 // ——— Charte et styles ———
 
-const POLICE = 'Inter,-apple-system,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif';
+// Pile sans Roboto : Chromium tombait sur une Roboto installée sans graisse Regular (texte « tout en gras »).
+const POLICE = 'Inter,-apple-system,BlinkMacSystemFont,\'Segoe UI\',Helvetica,Arial,sans-serif';
+const POLICE_TITRE = '\'Playfair Display\',Georgia,\'Times New Roman\',serif';
 const COULEURS = Object.freeze({
   sable: '#f7f4ed', creme: '#fcfbf7', lin: '#efe7d8', trait: '#e3dacb',
   encre: '#1c1912', encre2: '#5a5246', or: '#b78649', orInk: '#88693c',
@@ -538,22 +578,34 @@ const COULEURS = Object.freeze({
 const LOGO = Object.freeze({ largeur: 120, hauteur: 46 });
 
 // Mêmes déclarations en ligne dans l'email et en classes `ee-*` dans l'aperçu : l'aperçu ne diverge pas.
+// Outlook (moteur Word) : line-height en px avec mso-line-height-rule, police redéclarée dans l'encart.
 const STYLES = Object.freeze({
   fond: `padding:24px 12px;background-color:${COULEURS.sable}`,
   carte: `width:100%;max-width:600px;margin:0 auto;background-color:${COULEURS.creme};border:1px solid ${COULEURS.trait};border-radius:16px;border-collapse:separate;overflow:hidden`,
-  filet: `height:4px;line-height:4px;font-size:0;background-color:${COULEURS.or}`,
+  filet: `height:4px;line-height:4px;font-size:4px;mso-line-height-rule:exactly;background-color:${COULEURS.or};border-radius:16px 16px 0 0`,
   entete: 'padding:28px 24px 0',
-  logo: `display:block;width:${LOGO.largeur}px;height:auto;border:0`,
-  corps: `padding:20px 24px 8px;font-family:${POLICE};font-size:16px;line-height:1.6;color:${COULEURS.encre};text-align:left`,
+  logo: `display:block;width:${LOGO.largeur}px;height:auto;border:0;font-family:${POLICE_TITRE};font-size:18px;font-weight:700;line-height:24px;color:${COULEURS.encre}`,
+  corps: `padding:20px 24px 8px;font-family:${POLICE};font-size:16px;font-weight:400;line-height:26px;mso-line-height-rule:exactly;color:${COULEURS.encre};text-align:left`,
+  titre: `margin:0 0 16px;font-family:${POLICE_TITRE};font-size:26px;font-weight:700;line-height:32px;mso-line-height-rule:exactly;color:${COULEURS.encre}`,
   p: 'margin:0 0 16px',
-  liste: 'margin:0 0 16px;padding:0 0 0 22px;list-style:disc',
+  liste: 'margin:0 0 16px 22px;padding:0;list-style:disc',
   element: 'margin:0 0 6px',
   lien: `color:${COULEURS.orInk};text-decoration:underline;word-break:break-word`,
+  // Lien dans l'encart (fond lin) : l'encre, soulignée, atteint le contraste AA (l'or n'y faisait que 4,14:1).
+  lienEncart: `color:${COULEURS.encre};text-decoration:underline;word-break:break-word`,
   boutonLigne: 'margin:8px 0 24px',
   bouton: `display:inline-block;padding:14px 26px;border-radius:12px;background-color:${COULEURS.encre};color:${COULEURS.creme};font-family:${POLICE};font-size:16px;font-weight:600;line-height:1.2;text-align:center;text-decoration:none`,
-  encart: `padding:20px 22px 4px;background-color:${COULEURS.lin};border:1px solid ${COULEURS.or};border-radius:12px`,
-  pied: `max-width:600px;margin:0 auto;padding:20px 24px 4px;font-family:${POLICE};font-size:13px;line-height:1.5;color:${COULEURS.encre2};text-align:center`,
+  dates: `width:100%;margin:0 0 20px;border-collapse:collapse;border-top:1px solid ${COULEURS.trait}`,
+  date: `padding:14px 0;border-bottom:1px solid ${COULEURS.trait};font-family:${POLICE};font-size:16px;line-height:24px;mso-line-height-rule:exactly;color:${COULEURS.encre}`,
+  dateDetail: `font-size:14px;line-height:22px;color:${COULEURS.encre2}`,
+  dateAction: `padding:14px 0 14px 12px;border-bottom:1px solid ${COULEURS.trait};text-align:right;vertical-align:middle;white-space:nowrap`,
+  pastille: `display:inline-block;padding:9px 16px;border-radius:999px;font-family:${POLICE};font-size:14px;font-weight:600;line-height:20px;color:${COULEURS.encre};text-decoration:none;white-space:nowrap`,
+  encart: `padding:20px 22px 4px;background-color:${COULEURS.lin};border:1px solid ${COULEURS.or};border-radius:12px;font-family:${POLICE};font-size:16px;line-height:26px;mso-line-height-rule:exactly;color:${COULEURS.encre}`,
+  pied: `max-width:600px;margin:0 auto;padding:20px 24px 4px;font-family:${POLICE};font-size:13px;line-height:20px;mso-line-height-rule:exactly;color:${COULEURS.encre2};text-align:center`,
 });
+
+/** Contour de la pastille « Je viens » : sur sa cellule dans l'email (Outlook), sur le lien dans l'aperçu. */
+const CONTOUR_PASTILLE = `border:1px solid ${COULEURS.encre};border-radius:999px`;
 
 /** Marge de l'encart : sur son tableau dans l'email (Outlook ignore la marge d'une cellule), sur le bloc dans l'aperçu. */
 const MARGE_ENCART = 'margin:8px 0 20px';
@@ -566,14 +618,22 @@ const REGLES_APERCU = Object.freeze([
   ['.apercu-email .ee-entete', STYLES.entete],
   ['.apercu-email .ee-logo', STYLES.logo],
   ['.apercu-email .ee-corps', STYLES.corps],
+  ['.apercu-email .ee-titre', STYLES.titre],
   ['.apercu-email .ee-p', STYLES.p],
   ['.apercu-email .ee-liste', STYLES.liste],
   ['.apercu-email .ee-element', STYLES.element],
   ['.apercu-email .ee-lien', STYLES.lien],
+  ['.apercu-email .ee-encart .ee-lien', STYLES.lienEncart],
   ['.apercu-email .ee-bouton-ligne', STYLES.boutonLigne],
   ['.apercu-email .ee-bouton', STYLES.bouton],
+  ['.apercu-email .ee-dates', STYLES.dates],
+  ['.apercu-email .ee-date', STYLES.date],
+  ['.apercu-email .ee-date-detail', STYLES.dateDetail],
+  ['.apercu-email .ee-date-action', STYLES.dateAction],
+  ['.apercu-email .ee-pastille', `${STYLES.pastille};${CONTOUR_PASTILLE}`],
   ['.apercu-email .ee-encart', `${MARGE_ENCART};${STYLES.encart}`],
   ['.apercu-email .ee-pied', STYLES.pied],
+  ['.apercu-email .ee-identite', 'display:block;margin:6px 0 0'],
   ['.apercu-email strong', 'font-weight:700'],
 ]);
 
@@ -606,15 +666,19 @@ function apparence(/** @type {Rendu} */ rendu, /** @type {keyof typeof STYLES} *
  * @param {string} href
  * @param {string} contenuHtml
  * @param {Rendu} rendu
- * @param {keyof typeof STYLES} [style]
+ * @param {keyof typeof STYLES} [style] par défaut le lien, à l'encre dans l'encart
  * @param {string} [classe]
  */
-function ancre(href, contenuHtml, rendu, style = 'lien', classe = 'ee-lien') {
-  return `<a href="${echapper(href)}" target="_blank" rel="noopener noreferrer" ${apparence(rendu, style, classe)}>${contenuHtml}</a>`;
+function ancre(href, contenuHtml, rendu, style, classe = 'ee-lien') {
+  const choisi = style ?? (rendu.dansEncart ? 'lienEncart' : 'lien');
+  return `<a href="${echapper(href)}" target="_blank" rel="noopener noreferrer" ${apparence(rendu, choisi, classe)}>${contenuHtml}</a>`;
 }
 
-/** Texte d'un lien dans la version texte : « texte : url ». */
+/** Bouton ou lien seul sur sa ligne, dans la version texte : « texte : url ». */
 const lienTexte = (/** @type {string} */ texte, /** @type {string} */ url) => `${texte}${NB}: ${url}`;
+
+/** Lien dans une phrase, dans la version texte : « texte (url) ». */
+const lienDansTexte = (/** @type {string} */ texte, /** @type {string} */ url) => `${texte} (${url})`;
 
 /**
  * @param {string} nom
@@ -625,7 +689,8 @@ const lienTexte = (/** @type {string} */ texte, /** @type {string} */ url) => `$
 function rendreVariable(nom, rendu, dansLien) {
   const valeur = valeurTexte(nom, rendu);
   if (valeur === null) return { html: '', texte: '' };
-  if (nom.startsWith('lien_') && !dansLien) return { html: ancre(valeur, echapper(valeur), rendu), texte: valeur };
+  // Filet de sécurité : un lien laissé seul affiche son domaine, pas une URL longue qui se coupe.
+  if (nom.startsWith('lien_') && !dansLien) return { html: ancre(valeur, echapper(domaine(valeur)), rendu), texte: valeur };
   return { html: echapper(valeur).replace(/\r?\n/g, '<br>'), texte: valeur };
 }
 
@@ -672,7 +737,7 @@ function rendreEnLigne(source, rendu, dansLien = false) {
       }
       const contenu = rendreEnLigne(jeton[1], rendu, true);
       html += url === null ? contenu.html : ancre(url, contenu.html, rendu);
-      texte += url === null ? contenu.texte : lienTexte(contenu.texte, url);
+      texte += url === null ? contenu.texte : lienDansTexte(contenu.texte, url);
     }
   }
   const reste = source.slice(position);
@@ -680,7 +745,7 @@ function rendreEnLigne(source, rendu, dansLien = false) {
 }
 
 /**
- * @typedef {{ type: 'p' | 'element', morceau: Morceau }
+ * @typedef {{ type: 'p' | 'element' | 'titre', morceau: Morceau }
  *   | { type: 'bouton', libelle: Morceau, url: string }
  *   | { type: 'dates', dates: DateAnnoncee[] }} Ligne
  */
@@ -699,14 +764,49 @@ function lireLigne(ligne, rendu) {
     if (typeof url === 'string') return { type: 'bouton', libelle: rendreEnLigne(bouton[1].trim(), rendu, true), url };
     return { type: 'p', morceau: url === null ? rendreEnLigne(bouton[1].trim(), rendu) : rendreEnLigne(ligne, rendu) };
   }
+  if (ligne.startsWith('# ')) return { type: 'titre', morceau: rendreEnLigne(ligne.slice(2).trim(), rendu) };
   if (ligne.startsWith('- ')) return { type: 'element', morceau: rendreEnLigne(ligne.slice(2).trim(), rendu) };
   return { type: 'p', morceau: rendreEnLigne(ligne, rendu) };
+}
+
+/**
+ * Tableau de dates : date et ville en gras, arènes, heure et « date à confirmer » dessous, pastille « Je viens »
+ * à droite (bouton à toute épreuve : contour sur la cellule pour Outlook).
+ * @param {DateAnnoncee[]} dates @param {Rendu} rendu @returns {Morceau}
+ */
+function rendreDates(dates, rendu) {
+  const email = rendu.cible === 'email';
+  const rangs = dates.map((date) => {
+    const { date_courte, heure } = formaterDate(date.date_soiree, date.heure);
+    const titre = [date_courte, nettoyer(date.ville)].filter(Boolean).join(`${NB}· `);
+    const detail = [nettoyer(date.arenes), heure, date.statut === 'previsionnelle' ? A_CONFIRMER : null].filter(Boolean).join(`${NB}· `);
+    const jeViens = urlSure(date.lienJeViens);
+    const pastille = jeViens ? ancre(jeViens, `Je${NB}viens`, rendu, 'pastille', 'ee-pastille') : '';
+    const action = pastille && email
+      ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="right"><tr><td style="${CONTOUR_PASTILLE};mso-padding-alt:9px 16px">${pastille}</td></tr></table>`
+      : pastille;
+    const fort = email ? `<strong style="font-weight:700">${echapper(titre)}</strong>` : `<strong>${echapper(titre)}</strong>`;
+    return {
+      html: `<tr><td ${apparence(rendu, 'date', 'ee-date')}>${fort}${detail ? `<br><span ${apparence(rendu, 'dateDetail', 'ee-date-detail')}>${echapper(detail)}</span>` : ''}</td>`
+        + `<td ${email ? 'align="right" valign="middle" ' : ''}${apparence(rendu, 'dateAction', 'ee-date-action')}>${action}</td></tr>`,
+      texte: `- ${libelleDate(date)}${jeViens ? `\n  ${lienTexte('Je viens', jeViens)}` : ''}`,
+    };
+  });
+  const tableau = email ? 'role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" ' : '';
+  return {
+    html: `<table ${tableau}${apparence(rendu, 'dates', 'ee-dates')}>${rangs.map((rang) => rang.html).join('')}</table>`,
+    texte: rangs.map((rang) => rang.texte).join('\n'),
+  };
 }
 
 /** @param {Ligne[]} groupe @param {Rendu} rendu @returns {Morceau} */
 function rendreGroupe(groupe, rendu) {
   const email = rendu.cible === 'email';
   const premier = groupe[0];
+  if (premier.type === 'titre') {
+    return { html: `<h1 ${apparence(rendu, 'titre', 'ee-titre')}>${premier.morceau.html}</h1>`, texte: premier.morceau.texte };
+  }
+  if (premier.type === 'dates') return rendreDates(groupe.flatMap((ligne) => (ligne.type === 'dates' ? ligne.dates : [])), rendu);
   if (premier.type === 'bouton') {
     const lien = ancre(premier.url, premier.libelle.html, rendu, 'bouton', 'ee-bouton');
     return {
@@ -719,18 +819,7 @@ function rendreGroupe(groupe, rendu) {
   /** @type {Morceau[]} */
   const elements = [];
   for (const ligne of groupe) {
-    if (ligne.type === 'dates') {
-      for (const date of ligne.dates) {
-        const libelle = libelleDate(date);
-        const jeViens = urlSure(date.lienJeViens);
-        elements.push({
-          html: echapper(libelle) + (jeViens ? ` · ${ancre(jeViens, 'Je viens', rendu)}` : ''),
-          texte: libelle + (jeViens ? ` · ${lienTexte('Je viens', jeViens)}` : ''),
-        });
-      }
-    } else if (ligne.type !== 'bouton') {
-      elements.push(ligne.morceau);
-    }
+    if (ligne.type === 'p' || ligne.type === 'element') elements.push(ligne.morceau);
   }
   if (premier.type === 'p') {
     return {
@@ -744,11 +833,11 @@ function rendreGroupe(groupe, rendu) {
   };
 }
 
-/** Lignes consécutives d'un même élément : paragraphe, liste (éléments et dates) ou bouton. */
-const famille = (/** @type {Ligne} */ ligne) => (ligne.type === 'dates' || ligne.type === 'element' ? 'liste' : ligne.type);
+/** Lignes consécutives d'un même élément : paragraphe, liste, tableau de dates, titre ou bouton. */
+const famille = (/** @type {Ligne} */ ligne) => (ligne.type === 'element' ? 'liste' : ligne.type);
 
 /**
- * Corps (ou encart) en paragraphes, listes et boutons.
+ * Corps (ou encart) en titres, paragraphes, listes, tableaux de dates et boutons.
  * @param {string} source
  * @param {Rendu} rendu
  * @returns {Morceau}
@@ -778,7 +867,7 @@ function rendreCorps(source, rendu) {
       groupe = [];
     };
     for (const ligne of bloc) {
-      if (groupe.length && (famille(groupe[0]) !== famille(ligne) || ligne.type === 'bouton')) vider();
+      if (groupe.length && (famille(groupe[0]) !== famille(ligne) || ligne.type === 'bouton' || ligne.type === 'titre')) vider();
       groupe.push(ligne);
     }
     vider();
@@ -810,7 +899,21 @@ function rendreTexteSimple(/** @type {string} */ source, /** @type {Rendu} */ re
     .trim();
 }
 
-const PIED_TEXTE = 'Vous recevez cet email car vous êtes inscrit·e à l’Olympiade des Manades.';
+/**
+ * Raison de l'envoi, dans le pied, selon le type d'e-mail (revue juridique C1). Sans étape (aperçu ancien),
+ * le texte des rappels.
+ * @param {Etape | undefined} etape
+ */
+export function raisonDuPied(etape) {
+  if (etape === 'confirmation') {
+    return 'Vous recevez cet email car votre adresse a été saisie dans le formulaire d’actualités de olympiadedesmanades.fr. Sans clic de votre part, elle sera supprimée dans 30 jours.';
+  }
+  if (etape === 'annonce' || etape === 'prochaines_dates') {
+    return 'Vous recevez cet email car vous avez accepté de recevoir l’annonce des prochaines dates de l’Olympiade des Manades.';
+  }
+  return 'Vous recevez cet email car vous êtes inscrit·e au vote du public ou aux actualités de l’Olympiade des Manades.';
+}
+
 // Caractères invisibles après le pré-en-tête : la messagerie n'y accole pas le début du corps.
 const REMPLISSAGE = '&#847;&zwnj;&nbsp;'.repeat(40);
 
@@ -830,29 +933,43 @@ export function rendreEmail(modele, contexte, { cible } = { cible: 'email' }) {
   const sujet = rendreTexteSimple(modele.sujet, rendu);
   const preheader = rendreTexteSimple(modele.preheader ?? '', rendu);
   const corps = rendreCorps(modele.corps, rendu);
-  const encart = contexte.encartDateProche && modele.encart ? rendreCorps(modele.encart, rendu) : null;
+  const encart = contexte.encartDateProche && modele.encart ? rendreCorps(modele.encart, { ...rendu, dansEncart: true }) : null;
   const logo = `${rendu.base}/email/logo.png`;
   const dimensions = `width="${LOGO.largeur}" height="${LOGO.hauteur}"`;
+  // Le logo mène au site ; si les images sont bloquées, son texte alternatif garde la charte.
+  const imageLogo = email
+    ? `<img src="${echapper(logo)}" ${dimensions} alt="Olympiade des Manades" style="${STYLES.logo}">`
+    : `<img class="ee-logo" src="${echapper(logo)}" ${dimensions} alt="Olympiade des Manades">`;
+  const lienLogo = `<a href="${echapper(rendu.base)}" target="_blank" rel="noopener noreferrer">${imageLogo}</a>`;
 
   const htmlEncart = encart && encart.html
     ? (email
       ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="${MARGE_ENCART};border-collapse:separate"><tr><td bgcolor="${COULEURS.lin}" style="${STYLES.encart}">\n${encart.html}\n</td></tr></table>`
       : `<div class="ee-encart">\n${encart.html}\n</div>`)
     : '';
-  const pied = `${echapper(PIED_TEXTE)}<br>${ancre(desinscription, 'Se désinscrire', rendu)} · ${ancre(SITE, 'olympiadedesmanades.fr', rendu)}`;
+  const raison = raisonDuPied(contexte.etape);
+  const organisateur = nettoyer(contexte.organisateur ?? null);
+  const identite = organisateur
+    ? (email ? `<br>${echapper(organisateur)}` : `<span class="ee-identite">${echapper(organisateur)}</span>`)
+    : '';
+  const pied = `${echapper(raison)}${identite}<br>${ancre(desinscription, 'Se désinscrire', rendu)} · ${ancre(SITE, 'olympiadedesmanades.fr', rendu)}`;
 
   const html = email
     ? [
       '<!doctype html>',
-      '<html lang="fr">',
+      '<html lang="fr" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">',
       '<head>',
       '<meta charset="utf-8">',
       '<meta name="viewport" content="width=device-width, initial-scale=1">',
       '<meta name="color-scheme" content="light">',
       '<meta name="supported-color-schemes" content="light">',
+      '<meta name="x-apple-disable-message-reformatting">',
+      '<meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no">',
+      '<!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><style>body,table,td,p,li,a{font-family:\'Segoe UI\',Arial,sans-serif!important}h1{font-family:Georgia,serif!important}</style><![endif]-->',
+      '<style>:root{color-scheme:light;supported-color-schemes:light}a[x-apple-data-detectors]{color:inherit!important;text-decoration:none!important;font-size:inherit!important;font-family:inherit!important;font-weight:inherit!important;line-height:inherit!important}</style>',
       `<title>${echapper(sujet)}</title>`,
       '</head>',
-      `<body style="margin:0;padding:0;background-color:${COULEURS.sable}">`,
+      `<body style="margin:0;padding:0;background-color:${COULEURS.sable};-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%">`,
       preheader
         ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:${COULEURS.sable}">${echapper(preheader)}${REMPLISSAGE}</div>`
         : '',
@@ -861,7 +978,7 @@ export function rendreEmail(modele, contexte, { cible } = { cible: 'email' }) {
       '<!--[if mso]><table role="presentation" width="600" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->',
       `<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="${COULEURS.creme}" style="${STYLES.carte}">`,
       `<tr><td height="4" bgcolor="${COULEURS.or}" style="${STYLES.filet}">&nbsp;</td></tr>`,
-      `<tr><td style="${STYLES.entete}"><img src="${echapper(logo)}" ${dimensions} alt="Olympiade des Manades" style="${STYLES.logo}"></td></tr>`,
+      `<tr><td style="${STYLES.entete}">${lienLogo}</td></tr>`,
       `<tr><td style="${STYLES.corps}">`,
       corps.html,
       htmlEncart,
@@ -876,7 +993,7 @@ export function rendreEmail(modele, contexte, { cible } = { cible: 'email' }) {
     : [
       '<div class="ee-carte">',
       '<div class="ee-filet"></div>',
-      `<div class="ee-entete"><img class="ee-logo" src="${echapper(logo)}" ${dimensions} alt="Olympiade des Manades"></div>`,
+      `<div class="ee-entete">${lienLogo}</div>`,
       '<div class="ee-corps">',
       corps.html,
       htmlEncart,
@@ -888,7 +1005,7 @@ export function rendreEmail(modele, contexte, { cible } = { cible: 'email' }) {
   const texte = [
     corps.texte,
     encart ? encart.texte : '',
-    `${PIED_TEXTE}\n${lienTexte('Se désinscrire', desinscription)}\n${SITE}`,
+    [raison, organisateur, lienTexte('Se désinscrire', desinscription), SITE].filter(Boolean).join('\n'),
   ].filter(Boolean).join('\n\n');
 
   return { sujet, html, texte: `${texte}\n` };
