@@ -640,7 +640,12 @@ describe('planificateur des e-mails', () => {
     await emails.passer();
     expect(courriel.envoyer).toHaveBeenCalledTimes(1);
 
+    // Le bail (15 min) couvre un lot entier envoyé en série : à 11 min, la ligne est encore en cours.
     horloge.t = MAINTENANT + 11 * 60_000;
+    expect(await emails.passer()).toMatchObject({ echecs: 0 });
+    expect(ligne()).toMatchObject({ statut: 'en_attente', raison: 'en_cours' });
+
+    horloge.t = MAINTENANT + 16 * 60_000;
     expect(await emails.passer()).toMatchObject({ echecs: 1 });
     expect(ligne()).toMatchObject({ statut: 'echec', raison: 'interrompu' });
     expect(courriel.envoyer).toHaveBeenCalledTimes(1);

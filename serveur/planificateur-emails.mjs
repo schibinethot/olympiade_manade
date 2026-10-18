@@ -42,9 +42,11 @@ const INTERVALLE_MS = MINUTE_MS;
 const CALCUL_MS = 5 * MINUTE_MS;
 /**
  * Une ligne réclamée (raison « en_cours ») et toujours pas terminée après ce délai a été interrompue
- * (arrêt brutal, statut non écrit) : elle passe en echec « interrompu », sans nouvel envoi.
+ * (arrêt brutal, statut non écrit) : elle passe en echec « interrompu », sans nouvel envoi. Il couvre un lot
+ * entier envoyé en série : LOT_ENVOI groupes × (10 s de dialogue + 60 s d'attente du 250, serveur/courriel.mjs)
+ * = 700 s au pire.
  */
-const BAIL_MS = 10 * MINUTE_MS;
+const BAIL_MS = 15 * MINUTE_MS;
 /** Groupes réclamés, puis destinataires et dates relus, par paquets de cette taille juste avant l'envoi. */
 const LOT_ENVOI = 10;
 /** Purge des demandes non confirmées : retraits par appel, et appels par jour au plus. */
