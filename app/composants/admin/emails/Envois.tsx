@@ -64,13 +64,15 @@ function EtatServeur({ etat }: { etat: EtatChargement<EtatEmails> }) {
   );
 }
 
-export function Envois({ bilan, modeles, dates, etat, client, onActualiser }: {
+export function Envois({ bilan, modeles, dates, etat, client, onActualiser, actualisation }: {
   bilan: readonly LigneBilan[];
   modeles: readonly ModeleEmailLigne[];
   dates: readonly DateCalendrier[];
   etat: EtatChargement<EtatEmails>;
   client: SupabaseClient;
+  /** Relecture des données partagées, sans repasser par le chargement de tout l'écran. */
   onActualiser: () => void;
+  actualisation: boolean;
 }) {
   const [revision, setRevision] = useState(0);
   const lignes = useMemo(() => regrouperBilan(bilan), [bilan]);
@@ -96,7 +98,10 @@ export function Envois({ bilan, modeles, dates, etat, client, onActualiser }: {
     <div className="grid min-w-0 gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-encre-2">Aucune statistique d’ouverture ni de clic n’est mesurée.</p>
-        <button type="button" className={BOUTON} onClick={actualiser}>Actualiser</button>
+        <div className="flex items-center gap-3">
+          <p role="status" className="text-sm text-encre-2">{actualisation ? 'Actualisation…' : ''}</p>
+          <button type="button" className={BOUTON} disabled={actualisation} onClick={actualiser}>Actualiser</button>
+        </div>
       </div>
 
       <section className={`${CARTE} min-w-0`} aria-labelledby="titre-serveur-envoi">
@@ -143,11 +148,16 @@ export function Envois({ bilan, modeles, dates, etat, client, onActualiser }: {
                     <td className="py-3 pr-4 tablette:whitespace-nowrap">{nomDate(ligne.calendrierId)}</td>
                     <td className="py-3 tablette:hidden">
                       {COLONNES.filter(([statut]) => ligne[statut] > 0).map(([statut, , singulier]) => accorder(ligne[statut], singulier, statut === 'en_attente' ? singulier : `${singulier}s`)).join(' · ')}
+                      {ligne.derniereTentative ? <span className="block text-xs text-encre-2">Dernière tentative{NB}: {instantEnClair(ligne.derniereTentative)}</span> : null}
                     </td>
                     {COLONNES.map(([statut, titre]) => (
                       <td key={titre} className={`hidden py-3 pr-4 text-right tabular-nums tablette:table-cell ${ligne[statut] ? '' : 'text-encre-2'}`}>{ligne[statut]}</td>
                     ))}
-                    <td className="hidden py-3 whitespace-nowrap text-encre-2 tablette:table-cell">{ligne.dernierEnvoi ? instantEnClair(ligne.dernierEnvoi) : '—'}</td>
+                    <td className="hidden py-3 whitespace-nowrap text-encre-2 tablette:table-cell">
+                      {ligne.dernierEnvoi ? instantEnClair(ligne.dernierEnvoi) : '—'}
+                      {/* En attente ou en échec, la vue donne l'heure de la dernière tentative, pas d'un envoi. */}
+                      {ligne.derniereTentative ? <span className="block text-xs">Dernière tentative{NB}: {instantEnClair(ligne.derniereTentative)}</span> : null}
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -19,7 +19,12 @@ import {
   quandEnClair,
   regrouperBilan,
   soireesSuspendues,
+  variableDisponible,
+  modelesUtilisant,
+  datesPourEstimation,
 } from '../../app/composants/admin/emails/outils';
+
+const NB = ' ';
 
 const SOMMIERES: DateCalendrier = {
   id: 'sommieres', nom: 'Olympiade des Manades', ville: 'Sommières', arenes: 'Arènes Gilles Arnaud',
@@ -86,19 +91,27 @@ describe('estimations et dates', () => {
     expect(instantEnClair('2027-11-06T16:30:00Z')).toBe('sam. 06/11 à 17 h 30');
   });
 
-  it('dit le prochain envoi comme une estimation', () => {
-    expect(prochainEnvoiEnClair({ etape: 'j_moins_7', calendrierId: 'x', prevuLe: '2027-07-24T08:00:00Z', destinataires: 132 }))
-      .toBe('environ 132 destinataires, sam. 24/07 à 10 h');
-    expect(prochainEnvoiEnClair({ etape: 'veille', calendrierId: 'x', prevuLe: '2027-07-30T16:00:00Z', destinataires: 1 }))
-      .toBe('environ 1 destinataire, ven. 30/07 à 18 h');
-    expect(prochainEnvoiEnClair({ etape: 'veille', calendrierId: 'x', prevuLe: '2027-07-30T16:00:00Z', destinataires: 0 }))
-      .toBe('ven. 30/07 à 18 h, aucun inscrit pour l’instant');
+  it('dit le prochain envoi comme une estimation, en nommant la date', () => {
+    expect(prochainEnvoiEnClair({ etape: 'j_moins_7', calendrierId: 'sommieres', prevuLe: '2027-07-24T08:00:00Z', destinataires: 132 }, SOMMIERES))
+      .toBe('environ 132 inscrits de Sommières (sam. 31/07), sam. 24/07 à 10 h');
+    expect(prochainEnvoiEnClair({ etape: 'veille', calendrierId: 'sommieres', prevuLe: '2027-07-30T16:00:00Z', destinataires: 1 }, SOMMIERES))
+      .toBe('environ 1 inscrit de Sommières (sam. 31/07), ven. 30/07 à 18 h');
+    expect(prochainEnvoiEnClair({ etape: 'veille', calendrierId: 'sommieres', prevuLe: '2027-07-30T16:00:00Z', destinataires: 0 }, SOMMIERES))
+      .toBe(`ven. 30/07 à 18 h, Sommières (sam. 31/07)${NB}: aucun inscrit pour l’instant`);
+    expect(prochainEnvoiEnClair({ etape: 'veille', calendrierId: 'x', prevuLe: '2027-07-30T16:00:00Z', destinataires: 2 }))
+      .toBe('environ 2 inscrits de la date, ven. 30/07 à 18 h');
     expect(prochainEnvoiEnClair(undefined)).toBeNull();
   });
 
-  it('libelle une date du calendrier avec son statut', () => {
+  it('suspend les étapes d’une date dont la soirée liée est annulée ou reportée', () => {
+    const reportee = { ...SOMMIERES, soiree: { slug: 's', statut: 'reportee' as const } };
+    expect(datesPourEstimation([reportee, BEZOUCE]).map((date) => date.statut)).toEqual(['annulee', 'confirmee']);
+  });
+
+  it('libelle une date du calendrier avec son statut, même illisible', () => {
     expect(libelleOptionDate(SOMMIERES)).toBe('sam. 31/07/2027 · Sommières');
     expect(libelleOptionDate({ ...BEZOUCE, statut: 'previsionnelle' })).toBe('jeu. 05/08/2027 · Bezouce (prévisionnelle)');
+    expect(libelleOptionDate({ ...BEZOUCE, date_soiree: '2027-02-31' })).toBe('2027-02-31 · Bezouce');
   });
 
   it('repère une soirée liée annulée ou reportée sous une date confirmée', () => {
@@ -113,11 +126,18 @@ describe('estimations et dates', () => {
       { etape: 'veille', calendrier_id: 'a', reel: true, statut: 'envoye', nombre: 10, dernier_envoi: '2027-07-30T16:00:00Z' },
       { etape: 'veille', calendrier_id: 'a', reel: false, statut: 'simule', nombre: 3, dernier_envoi: '2027-07-29T16:00:00Z' },
       { etape: 'veille', calendrier_id: 'a', reel: true, statut: 'saute', nombre: 2, dernier_envoi: null },
-      { etape: 'confirmation', calendrier_id: null, reel: true, statut: 'echec', nombre: 1, dernier_envoi: null },
+      { etape: 'confirmation', calendrier_id: null, reel: true, statut: 'echec', nombre: 1, dernier_envoi: '2027-07-01T08:00:00Z' },
+      { etape: 'confirmation', calendrier_id: null, reel: true, statut: 'en_attente', nombre: 2, dernier_envoi: '2027-07-02T08:00:00Z' },
     ];
     expect(regrouperBilan(bilan)).toEqual([
-      { etape: 'confirmation', calendrierId: null, envoye: 0, simule: 0, echec: 1, saute: 0, en_attente: 0, dernierEnvoi: null },
-      { etape: 'veille', calendrierId: 'a', envoye: 10, simule: 3, echec: 0, saute: 2, en_attente: 0, dernierEnvoi: '2027-07-30T16:00:00Z' },
+      {
+        etape: 'confirmation', calendrierId: null, envoye: 0, simule: 0, echec: 1, saute: 0, en_attente: 2,
+        dernierEnvoi: null, derniereTentative: '2027-07-02T08:00:00Z',
+      },
+      {
+        etape: 'veille', calendrierId: 'a', envoye: 10, simule: 3, echec: 0, saute: 2, en_attente: 0,
+        dernierEnvoi: '2027-07-30T16:00:00Z', derniereTentative: null,
+      },
     ]);
   });
 });
@@ -162,6 +182,31 @@ describe('insertion de la syntaxe', () => {
   it('nettoie les crochets qui casseraient la syntaxe', () => {
     expect(insererBouton('a [b|c]', 0, 7).valeur).toBe('[[a bc|https://]]');
     expect(insererLien('[x]', 0, 3).valeur).toBe('[x](https://)');
+  });
+});
+
+describe('variables disponibles selon l’email', () => {
+  it('suit le contexte posé à l’envoi par le serveur', () => {
+    expect(variableDisponible('confirmation', 'lien_confirmation')).toBe(true);
+    expect(variableDisponible('bienvenue', 'lien_confirmation')).toBe(false);
+    expect(variableDisponible('annonce', 'lien_je_viens')).toBe(true);
+    expect(variableDisponible('annonce', 'dates_annoncees')).toBe(true);
+    expect(variableDisponible('message', 'lien_je_viens')).toBe(false);
+    expect(variableDisponible('prochaines_dates', 'dates_annoncees')).toBe(false);
+    for (const cle of ['lendemain', 'prochaines_dates', 'message'] as const) expect(variableDisponible(cle, 'vainqueur')).toBe(true);
+    for (const cle of ['bienvenue', 'j_moins_7', 'veille', 'jour_j', 'annonce'] as const) expect(variableDisponible(cle, 'vainqueur')).toBe(false);
+  });
+
+  it('ne laisse à la confirmation que le prénom et les liens sans date', () => {
+    expect(['prenom', 'lien_dates', 'lien_confirmation'].every((variable) => variableDisponible('confirmation', variable))).toBe(true);
+    expect(['date', 'ville', 'infos_pratiques', 'lien_noter', 'prochaines_dates'].some((variable) => variableDisponible('confirmation', variable))).toBe(false);
+    expect(variableDisponible('veille', 'infos_pratiques')).toBe(true);
+  });
+
+  it('nomme les modèles qui utilisent une variable', () => {
+    const modeles = (['bienvenue', 'veille', 'jour_j', 'lendemain'] as const).map((cle) => ({ cle, ...MODELES_DEFAUT[cle] }));
+    expect(modelesUtilisant(modeles, 'infos_pratiques')).toEqual(['Bienvenue', 'La veille', 'Le jour J']);
+    expect(modelesUtilisant(modeles, 'truc')).toEqual([]);
   });
 });
 
@@ -231,6 +276,14 @@ describe('contexte de l’aperçu', () => {
     const annonce = preparerApercu({ ...base, cle: 'annonce', reglage: { jours_decalage: -10, heure_envoi: '10:00' } });
     expect(annonce.contexte.liens.jeViens).toBe(`${ORIGINE}/emails/je-viens`);
     expect(annonce.contexte.annoncees.map((date) => date.id)).toEqual(['sommieres']);
+  });
+
+  it('rend la confirmation sans date, et le vainqueur seulement après la soirée', () => {
+    const reglageVide = { jours_decalage: null, heure_envoi: null };
+    expect(preparerApercu({ ...base, cle: 'confirmation', reglage: reglageVide, exemples: true }).contexte.date).toBeNull();
+    expect(preparerApercu({ ...base, cle: 'veille', exemples: true }).contexte.date?.vainqueur).toBeNull();
+    expect(preparerApercu({ ...base, cle: 'lendemain', reglage: { jours_decalage: 1, heure_envoi: '10:00' }, exemples: true }).contexte.date?.vainqueur)
+      .toBe('Manade Vinuesa');
   });
 
   it('retombe sur maintenant si le réglage en cours de saisie est invalide', () => {

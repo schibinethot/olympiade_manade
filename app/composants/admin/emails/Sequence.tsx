@@ -1,6 +1,7 @@
 /**
  * Frise de la séquence : les 9 e-mails dans l'ordre, avec leur moment d'envoi, leurs destinataires,
- * leur interrupteur et le prochain envoi estimé ; alertes du mode d'envoi et des soirées suspendues.
+ * leur interrupteur et le prochain envoi estimé ; bandeaux du mode d'envoi et des soirées suspendues.
+ * Les bandeaux sont persistants : pas de rôle d'alerte, qui les ferait annoncer à chaque affichage.
  */
 
 import { useMemo, useState } from 'react';
@@ -9,10 +10,12 @@ import { envoisAVenir, type EnvoiEstime } from '../../../../serveur/echeances-em
 import { formaterDate, type Etape } from '../../../../serveur/gabarits-emails.mjs';
 import { BOUTON, CARTE } from '../CadreAdmin';
 import { enregistrerModele, type DateCalendrier, type EtatChargement, type EtatEmails, type LigneBilan, type ModeleEmailLigne } from './donnees';
-import { aUneEcheance, instantEnClair, jourParisDe, POUR_QUI, prochainEnvoiEnClair, quandEnClair, soireesSuspendues } from './outils';
+import {
+  aUneEcheance, datesPourEstimation, instantEnClair, jourParisDe, POUR_QUI, prochainEnvoiEnClair, quandEnClair, soireesSuspendues,
+} from './outils';
+import { ALERTE } from './styles';
 
-const NB = '\u00a0';
-export const ALERTE = 'rounded-[18px] border border-alerte bg-ambre/15 px-4 py-3';
+const NB = ' ';
 
 /** Ce qui remplace l'estimation pour les e-mails qui ne dépendent pas d'une date. */
 const SANS_ESTIMATION: Partial<Record<Etape, string>> = {
@@ -22,11 +25,11 @@ const SANS_ESTIMATION: Partial<Record<Etape, string>> = {
   message: 'Seulement quand vous l’envoyez',
 };
 
-export function AlertesEtat({ etat }: { etat: EtatChargement<EtatEmails> }) {
+function BandeauxEtat({ etat }: { etat: EtatChargement<EtatEmails> }) {
   if (etat.statut === 'chargement') return null;
   if (etat.statut === 'erreur') {
     return (
-      <div role="alert" className={ALERTE}>
+      <div className={ALERTE}>
         <p className="font-semibold">État du serveur d’envoi inconnu.</p>
         <p className="text-sm">{etat.message}</p>
       </div>
@@ -36,7 +39,7 @@ export function AlertesEtat({ etat }: { etat: EtatChargement<EtatEmails> }) {
   return (
     <>
       {mode !== 'smtp' ? (
-        <div role="alert" className={ALERTE}>
+        <div className={ALERTE}>
           <p className="font-semibold">Aucun email ne part réellement.</p>
           <p className="text-sm">
             {mode === 'log'
@@ -47,7 +50,7 @@ export function AlertesEtat({ etat }: { etat: EtatChargement<EtatEmails> }) {
         </div>
       ) : null}
       {!cleLiens ? (
-        <div role="alert" className={ALERTE}>
+        <div className={ALERTE}>
           <p className="font-semibold">Les liens des emails sont désactivés.</p>
           <p className="text-sm">La clé EMAILS_CLE_LIENS manque sur le serveur{NB}: le planificateur, la confirmation, la désinscription et «{NB}Je viens{NB}» sont arrêtés.</p>
         </div>
@@ -80,36 +83,29 @@ function Interrupteur({ modele, client, idTitre, onModele }: {
 
   return (
     <div className="grid justify-items-start gap-1 tablette:justify-items-end">
-      <button
-        type="button"
-        role="switch"
-        aria-checked={modele.actif}
-        aria-labelledby={idTitre}
-        aria-describedby={verrouille ? idAide : undefined}
-        disabled={verrouille || enCours}
-        onClick={() => void basculer()}
-        className="group inline-flex min-h-12 items-center gap-3 rounded-xl px-1 text-sm font-semibold disabled:cursor-not-allowed"
-      >
+      <button type="button" role="switch" aria-checked={modele.actif} aria-labelledby={idTitre}
+        aria-describedby={verrouille ? idAide : undefined} disabled={verrouille || enCours} onClick={() => void basculer()}
+        className="group inline-flex min-h-12 items-center gap-3 rounded-xl px-1 text-sm font-semibold disabled:cursor-not-allowed">
         <span className="relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border border-trait bg-lin transition-colors group-aria-checked:border-encre group-aria-checked:bg-encre group-disabled:opacity-60">
           <span className="block h-5 w-5 translate-x-1 rounded-full bg-creme shadow transition-transform group-aria-checked:translate-x-6" />
         </span>
         <span aria-hidden="true">{enCours ? 'Enregistrement…' : modele.actif ? 'Actif' : 'Désactivé'}</span>
       </button>
-      {verrouille ? <p id={idAide} className="max-w-56 text-xs text-encre-2 tablette:text-right">Toujours actif{NB}: sans cet email, personne ne pourrait confirmer son adresse.</p> : null}
+      {verrouille ? <p id={idAide} className="max-w-56 text-sm text-encre-2 tablette:text-right">Toujours actif{NB}: sans cet email, personne ne pourrait confirmer son adresse.</p> : null}
       {erreur ? <p role="alert" className="text-sm text-rouge-alerte">{erreur}</p> : null}
     </div>
   );
 }
 
-function prochainEnvoi(modele: ModeleEmailLigne, estime: EnvoiEstime | undefined, inscritsConnus: boolean): string {
+function prochainEnvoi(modele: ModeleEmailLigne, estime: EnvoiEstime | undefined, date: DateCalendrier | undefined, inscritsConnus: boolean): string {
   if (!modele.actif) return 'Aucun, l’email est désactivé';
   const sans = SANS_ESTIMATION[modele.cle];
   if (sans) return sans;
   if (!inscritsConnus) return 'Estimation indisponible';
-  return prochainEnvoiEnClair(estime) ?? 'Aucun dans les 7 prochains jours';
+  return prochainEnvoiEnClair(estime, date) ?? 'Aucun dans les 7 prochains jours';
 }
 
-export function Sequence({ modeles, dates, bilan, rattaches, etat, client, onModele, onOuvrir, onDates }: {
+export function Sequence({ modeles, dates, bilan, rattaches, etat, client, onModele, onOuvrir, onEcrire }: {
   modeles: readonly ModeleEmailLigne[];
   dates: readonly DateCalendrier[];
   bilan: readonly LigneBilan[];
@@ -118,12 +114,15 @@ export function Sequence({ modeles, dates, bilan, rattaches, etat, client, onMod
   client: SupabaseClient;
   onModele: (ligne: ModeleEmailLigne) => void;
   onOuvrir: (cle: Etape) => void;
-  onDates: () => void;
+  /** Ouvre le message aux inscrits d'une date (onglet Dates). */
+  onEcrire: (calendrierId: string) => void;
 }) {
   const [maintenant] = useState(() => new Date());
+  const parId = useMemo(() => new Map(dates.map((date) => [date.id, date])), [dates]);
+  // Soirée liée annulée ou reportée : ses étapes 2 à 5 sont suspendues, l'estimation aussi.
   const premiers = useMemo(() => {
     const parEtape = new Map<string, EnvoiEstime>();
-    for (const estime of envoisAVenir(modeles, dates, rattaches ?? {}, maintenant, 7)) {
+    for (const estime of envoisAVenir(modeles, datesPourEstimation(dates), rattaches ?? {}, maintenant, 7)) {
       if (!parEtape.has(estime.etape)) parEtape.set(estime.etape, estime);
     }
     return parEtape;
@@ -141,31 +140,32 @@ export function Sequence({ modeles, dates, bilan, rattaches, etat, client, onMod
 
   return (
     <div className="grid min-w-0 gap-5">
-      <AlertesEtat etat={etat} />
-      {suspendues.map((date) => (
-        <div key={date.id} role="alert" className={ALERTE}>
-          <p className="font-semibold">
-            Soirée {date.soiree?.statut === 'annulee' ? 'annulée' : 'reportée'} à {date.ville}, le {formaterDate(date.date_soiree, date.heure).date}.
-          </p>
-          <p className="text-sm">
-            La soirée liée à cette date est {date.soiree?.statut === 'annulee' ? 'annulée' : 'reportée'} alors que la date reste confirmée au calendrier{NB}: ses rappels sont suspendus. Mettez le calendrier à jour, ou prévenez les inscrits.
-          </p>
-          <button type="button" className={`${BOUTON} mt-2 bg-creme`} onClick={onDates}>Écrire aux inscrits de cette date</button>
-        </div>
-      ))}
-      {rattaches === null ? (
-        <p role="alert" className={ALERTE}>Le nombre d’inscrits par date est illisible{NB}: les estimations sont indisponibles.</p>
-      ) : null}
+      <BandeauxEtat etat={etat} />
+      {suspendues.map((date) => {
+        const statut = date.soiree?.statut === 'annulee' ? 'annulée' : 'reportée';
+        return (
+          <div key={date.id} className={ALERTE}>
+            <p className="font-semibold">Soirée {statut} à {date.ville}, le {formaterDate(date.date_soiree, date.heure).date}.</p>
+            <p className="text-sm">
+              La soirée liée à cette date est {statut} alors que la date reste confirmée au calendrier{NB}: ses rappels sont suspendus.
+              Mettez le calendrier à jour, ou prévenez les inscrits.
+            </p>
+            <button type="button" className={`${BOUTON} mt-2 bg-creme`} onClick={() => onEcrire(date.id)}>Écrire aux inscrits de cette date</button>
+          </div>
+        );
+      })}
+      {rattaches === null ? <p className={ALERTE}>Le nombre d’inscrits par date est illisible{NB}: les estimations sont indisponibles.</p> : null}
 
       <section className={`${CARTE} min-w-0`} aria-labelledby="titre-mode-emploi">
         <h2 id="titre-mode-emploi" className="font-display text-2xl">Comment ça marche</h2>
         <ul className="mt-3 grid list-disc gap-1.5 pl-5 text-sm">
           <li>Chaque personne inscrite suit la prochaine date confirmée du calendrier, et reçoit les emails ci-dessous, au plus un email automatique par jour.</li>
-          <li>«{NB}Modifier l’email{NB}» ouvre le texte avec un aperçu en direct. Les variables (date, heure, arènes…) se remplissent seules, et une ligne dont l’info n’est pas encore connue n’apparaît pas.</li>
+          <li>«{NB}Modifier l’email{NB}» ouvre le texte avec un aperçu en direct. Les infos (date, heure, arènes…) se remplissent seules, et une ligne dont l’info n’est pas encore connue n’apparaît pas.</li>
           <li>L’interrupteur arrête ou relance un email tout de suite. Le message aux inscrits d’une date s’écrit depuis l’onglet Dates.</li>
         </ul>
       </section>
 
+      <h2 className="font-display text-2xl">Les {modeles.length} emails</h2>
       {modeles.length === 0 ? (
         <p className={CARTE}>Aucun modèle en base pour le moment. Les textes de départ sont créés au démarrage du serveur{NB}: rechargez la page dans une minute.</p>
       ) : (
@@ -173,6 +173,13 @@ export function Sequence({ modeles, dates, bilan, rattaches, etat, client, onMod
           {modeles.map((modele, index) => {
             const idTitre = `etape-${modele.cle}`;
             const dernier = derniers.get(modele.cle);
+            const estime = premiers.get(modele.cle);
+            const lignes: [string, string][] = [
+              ['Quand', quandEnClair(modele.cle, modele.jours_decalage, modele.heure_envoi)],
+              ['Pour qui', POUR_QUI[modele.cle]],
+              [aUneEcheance(modele.cle) ? 'Prochain envoi' : 'Envoi', prochainEnvoi(modele, estime, estime ? parId.get(estime.calendrierId) : undefined, rattaches !== null)],
+              ...(dernier ? [['Dernier envoi', `${instantEnClair(dernier.quand)}${dernier.reel ? '' : ' (simulé)'}`] as [string, string]] : []),
+            ];
             return (
               <li key={modele.cle} className={`${CARTE} grid gap-4 tablette:grid-cols-[minmax(0,1fr)_auto] tablette:items-start`}>
                 <div className="min-w-0">
@@ -181,12 +188,7 @@ export function Sequence({ modeles, dates, bilan, rattaches, etat, client, onMod
                     <h3 id={idTitre} className="font-display text-xl">{modele.nom}</h3>
                   </div>
                   <dl className="mt-3 grid gap-1.5 text-sm">
-                    {[
-                      ['Quand', quandEnClair(modele.cle, modele.jours_decalage, modele.heure_envoi)],
-                      ['Pour qui', POUR_QUI[modele.cle]],
-                      [aUneEcheance(modele.cle) ? 'Prochain envoi' : 'Envoi', prochainEnvoi(modele, premiers.get(modele.cle), rattaches !== null)],
-                      ...(dernier ? [['Dernier envoi', `${instantEnClair(dernier.quand)}${dernier.reel ? '' : ' (simulé)'}`]] : []),
-                    ].map(([terme, valeur]) => (
+                    {lignes.map(([terme, valeur]) => (
                       <div key={terme} className="grid gap-0.5 tablette:grid-cols-[8.5rem_minmax(0,1fr)]">
                         <dt className="font-semibold text-encre-2">{terme}</dt>
                         <dd>{valeur}</dd>
@@ -196,7 +198,9 @@ export function Sequence({ modeles, dates, bilan, rattaches, etat, client, onMod
                 </div>
                 <div className="flex flex-wrap items-start gap-3 tablette:grid tablette:justify-items-end">
                   <Interrupteur modele={modele} client={client} idTitre={idTitre} onModele={onModele} />
-                  <button type="button" className={BOUTON} aria-describedby={idTitre} onClick={() => onOuvrir(modele.cle)}>Modifier l’email</button>
+                  <button id={`modifier-${modele.cle}`} type="button" className={BOUTON} aria-describedby={idTitre} onClick={() => onOuvrir(modele.cle)}>
+                    Modifier l’email
+                  </button>
                 </div>
               </li>
             );

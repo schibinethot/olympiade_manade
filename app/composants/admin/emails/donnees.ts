@@ -80,7 +80,7 @@ export type EtatEmails = {
 export type EtatChargement<T> =
   | { statut: 'chargement' }
   | { statut: 'ok'; valeur: T }
-  | { statut: 'erreur'; message: string };
+  | { statut: 'erreur'; message: string; code?: string | null };
 
 export const COLONNES_MODELE = 'cle, nom, actif, sujet, preheader, corps, encart, jours_decalage, heure_envoi, modifie_le';
 const COLONNES_DATE = 'id, nom, ville, arenes, date_soiree, heure, statut, lien_billetterie, infos_pratiques, soiree_id, '
@@ -195,12 +195,15 @@ export function useDonneesEmails() {
   const jeton = session?.access_token ?? null;
   const [donnees, setDonnees] = useState<EtatChargement<DonneesEmails>>({ statut: 'chargement' });
   const [etat, setEtat] = useState<EtatChargement<EtatEmails>>({ statut: 'chargement' });
-  const [revision, setRevision] = useState(0);
+  // Silencieux : les données affichées restent en place pendant la relecture (« Actualiser »).
+  const [lecture, setLecture] = useState({ revision: 0, silencieuse: false });
+  const [actualisation, setActualisation] = useState(false);
 
   useEffect(() => {
     if (!client) return;
     let actif = true;
-    setDonnees({ statut: 'chargement' });
+    if (lecture.silencieuse) setActualisation(true);
+    else setDonnees({ statut: 'chargement' });
     void (async () => {
       try {
         const depuis = decalerJour(jourParisDe(new Date()), -8);
@@ -231,12 +234,17 @@ export function useDonneesEmails() {
             rattaches,
           },
         });
-      } catch {
-        if (actif) setDonnees({ statut: 'erreur', message: 'Les données des emails sont illisibles. Vérifiez que la migration est appliquée, puis réessayez.' });
+      } catch (erreur) {
+        // Le code PostgREST (42P01, 42501, PGRST200…) suffit au diagnostic : jamais le détail de la réponse.
+        const code = erreur && typeof erreur === 'object' && 'code' in erreur && typeof erreur.code === 'string' ? erreur.code : null;
+        console.error('Admin des emails : lecture impossible', code ?? erreur);
+        if (actif) setDonnees({ statut: 'erreur', code, message: 'Les données des emails sont illisibles. Vérifiez que la migration est appliquée, puis réessayez.' });
+      } finally {
+        if (actif) setActualisation(false);
       }
     })();
     return () => { actif = false; };
-  }, [client, revision]);
+  }, [client, lecture]);
 
   useEffect(() => {
     if (!jeton) return;
@@ -246,9 +254,12 @@ export function useDonneesEmails() {
       setEtat(reponse.ok ? { statut: 'ok', valeur: reponse.donnees } : { statut: 'erreur', message: reponse.message });
     });
     return () => { actif = false; };
-  }, [jeton, revision]);
+  }, [jeton, lecture.revision]);
 
-  const recharger = useCallback(() => setRevision((valeur) => valeur + 1), []);
+  /** Relit tout ; `silencieuse` garde l'écran en place pendant la relecture. */
+  const recharger = useCallback((silencieuse = false) => {
+    setLecture((avant) => ({ revision: avant.revision + 1, silencieuse }));
+  }, []);
 
   const remplacerModele = useCallback((ligne: ModeleEmailLigne) => {
     setDonnees((avant) => avant.statut !== 'ok' ? avant : {
@@ -271,6 +282,7 @@ export function useDonneesEmails() {
     erreurClient,
     donnees,
     etat,
+    actualisation,
     recharger,
     remplacerModele,
     remplacerInfos,
@@ -308,7 +320,8 @@ export function useComptesEnvois(client: SupabaseClient | null, calendrierIds: r
   useEffect(() => {
     if (!client) return;
     let actif = true;
-    setComptes({ statut: 'chargement' });
+    // Une relecture garde les comptes affichés jusqu'aux nouveaux.
+    setComptes((avant) => (avant.statut === 'ok' ? avant : { statut: 'chargement' }));
     const ids = cleIds ? cleIds.split(',') : [];
     const destinataires = () => client.from('destinataires_emails').select('id', { count: 'exact', head: true });
     void (async () => {

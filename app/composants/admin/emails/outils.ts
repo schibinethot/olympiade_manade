@@ -14,7 +14,7 @@ import {
   type DateEnrichie,
   type Etape,
 } from '../../../../serveur/gabarits-emails.mjs';
-import type { DateCalendrier, LigneBilan, StatutEnvoi } from './donnees';
+import type { DateCalendrier, LigneBilan, ModeleEmailLigne, StatutEnvoi } from './donnees';
 
 const FUSEAU = 'Europe/Paris';
 const NB = '\u00a0';
@@ -113,12 +113,88 @@ export const POUR_QUI: Readonly<Record<Etape, string>> = {
   message: 'Les inscrits de la date que vous choisissez',
 };
 
-/** Prochain envoi estimé par envoisAVenir : une estimation haute, d'où « environ ». */
-export function prochainEnvoiEnClair(estime: EnvoiEstime | undefined): string | null {
+/**
+ * Prochain envoi estimé par envoisAVenir, avec la date concernée : une estimation haute, d'où
+ * « environ ». « environ 132 inscrits de Lunel (jeu. 22/10), mer. 21/10 à 18 h ».
+ */
+export function prochainEnvoiEnClair(
+  estime: EnvoiEstime | undefined,
+  date?: Pick<DateCalendrier, 'ville' | 'date_soiree' | 'heure'>,
+): string | null {
   if (!estime) return null;
   const quand = instantEnClair(estime.prevuLe);
-  if (estime.destinataires === 0) return `${quand}, aucun inscrit pour l’instant`;
-  return `environ ${estime.destinataires} destinataire${estime.destinataires > 1 ? 's' : ''}, ${quand}`;
+  const laDate = date ? `${date.ville} (${dateCourte(date)})` : 'la date';
+  if (estime.destinataires === 0) return `${quand}, ${laDate}${NB}: aucun inscrit pour l’instant`;
+  return `environ ${estime.destinataires} inscrit${estime.destinataires > 1 ? 's' : ''} de ${laDate}, ${quand}`;
+}
+
+/** « jeu. 22/10 », ou la date brute si elle est illisible. */
+function dateCourte(date: Pick<DateCalendrier, 'date_soiree' | 'heure'>): string {
+  try {
+    return formaterDate(date.date_soiree, date.heure).date_courte;
+  } catch {
+    return date.date_soiree;
+  }
+}
+
+/**
+ * Pour l'estimation : une date confirmée dont la soirée liée est annulée ou reportée garde seulement
+ * ses « prochaines dates », comme une date annulée (étapes 2 à 5 suspendues, tâche 3).
+ */
+export function datesPourEstimation(dates: readonly DateCalendrier[]): DateCalendrier[] {
+  return dates.map((date) => (
+    date.statut === 'confirmee' && (date.soiree?.statut === 'annulee' || date.soiree?.statut === 'reportee')
+      ? { ...date, statut: 'annulee' as const }
+      : date
+  ));
+}
+
+// ---------------------------------------------------------------------------
+// Variables disponibles selon l'email (contexte posé par serveur/emails.mjs)
+// ---------------------------------------------------------------------------
+
+/** Variables qui ont une valeur sans date : la confirmation n'en a pas d'autre. */
+const SANS_DATE = new Set(['prenom', 'lien_dates', 'lien_confirmation']);
+
+/**
+ * Vrai si la variable peut avoir une valeur dans cet email. À l'envoi :
+ * - la confirmation n'a ni date ni prochaines dates ;
+ * - le lien de confirmation n'existe que dans la confirmation ;
+ * - « Je viens » et les dates annoncées n'existent que dans l'annonce ;
+ * - le vainqueur (palmarès confirmé) n'est connu qu'après la soirée : lendemain, prochaines dates, message.
+ */
+export function variableDisponible(cle: Etape, variable: string): boolean {
+  if (variable === 'lien_confirmation') return cle === 'confirmation';
+  if (variable === 'lien_je_viens' || variable === 'dates_annoncees') return cle === 'annonce';
+  if (cle === 'confirmation') return SANS_DATE.has(variable);
+  if (variable === 'vainqueur') return cle === 'lendemain' || cle === 'prochaines_dates' || cle === 'message';
+  return true;
+}
+
+/** Variables connues employées dans les textes, sans doublon, dans l'ordre d'apparition. */
+export function variablesEmployees(textes: readonly string[]): string[] {
+  const connues = new Set(VARIABLES.map((variable) => variable.cle));
+  const employees = new Set<string>();
+  for (const [, nom] of textes.join('\n').matchAll(/\{\{\s*([^{}]*?)\s*\}\}/g)) if (connues.has(nom)) employees.add(nom);
+  return [...employees];
+}
+
+/** Date proposée pour l'aperçu : la prochaine date confirmée, sinon la prochaine, sinon la dernière connue. */
+export function dateParDefaut(dates: readonly Pick<DateCalendrier, 'id' | 'date_soiree' | 'statut'>[], maintenant: Date): string {
+  const aujourdhui = jourParisDe(maintenant);
+  const avenir = dates.filter((date) => date.date_soiree >= aujourdhui);
+  return (avenir.find((date) => date.statut === 'confirmee') ?? avenir[0] ?? dates[dates.length - 1])?.id ?? '';
+}
+
+/** Noms des modèles dont un texte utilise la variable, dans l'ordre de la séquence. */
+export function modelesUtilisant(
+  modeles: readonly Pick<ModeleEmailLigne, 'cle' | 'nom' | 'sujet' | 'preheader' | 'corps' | 'encart'>[],
+  variable: string,
+): string[] {
+  const motif = new RegExp(`\\{\\{\\s*${variable}\\s*\\}\\}`);
+  return modeles
+    .filter((modele) => [modele.sujet, modele.preheader, modele.corps, modele.encart ?? ''].some((texte) => motif.test(texte)))
+    .map((modele) => modele.nom);
 }
 
 // ---------------------------------------------------------------------------
@@ -133,9 +209,14 @@ export const LIBELLES_STATUT_DATE: Readonly<Record<DateCalendrier['statut'], str
 
 /** « sam. 31/07/2027 · Sommières », suivi du statut s'il n'est pas « confirmée ». */
 export function libelleOptionDate(date: Pick<DateCalendrier, 'date_soiree' | 'heure' | 'ville' | 'statut'>): string {
-  const { date_courte, annee } = formaterDate(date.date_soiree, date.heure);
   const statut = date.statut === 'confirmee' ? '' : ` (${LIBELLES_STATUT_DATE[date.statut]})`;
-  return `${date_courte}/${annee} · ${date.ville}${statut}`;
+  try {
+    const { date_courte, annee } = formaterDate(date.date_soiree, date.heure);
+    return `${date_courte}/${annee} · ${date.ville}${statut}`;
+  } catch {
+    // Date illisible : la liste reste utilisable, l'aperçu signale l'erreur.
+    return `${date.date_soiree} · ${date.ville}${statut}`;
+  }
 }
 
 /** Garde-fou du design (§2) : date confirmée dont la soirée liée est annulée ou reportée. */
@@ -168,9 +249,19 @@ export const LIBELLES_RAISONS: Readonly<Record<string, string>> = {
   modele_inactif: 'Email désactivé entre-temps',
   message_absent: 'Message introuvable',
   envoi_impossible: 'Refus du serveur d’envoi après trois essais',
+  interrompu: 'Envoi interrompu (serveur arrêté pendant l’envoi)',
 };
 
-export type LigneBilanRegroupee = { etape: Etape; calendrierId: string | null; dernierEnvoi: string | null } & Record<StatutEnvoi, number>;
+export type LigneBilanRegroupee = {
+  etape: Etape;
+  calendrierId: string | null;
+  /** Dernier envoi parti (envoyé ou simulé). */
+  dernierEnvoi: string | null;
+  /** Pour en_attente et echec, la vue donne l'heure de la dernière tentative, pas d'un envoi. */
+  derniereTentative: string | null;
+} & Record<StatutEnvoi, number>;
+
+const plusRecent = (a: string | null, b: string | null) => (!a ? b : !b ? a : a > b ? a : b);
 
 /** Une ligne par étape et par date, modes réel et simulé additionnés, dans l'ordre de la séquence. */
 export function regrouperBilan(bilan: readonly LigneBilan[]): LigneBilanRegroupee[] {
@@ -178,11 +269,14 @@ export function regrouperBilan(bilan: readonly LigneBilan[]): LigneBilanRegroupe
   for (const ligne of bilan) {
     const cle = `${ligne.etape} ${ligne.calendrier_id ?? ''}`;
     const groupe = lignes.get(cle) ?? {
-      etape: ligne.etape, calendrierId: ligne.calendrier_id, dernierEnvoi: null,
+      etape: ligne.etape, calendrierId: ligne.calendrier_id, dernierEnvoi: null, derniereTentative: null,
       en_attente: 0, envoye: 0, simule: 0, echec: 0, saute: 0,
     };
     groupe[ligne.statut] += ligne.nombre;
-    if (ligne.dernier_envoi && (!groupe.dernierEnvoi || ligne.dernier_envoi > groupe.dernierEnvoi)) groupe.dernierEnvoi = ligne.dernier_envoi;
+    if (ligne.statut === 'envoye' || ligne.statut === 'simule') groupe.dernierEnvoi = plusRecent(groupe.dernierEnvoi, ligne.dernier_envoi);
+    else if (ligne.statut === 'en_attente' || ligne.statut === 'echec') {
+      groupe.derniereTentative = plusRecent(groupe.derniereTentative, ligne.dernier_envoi);
+    }
     lignes.set(cle, groupe);
   }
   return [...lignes.values()].sort((a, b) => (
@@ -330,8 +424,10 @@ export type OptionsApercu = {
  */
 export function preparerApercu(options: OptionsApercu): { contexte: ContexteEmail; instant: Date } {
   const { cle, origine, exemples } = options;
-  const source = options.date ?? (exemples ? dateExemple() : null);
-  const date = source ? enrichir(source, exemples) : null;
+  // Comme à l'envoi : la confirmation ne porte sur aucune date, et le vainqueur n'existe qu'après la soirée.
+  const source = cle === 'confirmation' ? null : options.date ?? (exemples ? dateExemple() : null);
+  const enrichie = source ? enrichir(source, exemples) : null;
+  const date = enrichie && !variableDisponible(cle, 'vainqueur') ? { ...enrichie, vainqueur: null } : enrichie;
   const encartDateProche = cle === 'bienvenue' && options.encart && date !== null;
 
   let instant = options.maintenant;

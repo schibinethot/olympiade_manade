@@ -1,28 +1,28 @@
 /**
  * Onglet Dates : les dates à venir, leurs inscrits, leurs infos pratiques ({{infos_pratiques}}) et
- * le message aux inscrits (n° 8) : saisie, aperçu, confirmation du nombre de destinataires, envoi.
+ * le message aux inscrits (MessageInscrits). Les résultats passent par une région de statut
+ * permanente ; le focus revient au déclencheur quand le message se ferme.
  */
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { formaterDate, MODELES_DEFAUT, variablesInconnues } from '../../../../serveur/gabarits-emails.mjs';
-import { BOUTON, BOUTON_PLEIN, CARTE, CHAMP } from '../CadreAdmin';
-import { ApercuEmail, type LargeurApercu } from './ApercuEmail';
-import { appelerApiAdmin, enregistrerInfosPratiques, type DateCalendrier, type EtatChargement, type EtatEmails, type ModeleEmailLigne } from './donnees';
-import { AlerteVariables, BarreInsertion, useInsertion } from './Editeur';
-import { jourParisDe, LIBELLES_STATUT_DATE, messageAEcrire, preparerApercu } from './outils';
-import { ALERTE } from './Sequence';
+import { formaterDate } from '../../../../serveur/gabarits-emails.mjs';
+import { BOUTON, CARTE, CHAMP } from '../CadreAdmin';
+import { enregistrerInfosPratiques, type DateCalendrier, type EtatChargement, type EtatEmails, type ModeleEmailLigne } from './donnees';
+import { MessageInscrits, personnes } from './MessageInscrits';
+import { jourParisDe, LIBELLES_STATUT_DATE, modelesUtilisant } from './outils';
+import { ALERTE } from './styles';
 
-const NB = '\u00a0';
+const NB = ' ';
 const LIMITE_INFOS = 1000;
-
-const personnes = (nombre: number) => `${nombre} personne${nombre > 1 ? 's' : ''}`;
 
 type Retour = { etat: 'repos' } | { etat: 'encours' } | { etat: 'ok' | 'erreur'; message: string };
 
-function InfosPratiques({ date, client, onEnregistre }: {
+function InfosPratiques({ date, client, utilisateurs, onEnregistre }: {
   date: DateCalendrier;
   client: SupabaseClient;
+  /** Emails actifs qui reprennent {{infos_pratiques}}. */
+  utilisateurs: readonly string[];
   onEnregistre: (infos: string | null) => void;
 }) {
   const [valeur, setValeur] = useState(date.infos_pratiques ?? '');
@@ -35,10 +35,7 @@ function InfosPratiques({ date, client, onEnregistre }: {
     if (retour.etat === 'encours') return;
     setRetour({ etat: 'encours' });
     const resultat = await enregistrerInfosPratiques(client, date.id, propre);
-    if (!resultat.ok) {
-      setRetour({ etat: 'erreur', message: resultat.message });
-      return;
-    }
+    if (!resultat.ok) return setRetour({ etat: 'erreur', message: resultat.message });
     onEnregistre(resultat.valeur);
     setRetour({ etat: 'ok', message: 'Infos pratiques enregistrées. Les prochains emails de cette date les reprennent.' });
   }
@@ -49,145 +46,63 @@ function InfosPratiques({ date, client, onEnregistre }: {
       <textarea id={id} className={`${CHAMP} min-h-24 py-2`} value={valeur} maxLength={LIMITE_INFOS} aria-describedby={`${id}-aide`}
         onChange={(evenement) => { setValeur(evenement.target.value); setRetour({ etat: 'repos' }); }} />
       <p id={`${id}-aide`} className="text-xs text-encre-2">
-        Parking, accès, ouverture des portes… Repris par {'{{infos_pratiques}}'} dans la veille, le jour J et l’encart de bienvenue. {valeur.length}{NB}/{NB}{LIMITE_INFOS}
+        Parking, accès, ouverture des portes…{' '}
+        {utilisateurs.length
+          ? `Reprises par {{infos_pratiques}} dans${NB}: ${utilisateurs.join(', ')}.`
+          : 'Aucun email actif n’utilise {{infos_pratiques}} pour l’instant.'}
+        {' '}{valeur.length}{NB}/{NB}{LIMITE_INFOS}
       </p>
       <div className="flex flex-wrap items-center gap-3">
         <button type="button" className={BOUTON} disabled={inchange || retour.etat === 'encours'} onClick={() => void enregistrer()}>
           {retour.etat === 'encours' ? 'Enregistrement…' : 'Enregistrer les infos'}
         </button>
-        {retour.etat === 'ok' ? <p role="status" className="text-sm text-ok">{retour.message}</p> : null}
+        <p role="status" className="text-sm text-ok">{retour.etat === 'ok' ? retour.message : ''}</p>
         {retour.etat === 'erreur' ? <p role="alert" className="text-sm text-rouge-alerte">{retour.message}</p> : null}
       </div>
     </div>
   );
 }
 
-type ChampMessage = 'sujet' | 'corps';
-
-function MessageInscrits({ date, dates, inscrits, modeleMessage, jeton, onEnvoye, onAnnuler }: {
-  date: DateCalendrier;
-  dates: readonly DateCalendrier[];
-  inscrits: number;
-  modeleMessage: ModeleEmailLigne | undefined;
-  jeton: string;
-  onEnvoye: (destinataires: number) => void;
-  onAnnuler: () => void;
-}) {
-  const [textes, setTextes] = useState<Record<ChampMessage, string>>({
-    sujet: modeleMessage?.sujet ?? MODELES_DEFAUT.message.sujet,
-    corps: modeleMessage?.corps ?? MODELES_DEFAUT.message.corps,
-  });
-  const [etape, setEtape] = useState<'saisie' | 'confirmation'>('saisie');
-  const [envoi, setEnvoi] = useState<Retour>({ etat: 'repos' });
-  const [refus, setRefus] = useState<string | null>(null);
-  const [largeur, setLargeur] = useState<LargeurApercu>('mobile');
-  const [maintenant] = useState(() => new Date());
-  const [origine] = useState(() => (typeof window === 'undefined' ? 'https://olympiadedesmanades.fr' : window.location.origin));
-  const changer = (champ: ChampMessage, valeur: string) => {
-    setTextes((avant) => ({ ...avant, [champ]: valeur }));
-    setRefus(null);
-    setEtape('saisie');
-  };
-  const insertion = useInsertion<ChampMessage>(textes, changer, 'corps');
-  const prefixe = `message-${date.id}`;
-
-  // À l'envoi, le serveur reprend le pré-en-tête du modèle « message » (serveur/emails.mjs).
-  const preheader = modeleMessage?.preheader ?? MODELES_DEFAUT.message.preheader;
-  const modele = useMemo(() => ({ sujet: textes.sujet, preheader, corps: textes.corps }), [textes, preheader]);
-  const { contexte } = useMemo(() => preparerApercu({
-    cle: 'message', reglage: { jours_decalage: null, heure_envoi: null }, date, dates,
-    prenom: 'Camille', origine, maintenant, exemples: false, encart: false,
-  }), [date, dates, origine, maintenant]);
-
-  function verifier() {
-    if (!textes.sujet.trim()) return setRefus('Écrivez l’objet du message.');
-    if (messageAEcrire(textes.corps)) return setRefus(`Écrivez votre message avant d’envoyer${NB}: remplacez la phrase «${NB}Écrivez ici votre message…${NB}».`);
-    if (!textes.corps.trim()) return setRefus('Écrivez votre message avant d’envoyer.');
-    if (variablesInconnues(`${textes.sujet}\n${textes.corps}`).length) return setRefus('Retirez les variables inconnues avant d’envoyer.');
-    setRefus(null);
-    setEnvoi({ etat: 'repos' });
-    setEtape('confirmation');
-  }
-
-  async function envoyer() {
-    if (envoi.etat === 'encours') return;
-    setEnvoi({ etat: 'encours' });
-    const reponse = await appelerApiAdmin<{ ok: boolean; destinataires: number }>('/api/admin/emails/message', jeton, {
-      calendrierId: date.id, sujet: textes.sujet, corps: textes.corps,
-    });
-    // En cas d'échec, le formulaire reste ouvert : le même texte peut être renvoyé.
-    if (!reponse.ok) setEnvoi({ etat: 'erreur', message: reponse.message });
-    else onEnvoye(typeof reponse.donnees.destinataires === 'number' ? reponse.donnees.destinataires : inscrits);
-  }
-
-  return (
-    <section aria-labelledby={`${prefixe}-titre`} className="grid gap-4 rounded-2xl border border-trait bg-sable p-3 tablette:p-4">
-      <h3 id={`${prefixe}-titre`} className="font-display text-xl">Message aux inscrits</h3>
-      <div className="grid gap-4 paysage:grid-cols-[minmax(0,1fr)_402px]">
-        <div className="grid min-w-0 content-start gap-3">
-          <div className="grid gap-1.5">
-            <label htmlFor={`${prefixe}-sujet`} className="text-sm font-semibold">Objet</label>
-            <input id={`${prefixe}-sujet`} className={CHAMP} value={textes.sujet} maxLength={200} {...insertion.brancher('sujet')}
-              onChange={(evenement) => changer('sujet', evenement.target.value)} />
-          </div>
-          <BarreInsertion libelleCible={insertion.cible === 'sujet' ? 'Objet' : 'Corps du message'} riche={insertion.cible === 'corps'} appliquer={insertion.appliquer} />
-          <div className="grid gap-1.5">
-            <label htmlFor={`${prefixe}-corps`} className="text-sm font-semibold">Corps du message</label>
-            <textarea id={`${prefixe}-corps`} rows={10} className={`${CHAMP} py-2 font-mono text-sm leading-relaxed`} value={textes.corps} maxLength={8000}
-              {...insertion.brancher('corps')} onChange={(evenement) => changer('corps', evenement.target.value)} />
-            <p className="text-xs text-encre-2">Changement d’horaire, report, annulation, info de dernière minute. {'{{prochaines_dates}}'} liste les autres dates avec leur lien «{NB}Je viens{NB}».</p>
-          </div>
-          <AlerteVariables textes={[textes.sujet, textes.corps]} />
-        </div>
-        <ApercuEmail id={`${prefixe}-apercu`} modele={modele} contexte={contexte} largeur={largeur} onLargeur={setLargeur} legende="Pour Camille, tel qu’il partirait maintenant." />
-      </div>
-
-      {refus ? <p role="alert" className="text-rouge-alerte">{refus}</p> : null}
-      {etape === 'saisie' ? (
-        <div className="flex flex-wrap gap-3">
-          <button type="button" className={BOUTON_PLEIN} onClick={verifier}>Vérifier et envoyer</button>
-          <button type="button" className={BOUTON} onClick={onAnnuler}>Annuler</button>
-        </div>
-      ) : (
-        <div role="group" aria-label="Confirmer l’envoi" className={`${ALERTE} grid gap-3`}>
-          <p className="font-semibold">Envoyer à {personnes(inscrits)}{NB}?</p>
-          <p className="text-sm">Le message part aux inscrits confirmés de cette date, désinscrits exclus. Il ne peut pas être rappelé.</p>
-          <div className="flex flex-wrap gap-3">
-            <button type="button" className={BOUTON_PLEIN} disabled={envoi.etat === 'encours'} onClick={() => void envoyer()}>
-              {envoi.etat === 'encours' ? 'Envoi…' : envoi.etat === 'erreur' ? 'Réessayer' : 'Oui, envoyer'}
-            </button>
-            <button type="button" className={`${BOUTON} bg-creme`} disabled={envoi.etat === 'encours'} onClick={() => setEtape('saisie')}>Modifier</button>
-          </div>
-          {envoi.etat === 'erreur' ? <p role="alert" className="text-sm text-rouge-alerte">{envoi.message}</p> : null}
-        </div>
-      )}
-    </section>
-  );
-}
-
-function CarteDate({ date, dates, inscrits, modeleMessage, client, jeton, simulation, onInfos }: {
+function CarteDate({ date, dates, inscrits, modeleMessage, utilisateurs, client, jeton, simulation, ouvrirMessage, onInfos, onModifie }: {
   date: DateCalendrier;
   dates: readonly DateCalendrier[];
   inscrits: number | null;
   modeleMessage: ModeleEmailLigne | undefined;
+  utilisateurs: readonly string[];
   client: SupabaseClient;
   jeton: string | null;
   simulation: boolean;
+  /** Arrivée depuis l'alerte « Écrire aux inscrits de cette date » : le message s'ouvre tout de suite. */
+  ouvrirMessage: boolean;
   onInfos: (infos: string | null) => void;
+  onModifie: (cle: string, modifie: boolean) => void;
 }) {
-  const [ecrire, setEcrire] = useState(false);
-  const [envoye, setEnvoye] = useState<number | null>(null);
+  const peutEcrire = Boolean(jeton && inscrits);
+  const [ecrire, setEcrire] = useState(() => ouvrirMessage && peutEcrire);
+  const [annonce, setAnnonce] = useState('');
+  const titre = useRef<HTMLHeadingElement>(null);
+  const boutonEcrire = useRef<HTMLButtonElement>(null);
   const formats = formaterDate(date.date_soiree, date.heure);
   const idTitre = `date-${date.id}`;
   const suspendue = date.statut === 'confirmee' && (date.soiree?.statut === 'annulee' || date.soiree?.statut === 'reportee');
   const pastille = date.statut === 'confirmee' ? 'border-ok/50 bg-ok/10 text-encre'
     : date.statut === 'annulee' ? 'border-rouge-alerte/40 bg-rouge/10 text-rouge-alerte' : 'border-trait bg-lin text-encre-2';
   const point = date.statut === 'confirmee' ? 'bg-ok' : date.statut === 'annulee' ? 'bg-rouge-alerte' : 'bg-encre-3';
+  const signaler = useCallback((modifie: boolean) => onModifie(`message-${date.id}`, modifie), [onModifie, date.id]);
+
+  // Arrivée depuis l'alerte sans personne à prévenir : la carte vient à l'écran, titre focalisé.
+  useEffect(() => { if (ouvrirMessage && !peutEcrire) titre.current?.focus(); }, [ouvrirMessage, peutEcrire]);
+
+  function fermer(message = '') {
+    setEcrire(false);
+    setAnnonce(message);
+    requestAnimationFrame(() => boutonEcrire.current?.focus());
+  }
 
   return (
     <article aria-labelledby={idTitre} className={`${CARTE} grid min-w-0 gap-4`}>
       <div className="grid gap-2">
-        <h2 id={idTitre} className="font-display text-2xl">{date.ville}, {formats.date}</h2>
+        <h2 id={idTitre} ref={titre} tabIndex={-1} className="font-display text-2xl">{date.ville}, {formats.date}</h2>
         <p className="text-sm text-encre-2">{date.nom}{formats.heure ? ` · ${formats.heure}` : ''}{date.arenes ? ` · ${date.arenes}` : ''}</p>
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${pastille}`}>
@@ -202,42 +117,45 @@ function CarteDate({ date, dates, inscrits, modeleMessage, client, jeton, simula
         {date.statut === 'annulee' ? <p className={`${ALERTE} text-sm`}>Date annulée{NB}: les rappels sont arrêtés. Prévenez les inscrits, et proposez-leur les autres dates avec {'{{prochaines_dates}}'}.</p> : null}
       </div>
 
-      <InfosPratiques date={date} client={client} onEnregistre={onInfos} />
+      <InfosPratiques date={date} client={client} utilisateurs={utilisateurs} onEnregistre={onInfos} />
 
-      {envoye !== null ? (
-        <p role="status" className="text-ok">
-          Message enregistré pour {personnes(envoye)}{NB}: il part au prochain passage du planificateur, dans la minute.
-          {simulation ? ` Mode simulation${NB}: rien ne part réellement.` : ''}
-        </p>
-      ) : null}
       {ecrire && jeton && inscrits ? (
-        <MessageInscrits date={date} dates={dates} inscrits={inscrits} modeleMessage={modeleMessage} jeton={jeton}
-          onEnvoye={(nombre) => { setEnvoye(nombre); setEcrire(false); }} onAnnuler={() => setEcrire(false)} />
+        <MessageInscrits date={date} dates={dates} inscrits={inscrits} modeleMessage={modeleMessage} jeton={jeton} onModifie={signaler}
+          onFermer={() => fermer()}
+          onEnvoye={(nombre) => fermer(`Message enregistré pour ${personnes(nombre)}${NB}: il part au prochain passage du planificateur, dans la minute.${
+            simulation ? ` Mode simulation${NB}: rien ne part réellement.` : ''}`)} />
       ) : (
         <div className="flex flex-wrap items-center gap-3">
-          <button type="button" className={BOUTON} disabled={!jeton || !inscrits} aria-describedby={idTitre}
-            onClick={() => { setEnvoye(null); setEcrire(true); }}>
+          <button ref={boutonEcrire} type="button" className={BOUTON} disabled={!peutEcrire} aria-describedby={idTitre}
+            onClick={() => { setAnnonce(''); setEcrire(true); }}>
             Écrire aux inscrits
           </button>
           {inscrits === 0 ? <p className="text-sm text-encre-2">Personne à prévenir pour l’instant.</p> : null}
         </div>
       )}
+      {/* Région permanente : le résultat de l'envoi est annoncé sans déplacer le focus. */}
+      <p role="status" className="text-ok">{annonce}</p>
     </article>
   );
 }
 
-export function Dates({ dates, rattaches, modeleMessage, client, jeton, etat, onInfos }: {
+export function Dates({ dates, rattaches, modeles, client, jeton, etat, ecrireA, onInfos, onModifie }: {
   dates: readonly DateCalendrier[];
   rattaches: Record<string, number> | null;
-  modeleMessage: ModeleEmailLigne | undefined;
+  modeles: readonly ModeleEmailLigne[];
   client: SupabaseClient;
   jeton: string | null;
   etat: EtatChargement<EtatEmails>;
+  /** Date dont le message s'ouvre à l'arrivée (alerte de la séquence). */
+  ecrireA: string | null;
   onInfos: (id: string, infos: string | null) => void;
+  onModifie: (cle: string, modifie: boolean) => void;
 }) {
   const [aujourdhui] = useState(() => jourParisDe(new Date()));
   const avenir = dates.filter((date) => date.date_soiree >= aujourdhui);
   const simulation = etat.statut === 'ok' && etat.valeur.mode !== 'smtp';
+  const utilisateurs = modelesUtilisant(modeles.filter((modele) => modele.actif), 'infos_pratiques');
+  const modeleMessage = modeles.find((modele) => modele.cle === 'message');
 
   return (
     <div className="grid min-w-0 gap-5">
@@ -247,8 +165,8 @@ export function Dates({ dates, rattaches, modeleMessage, client, jeton, etat, on
       {avenir.length === 0 ? <p className={CARTE}>Aucune date à venir au calendrier. Ajoutez-en depuis l’admin Vitrine.</p> : null}
       {avenir.map((date) => (
         <CarteDate key={date.id} date={date} dates={dates} inscrits={rattaches ? rattaches[date.id] ?? 0 : null}
-          modeleMessage={modeleMessage} client={client} jeton={jeton} simulation={simulation}
-          onInfos={(infos) => onInfos(date.id, infos)} />
+          modeleMessage={modeleMessage} utilisateurs={utilisateurs} client={client} jeton={jeton} simulation={simulation}
+          ouvrirMessage={ecrireA === date.id} onInfos={(infos) => onInfos(date.id, infos)} onModifie={onModifie} />
       ))}
     </div>
   );
