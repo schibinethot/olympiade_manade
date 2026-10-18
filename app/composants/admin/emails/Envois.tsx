@@ -1,6 +1,7 @@
 /**
- * Onglet Envois : état du serveur d'envoi (mode, dernier passage), destinataires, bilan par étape
- * et par date (vue bilan_envois_emails) et raisons des envois sautés ou en échec.
+ * Onglet Envois : état du serveur d'envoi (mode, raisons d'inactivité, dernier passage, dernière
+ * erreur), destinataires, bilan par étape et par date, et raisons des envois sautés ou en échec. Bilan
+ * et raisons viennent d'une seule lecture de la vue bilan_envois_emails (contrat C-0.4).
  */
 
 import { useMemo, useState } from 'react';
@@ -8,24 +9,11 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { MODELES_DEFAUT, type Etape } from '../../../../serveur/gabarits-emails.mjs';
 import { BOUTON, CARTE } from '../CadreAdmin';
 import { INACTIF } from './styles';
-import { RAISONS_CONNUES, useComptesEnvois, type DateCalendrier, type EtatChargement, type EtatEmails, type LigneBilan, type ModeEnvoi, type ModeleEmailLigne } from './donnees';
-import { instantEnClair, LIBELLES_RAISONS, regrouperBilan } from './outils';
+import { useComptesEnvois, type DateCalendrier, type EtatChargement, type EtatEmails, type LigneBilan, type ModeleEmailLigne } from './donnees';
+import { accorder, BandeauxServeur, DetailServeur } from './EtatServeur';
+import { instantEnClair, raisonsDuBilan, regrouperBilan } from './outils';
 
 const NB = '\u00a0';
-
-const LIBELLES_MODE: Record<ModeEnvoi, { titre: string; detail: string }> = {
-  smtp: { titre: 'Envoi réel (smtp)', detail: 'Les emails partent pour de vrai.' },
-  log: { titre: 'Simulation (log)', detail: 'Les envois sont calculés et notés dans le journal, sans partir.' },
-  off: { titre: 'Coupé (off)', detail: 'Rien n’est calculé ni envoyé.' },
-};
-
-const LIBELLES_PASSAGE: ReadonlyArray<[keyof NonNullable<EtatEmails['dernierBilan']>, string, string]> = [
-  ['reserves', 'réservé', 'réservés'], ['envoyes', 'envoyé', 'envoyés'], ['simules', 'simulé', 'simulés'],
-  ['echecs', 'échec', 'échecs'], ['sautes', 'sauté', 'sautés'],
-];
-
-/** 0 et 1 au singulier, comme en français. */
-const accorder = (nombre: number, singulier: string, pluriel: string) => `${nombre} ${nombre >= 2 ? pluriel : singulier}`;
 
 /** Statut, titre de colonne, mot du résumé (au singulier ; « en attente » est invariable). */
 const COLONNES = [
@@ -43,28 +31,6 @@ function Chiffre({ id, libelle, valeur, aide }: { id: string; libelle: string; v
   );
 }
 
-function EtatServeur({ etat }: { etat: EtatChargement<EtatEmails> }) {
-  if (etat.statut === 'chargement') return <p role="status" className="mt-3">Lecture de l’état du serveur…</p>;
-  if (etat.statut === 'erreur') return <p role="alert" className="mt-3 text-rouge-alerte">{etat.message}</p>;
-  const { mode, pret, cleLiens, dernierPassage, dernierBilan } = etat.valeur;
-  const libelle = LIBELLES_MODE[mode] ?? LIBELLES_MODE.off;
-  const passage = dernierBilan
-    ? LIBELLES_PASSAGE.map(([cle, singulier, pluriel]) => accorder(dernierBilan[cle] ?? 0, singulier, pluriel)).join(' · ')
-    : null;
-  return (
-    <dl className="mt-3 grid gap-2 text-sm tablette:grid-cols-[11rem_minmax(0,1fr)]">
-      <dt className="font-semibold text-encre-2">Mode</dt>
-      <dd><span className="font-semibold">{libelle.titre}</span> · {libelle.detail}</dd>
-      <dt className="font-semibold text-encre-2">Planificateur</dt>
-      <dd>{pret ? 'Prêt, passage chaque minute' : 'À l’arrêt (configuration incomplète)'}</dd>
-      <dt className="font-semibold text-encre-2">Clé des liens</dt>
-      <dd>{cleLiens ? 'Présente' : 'Absente (EMAILS_CLE_LIENS)'}</dd>
-      <dt className="font-semibold text-encre-2">Dernier passage</dt>
-      <dd>{dernierPassage ? instantEnClair(dernierPassage) : 'Aucun depuis le démarrage du serveur'}{passage ? ` · ${passage}` : ''}</dd>
-    </dl>
-  );
-}
-
 export function Envois({ bilan, modeles, dates, etat, client, onActualiser, actualisation }: {
   bilan: readonly LigneBilan[];
   modeles: readonly ModeleEmailLigne[];
@@ -77,6 +43,7 @@ export function Envois({ bilan, modeles, dates, etat, client, onActualiser, actu
 }) {
   const [revision, setRevision] = useState(0);
   const lignes = useMemo(() => regrouperBilan(bilan), [bilan]);
+  const raisons = useMemo(() => raisonsDuBilan(bilan), [bilan]);
   const ids = useMemo(() => [...new Set(lignes.map((ligne) => ligne.calendrierId).filter((id): id is string => id !== null))].sort(), [lignes]);
   const comptes = useComptesEnvois(client, ids, revision);
   const noms = new Map<string, string>(modeles.map((modele) => [modele.cle, modele.nom]));
@@ -88,7 +55,6 @@ export function Envois({ bilan, modeles, dates, etat, client, onActualiser, actu
     const date = connues.get(id);
     return date ? `${date.ville}, ${date.date_soiree.slice(8, 10)}/${date.date_soiree.slice(5, 7)}/${date.date_soiree.slice(0, 4)}` : 'Date supprimée';
   };
-  const totalSautesEchecs = lignes.reduce((total, ligne) => total + ligne.saute + ligne.echec, 0);
 
   // aria-disabled pendant la relecture : le bouton garde le focus ; la garde est ici.
   function actualiser() {
@@ -107,9 +73,11 @@ export function Envois({ bilan, modeles, dates, etat, client, onActualiser, actu
         </div>
       </div>
 
+      <BandeauxServeur etat={etat} />
+
       <section className={`${CARTE} min-w-0`} aria-labelledby="titre-serveur-envoi">
         <h2 id="titre-serveur-envoi" className="font-display text-2xl">Serveur d’envoi</h2>
-        <EtatServeur etat={etat} />
+        <DetailServeur etat={etat} />
       </section>
 
       <section className={`${CARTE} min-w-0`} aria-labelledby="titre-destinataires">
@@ -172,28 +140,16 @@ export function Envois({ bilan, modeles, dates, etat, client, onActualiser, actu
 
       <section className={`${CARTE} min-w-0`} aria-labelledby="titre-raisons">
         <h2 id="titre-raisons" className="font-display text-2xl">Pourquoi des emails n’ont pas été envoyés</h2>
-        {comptes.statut === 'ok' ? (() => {
-          const raisons = RAISONS_CONNUES.filter((raison) => comptes.valeur.raisons[raison] > 0);
-          const autres = totalSautesEchecs - raisons.reduce((total, raison) => total + comptes.valeur.raisons[raison], 0);
-          if (!raisons.length && autres <= 0) return <p className="mt-3">Aucun email sauté ni en échec.</p>;
-          return (
-            <ul className="mt-3 divide-y divide-trait">
-              {raisons.map((raison) => (
-                <li key={raison} className="flex items-center justify-between gap-3 py-2.5">
-                  <span>{LIBELLES_RAISONS[raison] ?? raison}</span>
-                  <span className="font-semibold tabular-nums">{comptes.valeur.raisons[raison]}</span>
-                </li>
-              ))}
-              {autres > 0 ? (
-                <li className="flex items-center justify-between gap-3 py-2.5">
-                  <span>Autre raison (échec du serveur d’envoi après 3 essais…)</span>
-                  <span className="font-semibold tabular-nums">{autres}</span>
-                </li>
-              ) : null}
-            </ul>
-          );
-        })() : null}
-        {comptes.statut === 'chargement' ? <p role="status" className="mt-3">Comptage…</p> : null}
+        {raisons.length === 0 ? <p className="mt-3">Aucun email sauté ni en échec.</p> : (
+          <ul className="mt-3 divide-y divide-trait">
+            {raisons.map(({ raison, libelle, nombre }) => (
+              <li key={raison ?? 'sans-raison'} className="flex items-center justify-between gap-3 py-2.5">
+                <span>{libelle}</span>
+                <span className="font-semibold tabular-nums">{nombre}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   );

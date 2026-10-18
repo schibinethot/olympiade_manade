@@ -8,7 +8,7 @@
 
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page, type Route } from '../outils/test-e2e';
-import { ETAPES, MODELES_DEFAUT } from '../../serveur/gabarits-emails.mjs';
+import { ETAPES, formaterDate, MODELES_DEFAUT } from '../../serveur/gabarits-emails.mjs';
 
 const ID_ADMIN = '00000000-0000-4000-8000-00000000000a';
 
@@ -53,17 +53,36 @@ const DATE_PROCHE = {
   date_soiree: jourParis(4), heure: '21:30:00', statut: 'confirmee', lien_billetterie: null,
   infos_pratiques: null, soiree_id: null, soiree: null,
 };
+// Dates relatives au jour du test (et non figées) : l'admin filtre sur l'horloge réelle, une date
+// passée sortirait des listes et ferait échouer les tests (revue QA, « bombe de date »).
 const DATE_SOMMIERES = {
   id: 'date-sommieres', nom: 'Olympiade des Manades', ville: 'Sommières', arenes: 'Arènes Gilles Arnaud',
-  date_soiree: '2027-07-31', heure: '21:30:00', statut: 'confirmee', lien_billetterie: 'https://billetterie.exemple.fr',
+  date_soiree: jourParis(30), heure: '21:30:00', statut: 'confirmee', lien_billetterie: 'https://billetterie.exemple.fr',
   infos_pratiques: 'Parking derrière les arènes.', soiree_id: 'soiree-sommieres',
   soiree: { slug: 'sommieres-2027', statut: 'reportee', soiree_manades: [{ ordre: 1, manades: { nom: 'Vinuesa' } }] },
 };
 const DATE_BEZOUCE = {
   id: 'date-bezouce', nom: 'Olympiade des Manades', ville: 'Bezouce', arenes: null,
-  date_soiree: '2027-08-05', heure: null, statut: 'previsionnelle', lien_billetterie: null,
+  date_soiree: jourParis(35), heure: null, statut: 'previsionnelle', lien_billetterie: null,
   infos_pratiques: null, soiree_id: null, soiree: null,
 };
+/** « samedi 31 juillet 2027 » : la date de Sommières telle que le rendu l'écrit. */
+const SOMMIERES_EN_TOUTES_LETTRES = formaterDate(DATE_SOMMIERES.date_soiree, DATE_SOMMIERES.heure).date;
+
+const IDENTITE = {
+  raison_sociale: 'Association des Manades', forme_juridique: 'Association loi 1901', adresse: '1 place des Arènes, Sommières',
+  telephone: null, email: 'contact@exemple.fr', immatriculation: null, capital: null, tva: null, directeur_publication: null,
+};
+
+/** État du serveur d'envoi (contrat C-0.3) : simulation prête, passage d'il y a une minute. */
+function etatServeur(champs: Record<string, unknown> = {}) {
+  return {
+    mode: 'log', pret: true, raisonsInactif: [], cleLiens: true, barriereActive: false,
+    dernierPassage: new Date(Date.now() - 60_000).toISOString(),
+    dernierBilan: { reserves: 3, envoyes: 0, simules: 3, echecs: 0, sautes: 1 }, derniereErreur: null,
+    ...champs,
+  };
+}
 
 function modelesParDefaut() {
   return ETAPES.map((cle) => {
@@ -82,7 +101,11 @@ type Simulation = {
   patchsCalendrier: { url: string; corps: Record<string, unknown> }[];
   tests: { autorisation: string | null; corps: Record<string, unknown> }[];
   messages: { autorisation: string | null; corps: Record<string, unknown> }[];
+  /** Requêtes sur envois_emails : l'onglet Envois n'en fait plus (vue du bilan, contrat C-0.4). */
+  lecturesEnvois: string[];
 };
+
+type Options = { etat?: Record<string, unknown>; identite?: unknown[] };
 
 function compter(route: Route, nombre: number) {
   return route.fulfill({
@@ -93,8 +116,8 @@ function compter(route: Route, nombre: number) {
   });
 }
 
-async function ouvrirAdmin(page: Page): Promise<Simulation> {
-  const simulation: Simulation = { patchsModeles: [], patchsCalendrier: [], tests: [], messages: [] };
+async function ouvrirAdmin(page: Page, options: Options = {}): Promise<Simulation> {
+  const simulation: Simulation = { patchsModeles: [], patchsCalendrier: [], tests: [], messages: [], lecturesEnvois: [] };
   const modeles = modelesParDefaut();
   await page.addInitScript((valeur) => {
     try {
@@ -133,19 +156,25 @@ async function ouvrirAdmin(page: Page): Promise<Simulation> {
     const calendrier = new URL(route.request().url()).searchParams.get('calendrier_id');
     return compter(route, calendrier === 'eq.date-proche' ? 3 : calendrier === 'eq.date-sommieres' ? 2 : 0);
   });
+  // Vue du bilan regroupée par raison (contrat C-0.4) : bilan et raisons en une seule lecture.
   await page.route('**/rest/v1/bilan_envois_emails*', (route) => route.fulfill({
     json: [
-      { etape: 'confirmation', calendrier_id: null, reel: false, statut: 'simule', nombre: 12, dernier_envoi: '2026-10-16T08:00:00Z' },
-      { etape: 'bienvenue', calendrier_id: null, reel: false, statut: 'simule', nombre: 9, dernier_envoi: '2026-10-16T08:05:00Z' },
-      { etape: 'veille', calendrier_id: 'date-proche', reel: false, statut: 'saute', nombre: 2, dernier_envoi: null },
+      { etape: 'confirmation', calendrier_id: null, reel: false, statut: 'simule', raison: null, nombre: 12, dernier_envoi: '2026-10-16T08:00:00Z' },
+      { etape: 'bienvenue', calendrier_id: null, reel: false, statut: 'simule', raison: null, nombre: 9, dernier_envoi: '2026-10-16T08:05:00Z' },
+      { etape: 'veille', calendrier_id: 'date-proche', reel: false, statut: 'saute', raison: 'fenetre_depassee', nombre: 2, dernier_envoi: null },
+      { etape: 'jour_j', calendrier_id: 'date-proche', reel: false, statut: 'saute', raison: 'rendu_invalide', nombre: 1, dernier_envoi: null },
       // En attente ou en échec, dernier_envoi est l'heure de la dernière tentative (tâche 5).
-      { etape: 'veille', calendrier_id: 'date-proche', reel: false, statut: 'echec', nombre: 1, dernier_envoi: '2026-10-17T07:30:00Z' },
+      { etape: 'veille', calendrier_id: 'date-proche', reel: false, statut: 'echec', raison: null, nombre: 1, dernier_envoi: '2026-10-17T07:30:00Z' },
     ],
   }));
   await page.route('**/rest/v1/envois_emails*', (route) => {
-    const raison = new URL(route.request().url()).searchParams.get('raison');
-    return compter(route, raison === 'eq.fenetre_depassee' ? 2 : raison === 'eq.rendu_invalide' ? 1 : 0);
+    simulation.lecturesEnvois.push(route.request().url());
+    return compter(route, 0);
   });
+  await page.route('**/rest/v1/messages_inscrits*', (route) => route.fulfill({
+    json: [{ id: 'message-1', calendrier_id: 'date-proche', sujet: 'Le parking change de place', cree_le: '2026-10-15T16:00:00Z', destinataires: 3 }],
+  }));
+  await page.route('**/rest/v1/identite_legale*', (route) => route.fulfill({ json: options.identite ?? [IDENTITE] }));
   await page.route('**/rest/v1/destinataires_emails*', (route) => {
     const parametres = new URL(route.request().url()).searchParams;
     if (parametres.get('desinscrit_le') === 'not.is.null') return compter(route, 4);
@@ -153,12 +182,7 @@ async function ouvrirAdmin(page: Page): Promise<Simulation> {
     if (parametres.get('annonces') === 'eq.true') return compter(route, 7);
     return compter(route, 15);
   });
-  await page.route('**/api/admin/emails/etat', (route) => route.fulfill({
-    json: {
-      mode: 'log', pret: true, cleLiens: true, dernierPassage: '2026-10-17T08:00:00Z',
-      dernierBilan: { reserves: 3, envoyes: 0, simules: 3, echecs: 0, sautes: 1 },
-    },
-  }));
+  await page.route('**/api/admin/emails/etat', (route) => route.fulfill({ json: etatServeur(options.etat) }));
   await page.route('**/api/admin/emails/test', (route) => {
     simulation.tests.push({
       autorisation: route.request().headers().authorization ?? null,
@@ -245,7 +269,7 @@ test.describe('admin des e-mails', () => {
     await page.getByRole('button', { name: 'Insérer une info' }).click();
     await page.getByRole('button', { name: /\{\{date\}\}/ }).click();
     await expect(corpsDuMessage(page)).toHaveValue(/reconnaissable\. \{\{date\}\}$/);
-    await expect(apercu(page)).toContainText('samedi 31 juillet 2027');
+    await expect(apercu(page)).toContainText(SOMMIERES_EN_TOUTES_LETTRES);
     // Une variable sans valeur dans cet email est grisée et n'insère rien.
     const vainqueur = page.getByRole('button', { name: /\{\{vainqueur\}\}/ });
     await expect(vainqueur).toHaveAttribute('aria-disabled', 'true');
@@ -486,11 +510,17 @@ test.describe('admin des e-mails', () => {
       calendrierId: 'date-proche',
       sujet: MODELES_DEFAUT.message.sujet,
       corps: 'Bonjour {{prenom}},\n\nLe parking change de place.',
+      cle: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/),
     });
+    // Le message rejoint l'historique de la date, au-dessus des anciens.
+    const historique = carte.getByRole('region', { name: 'Messages envoyés' }).getByRole('listitem');
+    await expect(historique).toHaveCount(2);
+    await expect(historique.first()).toContainText(MODELES_DEFAUT.message.sujet);
+    await expect(historique.first()).toContainText('3 personnes');
   });
 
   test('Envois : bilan par étape, raisons des sauts, mode et désinscrits', async ({ page }) => {
-    await ouvrirAdmin(page);
+    const simulation = await ouvrirAdmin(page);
     await page.goto('/admin/emails?onglet=envois');
     await expect(page.getByText('Simulation (log)', { exact: true })).toBeVisible({ timeout: 8000 });
     const tableau = page.getByRole('table', { name: 'Bilan des envois' });
@@ -500,7 +530,10 @@ test.describe('admin des e-mails', () => {
     await expect(tableau.getByRole('row', { name: /Confirmation de l’adresse/ })).not.toContainText('Dernière tentative');
     await expect(page.getByText('Fenêtre d’envoi dépassée')).toBeVisible();
     await expect(page.getByText('Rendu impossible')).toBeVisible();
+    await expect(page.getByText('Autre raison (échec du serveur d’envoi après 3 essais…)')).toBeVisible();
     await expect(page.getByRole('group', { name: 'Désinscrits' })).toContainText('4');
+    // Raisons lues dans la vue du bilan : plus aucune requête sur envois_emails.
+    expect(simulation.lecturesEnvois).toEqual([]);
     // « Actualiser » relit sur place, sans repasser par le chargement de tout l'écran.
     await page.getByRole('button', { name: 'Actualiser' }).click();
     await expect(page.getByText('Lecture des emails…')).toHaveCount(0);
@@ -508,11 +541,13 @@ test.describe('admin des e-mails', () => {
     await expect(page.getByRole('button', { name: 'Actualiser' })).toBeEnabled();
   });
 
-  test('un message refusé par le serveur reste ouvert et se renvoie avec « Réessayer »', async ({ page }) => {
+  test('un message refusé par le serveur reste ouvert et se renvoie avec « Réessayer », avec la même clé', async ({ page }) => {
     await ouvrirAdmin(page);
     let essais = 0;
+    const cles: unknown[] = [];
     await page.route('**/api/admin/emails/message', (route) => {
       essais += 1;
+      cles.push((route.request().postDataJSON() as { cle?: unknown }).cle);
       return essais === 1
         ? route.fulfill({ status: 503, json: { error: 'planificateur_inactif' } })
         : route.fulfill({ json: { ok: true, destinataires: 3 } });
@@ -529,7 +564,17 @@ test.describe('admin des e-mails', () => {
     await carte.getByRole('button', { name: 'Réessayer' }).click();
     await expect(carte.getByRole('status').filter({ hasText: /3 personnes/ })).toBeVisible();
     expect(essais).toBe(2);
+    // Idempotence (contrat C-0.7) : la clé tirée à l'ouverture part avec chaque essai.
+    expect(typeof cles[0]).toBe('string');
+    expect(cles[1]).toBe(cles[0]);
     await expect(carte.getByRole('button', { name: 'Écrire aux inscrits' })).toBeFocused();
+    // Un nouveau message a une nouvelle clé.
+    await carte.getByRole('button', { name: 'Écrire aux inscrits' }).click();
+    await carte.getByRole('textbox', { name: 'Corps du message', exact: true }).fill('Bonjour,\n\nAutre info.');
+    await carte.getByRole('button', { name: 'Vérifier et envoyer' }).click();
+    await carte.getByRole('button', { name: 'Oui, envoyer' }).click();
+    await expect.poll(() => cles.length).toBe(3);
+    expect(cles[2]).not.toBe(cles[0]);
   });
 
   test('« Annuler » un message commencé demande confirmation', async ({ page }) => {
@@ -560,6 +605,155 @@ test.describe('admin des e-mails', () => {
     const carte = page.getByRole('article', { name: /Sommières/ });
     await expect(carte.getByRole('heading', { name: 'Message aux inscrits' })).toBeFocused();
     await expect(carte.getByRole('textbox', { name: 'Corps du message', exact: true })).toBeVisible();
+  });
+
+  test('les bandeaux disent chaque raison d’inactivité, et « pour de vrai » seulement prêt en smtp', async ({ page }) => {
+    await ouvrirAdmin(page, { etat: { mode: 'smtp', pret: false, raisonsInactif: ['barriere', 'identite'], barriereActive: true } });
+    await page.goto('/admin/emails');
+    const panneau = page.getByRole('tabpanel');
+    await expect(panneau.getByText('L’envoi réel est demandé, mais aucun email ne part.')).toBeVisible({ timeout: 8000 });
+    await expect(panneau.getByText('Le site est encore privé (barrière d’accès) : aucun email réel ne part.')).toBeVisible();
+    await expect(panneau.getByText(/^Identité de l’organisateur manquante\s:\saucun email réel ne partira/)).toBeVisible();
+    await page.getByRole('tab', { name: 'Envois' }).click();
+    const serveur = page.getByRole('region', { name: 'Serveur d’envoi' });
+    await expect(serveur).toContainText('Envoi réel (smtp)');
+    await expect(serveur).not.toContainText('Les emails partent pour de vrai.');
+    await expect(serveur).toContainText('Active : le site est privé');
+    await expect(serveur.getByRole('listitem')).toHaveCount(2);
+  });
+
+  test('prêt en smtp : « les emails partent pour de vrai », sans bandeau', async ({ page }) => {
+    await ouvrirAdmin(page, { etat: { mode: 'smtp', pret: true } });
+    await page.goto('/admin/emails?onglet=envois');
+    await expect(page.getByRole('region', { name: 'Serveur d’envoi' })).toContainText('Les emails partent pour de vrai.', { timeout: 8000 });
+    await expect(page.getByText('Aucun email ne part réellement.')).toHaveCount(0);
+    await expect(page.getByText('Le planificateur ne passe plus.')).toHaveCount(0);
+  });
+
+  test('une panne du planificateur est signalée, avec l’heure et le message de la dernière erreur', async ({ page }) => {
+    const ilYA = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString();
+    await ouvrirAdmin(page, { etat: { dernierPassage: ilYA(25), derniereErreur: { instant: ilYA(1), message: 'Supabase injoignable' } } });
+    await page.goto('/admin/emails');
+    await expect(page.getByText('Le planificateur ne passe plus.')).toBeVisible({ timeout: 8000 });
+    await expect(page.getByRole('tabpanel')).toContainText('il y a plus de 10 minutes');
+    await page.getByRole('tab', { name: 'Envois' }).click();
+    const serveur = page.getByRole('region', { name: 'Serveur d’envoi' });
+    await expect(serveur).toContainText('Supabase injoignable');
+    await expect(page.getByRole('tabpanel').getByText('Le planificateur ne passe plus.')).toBeVisible();
+  });
+
+  test('« Titre » fait de la ligne courante le titre de l’email', async ({ page }) => {
+    await ouvrirAdmin(page);
+    await page.goto('/admin/emails?modele=veille');
+    await corpsDuMessage(page).fill('Bonjour {{prenom}},\n\nRendez-vous ce soir');
+    await corpsDuMessage(page).evaluate((champ: HTMLTextAreaElement) => champ.setSelectionRange(champ.value.length, champ.value.length));
+    await page.getByRole('group', { name: 'Mise en forme' }).getByRole('button', { name: 'Titre' }).click();
+    await expect(corpsDuMessage(page)).toHaveValue('Bonjour {{prenom}},\n\n# Rendez-vous ce soir');
+    await expect(page.getByText(/Une ligne qui commence par «\s#\s» devient le titre de l’email/)).toBeVisible();
+  });
+
+  test('garde-fous : confirmation sans promotion, message réservé aux infos pratiques, infos publiques', async ({ page }) => {
+    await ouvrirAdmin(page);
+    await page.goto('/admin/emails?modele=confirmation');
+    await expect(page.getByText('Cet email ne doit contenir aucune promotion : il sert seulement à vérifier l’adresse.')).toBeVisible({ timeout: 8000 });
+    await page.goto('/admin/emails?modele=veille');
+    await expect(page.getByRole('heading', { name: 'La veille', level: 2 })).toBeVisible();
+    await expect(page.getByText(/aucune promotion/)).toHaveCount(0);
+    await page.goto('/admin/emails?onglet=dates');
+    const carte = page.getByRole('article', { name: /Lunel/ });
+    await expect(carte.getByText('Ces infos sont publiques (visibles sur le site) : n’y mettez rien de privé.')).toBeVisible();
+    await expect(carte.getByLabel('Infos pratiques')).toHaveAccessibleDescription(/Ces infos sont publiques/);
+    await carte.getByRole('button', { name: 'Écrire aux inscrits' }).click();
+    await expect(carte.getByText('Réservé aux informations pratiques (horaire, report, annulation). Une autre date s’annonce par l’annonce.')).toBeVisible();
+    // Historique des messages de la date : objet, moment, nombre de destinataires.
+    const historique = carte.getByRole('region', { name: 'Messages envoyés' });
+    await expect(historique.getByRole('listitem')).toHaveCount(1);
+    await expect(historique).toContainText('Le parking change de place');
+    await expect(historique).toContainText('3 personnes');
+    await expect(page.getByRole('article', { name: /Sommières/ }).getByText('Aucun message envoyé pour cette date.')).toBeVisible();
+  });
+
+  test('l’aperçu suit la bascule des annonces, et avertit quand l’identité de l’organisateur manque', async ({ page }) => {
+    await ouvrirAdmin(page, { identite: [] });
+    const nimes = { ...DATE_BEZOUCE, id: 'date-nimes', ville: 'Nîmes', date_soiree: jourParis(20), statut: 'confirmee' };
+    await page.route('**/rest/v1/calendrier*', (route) => (
+      route.request().method() === 'GET' ? route.fulfill({ json: [DATE_PROCHE, nimes, DATE_SOMMIERES, DATE_BEZOUCE] }) : route.fallback()
+    ));
+    await page.goto('/admin/emails?modele=veille');
+    const bascule = page.getByLabel('Aperçu pour une personne qui a accepté les annonces');
+    await expect(bascule).not.toBeChecked();
+    await expect(page.getByText('Identité de l’organisateur manquante : aucun email réel ne partira tant qu’elle n’est pas renseignée.')).toBeVisible();
+    await corpsDuMessage(page).fill('Bonjour,\n\nLes autres dates :\n\n{{prochaines_dates}}');
+    await expect(apercu(page)).not.toContainText('Nîmes');
+    await bascule.check();
+    await expect(apercu(page)).toContainText('Nîmes');
+    // Comme l'envoi : une date dont la soirée liée est reportée n'est pas proposée.
+    await expect(apercu(page)).not.toContainText('Sommières');
+    // L'annonce et les prochaines dates ne partent qu'aux consentants : la bascule part cochée.
+    await page.goto('/admin/emails?modele=prochaines_dates');
+    await expect(page.getByLabel('Aperçu pour une personne qui a accepté les annonces')).toBeChecked();
+    await page.goto('/admin/emails?modele=confirmation');
+    await expect(page.getByRole('heading', { name: /Confirmation/, level: 2 })).toBeVisible();
+    await expect(page.getByLabel('Aperçu pour une personne qui a accepté les annonces')).toHaveCount(0);
+  });
+
+  test('avec l’identité renseignée, l’aperçu ne montre pas d’avertissement', async ({ page }) => {
+    await ouvrirAdmin(page);
+    await page.goto('/admin/emails?modele=veille');
+    await expect(apercu(page)).toContainText('Bonjour Camille');
+    await expect(page.getByText(/Identité de l’organisateur manquante/)).toHaveCount(0);
+  });
+
+  test('l’interrupteur garde le focus pendant l’écriture (aria-disabled)', async ({ page }) => {
+    await ouvrirAdmin(page);
+    let liberer: () => void = () => {};
+    const attente = new Promise<void>((resolve) => { liberer = resolve; });
+    await page.route('**/rest/v1/modeles_emails*', async (route) => {
+      if (route.request().method() !== 'PATCH') return route.fallback();
+      await attente;
+      return route.fallback();
+    });
+    await page.goto('/admin/emails');
+    const veille = page.getByRole('switch', { name: /La veille/ });
+    await veille.click();
+    await expect(veille).toHaveAttribute('aria-disabled', 'true');
+    await expect(veille).toBeFocused();
+    liberer();
+    await expect(veille).toHaveAttribute('aria-checked', 'false');
+    await expect(veille).not.toHaveAttribute('aria-disabled', 'true');
+    await expect(veille).toBeFocused();
+  });
+
+  test('la page des abonnés affiche l’état de confirmation de chacun, sans adresse dans les URL', async ({ page }) => {
+    await ouvrirAdmin(page);
+    const entetes = (total: number) => ({ 'content-range': `0-${total - 1}/${total}`, 'access-control-expose-headers': 'content-range' });
+    const abonnes = ['lea', 'paul', 'zoe', 'max'].map((prenom, index) => ({
+      id: `a${index}`, email: `${prenom}@exemple.fr`, consentement_le: `2026-10-1${6 - index}T08:00:00Z`,
+    }));
+    await page.route('**/rest/v1/abonnements_actualites*', (route) => route.fulfill({ headers: entetes(4), json: abonnes }));
+    const lectures: string[] = [];
+    await page.route('**/rest/v1/destinataires_emails*', (route) => {
+      lectures.push(route.request().url());
+      return route.fulfill({
+        headers: entetes(3),
+        json: [
+          { email: 'lea@exemple.fr', abonnement_a_confirmer: false, desinscrit_le: null },
+          { email: 'paul@exemple.fr', abonnement_a_confirmer: true, desinscrit_le: '2026-09-01T00:00:00Z' },
+          { email: 'zoe@exemple.fr', abonnement_a_confirmer: true, desinscrit_le: null },
+        ],
+      });
+    });
+    await page.goto('/admin/abonnes');
+    const liste = page.getByRole('region', { name: 'Liste des abonnés' });
+    const ligne = (email: string) => liste.getByRole('listitem').filter({ hasText: email });
+    await expect(ligne('lea@exemple.fr')).toContainText('Confirmé', { timeout: 8000 });
+    await expect(ligne('paul@exemple.fr')).toContainText('Désinscrit, nouvelle demande en attente de confirmation');
+    await expect(ligne('zoe@exemple.fr')).toContainText('En attente de confirmation');
+    await expect(ligne('max@exemple.fr')).toContainText('État d’envoi inconnu');
+    await expect(liste).toContainText('Chaque nouvelle adresse reçoit d’abord un email de confirmation');
+    expect(lectures).toHaveLength(1);
+    expect(lectures[0]).toContain('abonne=eq.true');
+    expect(lectures.some((url) => url.includes('exemple.fr'))).toBe(false);
   });
 
   test('aucune violation axe grave sur les quatre vues', async ({ page }) => {

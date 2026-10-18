@@ -2,12 +2,15 @@
  * Message aux inscrits d'une date (n° 8) : objet et corps avec la barre d'insertion, aperçu, refus du
  * texte de départ, confirmation du nombre de destinataires, envoi (POST /api/admin/emails/message).
  * Le focus suit chaque étape ; « Annuler » demande confirmation si le message a été commencé.
+ *
+ * Idempotence (contrat C-0.7) : une clé uuid est tirée à l'ouverture du formulaire et part avec chaque
+ * essai. Un « Réessayer » après une réponse perdue ne fait donc pas partir le message deux fois.
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MODELES_DEFAUT, variablesInconnues } from '../../../../serveur/gabarits-emails.mjs';
 import { BOUTON, BOUTON_PLEIN, CHAMP } from '../CadreAdmin';
-import { appelerApiAdmin, type DateCalendrier, type ModeleEmailLigne } from './donnees';
+import { appelerApiAdmin, type DateCalendrier, type MessageEnvoye, type ModeleEmailLigne } from './donnees';
 import { AlerteVariables, BarreInsertion, useInsertion } from './Insertion';
 import { messageAEcrire } from './outils';
 import { PanneauApercu } from './PanneauApercu';
@@ -17,6 +20,16 @@ const NB = '\u00a0';
 const REGLAGE_VIDE = { jours_decalage: null, heure_envoi: null };
 
 export const personnes = (nombre: number) => `${nombre} personne${nombre > 1 ? 's' : ''}`;
+
+/** Clé d'idempotence : uuid v4 (crypto.randomUUID, ou tiré de getRandomValues hors contexte sécurisé). */
+export function nouvelleCle(): string {
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  const octets = crypto.getRandomValues(new Uint8Array(16));
+  octets[6] = (octets[6] & 0x0f) | 0x40;
+  octets[8] = (octets[8] & 0x3f) | 0x80;
+  const hexa = [...octets].map((octet) => octet.toString(16).padStart(2, '0')).join('');
+  return `${hexa.slice(0, 8)}-${hexa.slice(8, 12)}-${hexa.slice(12, 16)}-${hexa.slice(16, 20)}-${hexa.slice(20)}`;
+}
 
 type Champ = 'sujet' | 'corps';
 type Envoi = { etat: 'repos' } | { etat: 'encours' } | { etat: 'erreur'; message: string };
@@ -29,9 +42,12 @@ export function MessageInscrits({ date, dates, inscrits, modeleMessage, jeton, o
   jeton: string;
   /** Signale à la page un message commencé (onglets, liens, retour, rechargement). */
   onModifie: (modifie: boolean) => void;
-  onEnvoye: (destinataires: number) => void;
+  /** Le message est parti : il rejoint l'historique de la date. */
+  onEnvoye: (message: MessageEnvoye) => void;
   onFermer: () => void;
 }) {
+  // Tirée une fois à l'ouverture, gardée pour tous les essais de ce formulaire.
+  const [cle] = useState(nouvelleCle);
   const [depart] = useState(() => ({
     sujet: modeleMessage?.sujet ?? MODELES_DEFAUT.message.sujet,
     corps: modeleMessage?.corps ?? MODELES_DEFAUT.message.corps,
@@ -80,17 +96,26 @@ export function MessageInscrits({ date, dates, inscrits, modeleMessage, jeton, o
   async function envoyer() {
     if (envoi.etat === 'encours') return;
     setEnvoi({ etat: 'encours' });
-    const reponse = await appelerApiAdmin<{ ok: boolean; destinataires: number }>('/api/admin/emails/message', jeton, {
-      calendrierId: date.id, sujet: textes.sujet, corps: textes.corps,
+    const reponse = await appelerApiAdmin<{ ok: boolean; destinataires?: unknown; id?: unknown }>('/api/admin/emails/message', jeton, {
+      calendrierId: date.id, sujet: textes.sujet, corps: textes.corps, cle,
     });
-    // En cas d'échec, le formulaire reste ouvert : le même texte peut être renvoyé (« Réessayer »).
-    if (!reponse.ok) setEnvoi({ etat: 'erreur', message: reponse.message });
-    else onEnvoye(typeof reponse.donnees.destinataires === 'number' ? reponse.donnees.destinataires : inscrits);
+    // En cas d'échec, le formulaire reste ouvert : le même texte peut être renvoyé (« Réessayer »), avec la même clé.
+    if (!reponse.ok) return setEnvoi({ etat: 'erreur', message: reponse.message });
+    const { destinataires, id } = reponse.donnees;
+    onEnvoye({
+      id: typeof id === 'string' ? id : cle,
+      calendrier_id: date.id,
+      sujet: textes.sujet,
+      cree_le: new Date().toISOString(),
+      destinataires: typeof destinataires === 'number' ? destinataires : inscrits,
+    });
   }
 
   return (
     <section aria-labelledby={`${prefixe}-titre`} className="grid gap-4 rounded-2xl border border-trait bg-sable p-3 tablette:p-4">
       <h3 id={`${prefixe}-titre`} ref={titre} tabIndex={-1} className="font-display text-xl">Message aux inscrits</h3>
+      {/* Garde-fou juridique (S2) : le message part à des personnes qui n'ont pas toutes accepté les annonces. */}
+      <p className={`${ALERTE} text-sm`}>Réservé aux informations pratiques (horaire, report, annulation). Une autre date s’annonce par l’annonce.</p>
       <div className="grid gap-4 paysage:grid-cols-[minmax(0,1fr)_402px]">
         <div className="grid min-w-0 content-start gap-3">
           <div className="grid gap-1.5">
@@ -105,7 +130,7 @@ export function MessageInscrits({ date, dates, inscrits, modeleMessage, jeton, o
             <textarea id={`${prefixe}-corps`} rows={10} className={`${CHAMP} py-2 font-mono text-sm leading-relaxed`} value={textes.corps} maxLength={8000}
               aria-describedby={`${prefixe}-aide`} {...insertion.brancher('corps')} onChange={(evenement) => changer('corps', evenement.target.value)} />
             <p id={`${prefixe}-aide`} className="text-xs text-encre-2">
-              Changement d’horaire, report, annulation, info de dernière minute. {'{{prochaines_dates}}'} liste les autres dates avec leur lien «{NB}Je viens{NB}».
+              Changement d’horaire, report, annulation, info de dernière minute. {'{{prochaines_dates}}'} ne liste les autres dates qu’aux personnes qui ont accepté les annonces.
             </p>
           </div>
           <AlerteVariables cle="message" textes={[textes.sujet, textes.corps]} />

@@ -1,6 +1,6 @@
 /**
  * Insertion au curseur, partagée par l'éditeur des modèles et le message aux inscrits : barre d'une
- * ligne (Gras, Lien, Liste, Bouton, « Insérer une info »), panneau des variables, alerte des
+ * ligne (Titre, Gras, Lien, Liste, Bouton, « Insérer une info »), panneau des variables, alerte des
  * variables inconnues ou sans valeur dans l'email.
  */
 
@@ -12,6 +12,7 @@ import {
   insererGras,
   insererLien,
   insererListe,
+  insererTitre,
   insererVariable,
   variableDisponible,
   variablesEmployees,
@@ -56,6 +57,7 @@ export function useInsertion<K extends string>(valeurs: Record<K, string>, chang
 
 export const GROUPES: ReadonlyArray<VariableEmail['groupe']> = ['Personne', 'Date', 'Lieu', 'Infos', 'Liens'];
 export const OUTILS: ReadonlyArray<{ libelle: string; aide: string; transformer: Transformation }> = [
+  { libelle: 'Titre', aide: `Fait de la ligne le titre de l’email${NB}: # Titre`, transformer: insererTitre },
   { libelle: 'Gras', aide: `Met la sélection en gras${NB}: **texte**`, transformer: insererGras },
   { libelle: 'Lien', aide: `Fait un lien de la sélection${NB}: [texte](https://…)`, transformer: insererLien },
   { libelle: 'Liste', aide: `Met la ligne en liste à puces${NB}: - élément`, transformer: insererListe },

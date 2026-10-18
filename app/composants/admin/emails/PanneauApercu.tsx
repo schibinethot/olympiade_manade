@@ -1,20 +1,25 @@
 /**
- * Panneau d'aperçu : date et prénom d'exemple, infos d'exemple, encart de bienvenue, moment simulé et
- * légende, autour d'ApercuEmail. Partagé par l'éditeur des modèles et le message aux inscrits.
+ * Panneau d'aperçu : date et prénom d'exemple, infos d'exemple, encart de bienvenue, personne qui a
+ * accepté ou non les annonces, moment simulé et légende, autour d'ApercuEmail. Partagé par l'éditeur
+ * des modèles et le message aux inscrits. L'identité de l'organisateur (pied des emails) est lue dans
+ * identite_legale, comme les mentions légales : sans elle, un avertissement dit qu'aucun email réel
+ * ne partira.
  */
 
 import { useMemo, useState } from 'react';
-import type { ContexteEmail, Etape, ModeleEmail } from '../../../../serveur/gabarits-emails.mjs';
+import type { Etape, ModeleEmail } from '../../../../serveur/gabarits-emails.mjs';
+import { ligneOrganisateur } from '../../../lib/identite';
+import { useIdentiteLegale } from '../../../lib/useIdentiteLegale';
 import { CHAMP } from '../CadreAdmin';
 import { ApercuEmail, type LargeurApercu } from './ApercuEmail';
 import type { DateCalendrier } from './donnees';
-import { aUneEcheance, instantEnClair, libelleOptionDate, preparerApercu } from './outils';
-import { CIBLE } from './styles';
+import { annoncesParDefaut, aUneEcheance, instantEnClair, libelleOptionDate, preparerApercu, type ContexteApercu } from './outils';
+import { ALERTE, CIBLE } from './styles';
 
 const NB = '\u00a0';
 const CASE = `flex ${CIBLE} items-center gap-2`;
 
-type Preparation = { ok: true; contexte: ContexteEmail; instant: Date } | { ok: false; message: string };
+type Preparation = { ok: true; contexte: ContexteApercu; instant: Date } | { ok: false; message: string };
 
 export function PanneauApercu({ id, cle, modele, reglage, dates, dateId, onDateId, niveauTitre }: {
   id: string;
@@ -30,18 +35,21 @@ export function PanneauApercu({ id, cle, modele, reglage, dates, dateId, onDateI
   const [prenom, setPrenom] = useState('Camille');
   const [exemples, setExemples] = useState(false);
   const [encart, setEncart] = useState(true);
+  const [annonces, setAnnonces] = useState(() => annoncesParDefaut(cle));
   const [largeur, setLargeur] = useState<LargeurApercu>('mobile');
   const [maintenant] = useState(() => new Date());
   const [origine] = useState(() => (typeof window === 'undefined' ? 'https://olympiadedesmanades.fr' : window.location.origin));
   const date = dates.find((ligne) => ligne.id === dateId) ?? null;
+  const identite = useIdentiteLegale();
+  const organisateur = ligneOrganisateur(identite.identite);
 
   const preparation = useMemo((): Preparation => {
     try {
-      return { ok: true, ...preparerApercu({ cle, reglage, date, dates, prenom, origine, maintenant, exemples, encart }) };
+      return { ok: true, ...preparerApercu({ cle, reglage, date, dates, prenom, origine, maintenant, exemples, encart, annonces, organisateur }) };
     } catch (exception) {
       return { ok: false, message: exception instanceof Error ? exception.message : 'erreur inconnue' };
     }
-  }, [cle, reglage, date, dates, prenom, origine, maintenant, exemples, encart]);
+  }, [cle, reglage, date, dates, prenom, origine, maintenant, exemples, encart, annonces, organisateur]);
 
   const pour = prenom.trim() ? `pour ${prenom.trim()}` : 'sans prénom';
   const instant = preparation.ok ? preparation.instant : maintenant;
@@ -79,7 +87,19 @@ export function PanneauApercu({ id, cle, modele, reglage, dates, dateId, onDateI
             Montrer l’encart «{NB}date proche{NB}»
           </label>
         ) : null}
+        {/* Les autres dates ne sont envoyées qu'aux personnes qui ont accepté les annonces (revue juridique B3). */}
+        {cle !== 'confirmation' ? (
+          <label className={CASE}>
+            <input type="checkbox" className="h-4 w-4 shrink-0 accent-encre" checked={annonces} onChange={(evenement) => setAnnonces(evenement.target.checked)} />
+            Aperçu pour une personne qui a accepté les annonces
+          </label>
+        ) : null}
       </div>
+      {identite.connue && !organisateur ? (
+        <p className={`${ALERTE} text-sm`}>
+          Identité de l’organisateur manquante{NB}: aucun email réel ne partira tant qu’elle n’est pas renseignée.
+        </p>
+      ) : null}
       <ApercuEmail id={`${id}-apercu`} niveauTitre={niveauTitre} modele={modele}
         contexte={preparation.ok ? preparation.contexte : null} erreurContexte={preparation.ok ? null : preparation.message}
         largeur={largeur} onLargeur={setLargeur} legende={legende} />

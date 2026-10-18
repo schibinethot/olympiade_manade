@@ -10,6 +10,7 @@ import { envoisAVenir, type EnvoiEstime } from '../../../../serveur/echeances-em
 import { formaterDate, type Etape } from '../../../../serveur/gabarits-emails.mjs';
 import { BOUTON, CARTE } from '../CadreAdmin';
 import { enregistrerModele, type DateCalendrier, type EtatChargement, type EtatEmails, type LigneBilan, type ModeleEmailLigne } from './donnees';
+import { BandeauxServeur } from './EtatServeur';
 import {
   aUneEcheance, datesPourEstimation, instantEnClair, jourParisDe, POUR_QUI, prochainEnvoiEnClair, quandEnClair, soireesSuspendues,
 } from './outils';
@@ -24,40 +25,6 @@ const SANS_ESTIMATION: Partial<Record<Etape, string>> = {
   annonce: 'Calculé à chaque passage, selon les consentements',
   message: 'Seulement quand vous l’envoyez',
 };
-
-function BandeauxEtat({ etat }: { etat: EtatChargement<EtatEmails> }) {
-  if (etat.statut === 'chargement') return null;
-  if (etat.statut === 'erreur') {
-    return (
-      <div className={ALERTE}>
-        <p className="font-semibold">État du serveur d’envoi inconnu.</p>
-        <p className="text-sm">{etat.message}</p>
-      </div>
-    );
-  }
-  const { mode, cleLiens } = etat.valeur;
-  return (
-    <>
-      {mode !== 'smtp' ? (
-        <div className={ALERTE}>
-          <p className="font-semibold">Aucun email ne part réellement.</p>
-          <p className="text-sm">
-            {mode === 'log'
-              ? `Mode simulation (SMTP_MODE=log)${NB}: les envois sont calculés et notés dans le journal du serveur, sans être envoyés.`
-              : `Envoi coupé (SMTP_MODE=off)${NB}: rien n’est calculé ni envoyé.`}
-            {' '}Pour envoyer pour de vrai, passez SMTP_MODE à smtp dans les variables du serveur.
-          </p>
-        </div>
-      ) : null}
-      {!cleLiens ? (
-        <div className={ALERTE}>
-          <p className="font-semibold">Les liens des emails sont désactivés.</p>
-          <p className="text-sm">La clé EMAILS_CLE_LIENS manque sur le serveur{NB}: le planificateur, la confirmation, la désinscription et «{NB}Je viens{NB}» sont arrêtés.</p>
-        </div>
-      ) : null}
-    </>
-  );
-}
 
 function Interrupteur({ modele, client, idTitre, onModele }: {
   modele: ModeleEmailLigne;
@@ -83,10 +50,12 @@ function Interrupteur({ modele, client, idTitre, onModele }: {
 
   return (
     <div className="grid justify-items-start gap-1 tablette:justify-items-end">
+      {/* Écriture en cours : aria-disabled, l'interrupteur garde le focus (basculer() ignore le clic). */}
       <button type="button" role="switch" aria-checked={modele.actif} aria-labelledby={idTitre}
-        aria-describedby={verrouille ? idAide : undefined} disabled={verrouille || enCours} onClick={() => void basculer()}
-        className="group inline-flex min-h-12 items-center gap-3 rounded-xl px-1 text-sm font-semibold disabled:cursor-not-allowed">
-        <span className="relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border border-trait bg-lin transition-colors group-aria-checked:border-encre group-aria-checked:bg-encre group-disabled:opacity-60">
+        aria-describedby={verrouille ? idAide : undefined} disabled={verrouille} aria-disabled={enCours || undefined}
+        onClick={() => void basculer()}
+        className="group inline-flex min-h-12 items-center gap-3 rounded-xl px-1 text-sm font-semibold disabled:cursor-not-allowed aria-disabled:cursor-wait">
+        <span className="relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border border-trait bg-lin transition-colors group-aria-checked:border-encre group-aria-checked:bg-encre group-disabled:opacity-60 group-aria-disabled:opacity-60">
           <span className="block h-5 w-5 translate-x-1 rounded-full bg-creme shadow transition-transform group-aria-checked:translate-x-6" />
         </span>
         <span aria-hidden="true">{enCours ? 'Enregistrement…' : modele.actif ? 'Actif' : 'Désactivé'}</span>
@@ -140,7 +109,7 @@ export function Sequence({ modeles, dates, bilan, rattaches, etat, client, onMod
 
   return (
     <div className="grid min-w-0 gap-5">
-      <BandeauxEtat etat={etat} />
+      <BandeauxServeur etat={etat} />
       {suspendues.map((date) => {
         const statut = date.soiree?.statut === 'annulee' ? 'annulée' : 'reportée';
         return (

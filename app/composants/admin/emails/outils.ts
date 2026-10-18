@@ -14,7 +14,7 @@ import {
   type DateEnrichie,
   type Etape,
 } from '../../../../serveur/gabarits-emails.mjs';
-import type { DateCalendrier, LigneBilan, ModeleEmailLigne, StatutEnvoi } from './donnees';
+import type { DateCalendrier, EtatEmails, LigneBilan, ModeleEmailLigne, StatutEnvoi } from './donnees';
 
 const FUSEAU = 'Europe/Paris';
 const NB = '\u00a0';
@@ -251,7 +251,104 @@ export const LIBELLES_RAISONS: Readonly<Record<string, string>> = {
   message_absent: 'Message introuvable',
   envoi_impossible: 'Refus du serveur d’envoi après trois essais',
   interrompu: 'Envoi interrompu (serveur arrêté pendant l’envoi)',
+  // Vague finale (serveur) : date déplacée après réservation, simulations closes au passage en smtp.
+  date_deplacee: 'Date déplacée après la réservation (l’étape est recalculée)',
+  mode_change: 'Simulation close au passage en envoi réel',
 };
+
+/** Raisons des envois sautés ou en échec, lues dans la vue du bilan (une seule requête). */
+export type RaisonComptee = { raison: string | null; libelle: string; nombre: number };
+
+/**
+ * Comptes par raison des envois sautés ou en échec. Un envoi en attente peut porter une raison (nouvel
+ * essai prévu) : il ne compte pas. Raisons connues dans l'ordre des libellés, puis les codes inconnus,
+ * puis les envois sans raison notée.
+ */
+export function raisonsDuBilan(bilan: readonly LigneBilan[]): RaisonComptee[] {
+  const comptes = new Map<string | null, number>();
+  for (const ligne of bilan) {
+    if (ligne.statut !== 'saute' && ligne.statut !== 'echec') continue;
+    const raison = ligne.raison ?? null;
+    comptes.set(raison, (comptes.get(raison) ?? 0) + ligne.nombre);
+  }
+  const connues = Object.keys(LIBELLES_RAISONS);
+  const rang = (raison: string | null) => (raison === null ? Infinity : connues.includes(raison) ? connues.indexOf(raison) : connues.length);
+  return [...comptes.entries()]
+    .filter(([, nombre]) => nombre > 0)
+    .sort(([a], [b]) => rang(a) - rang(b) || (a ?? '').localeCompare(b ?? ''))
+    .map(([raison, nombre]) => ({
+      raison,
+      nombre,
+      libelle: raison === null ? 'Autre raison (échec du serveur d’envoi après 3 essais…)'
+        : LIBELLES_RAISONS[raison] ?? `Raison non libellée (${raison})`,
+    }));
+}
+
+// ---------------------------------------------------------------------------
+// État du serveur d'envoi (GET /api/admin/emails/etat, contrat C-0.3)
+// ---------------------------------------------------------------------------
+
+/** Une phrase claire par raison d'inactivité du planificateur. */
+export const RAISONS_INACTIF: Readonly<Record<string, string>> = {
+  mode_off: `Envoi coupé (EMAILS_MODE=off)${NB}: rien n’est calculé ni envoyé.`,
+  barriere: `Le site est encore privé (barrière d’accès)${NB}: aucun email réel ne part.`,
+  smtp_incomplet: `La configuration SMTP du serveur est incomplète (variables SMTP_*)${NB}: aucun email réel ne part.`,
+  expediteur: `L’adresse d’expéditeur manque (EMAILS_FROM)${NB}: aucun email ne part.`,
+  cle_liens: `La clé des liens manque (EMAILS_CLE_LIENS)${NB}: le planificateur, la confirmation, la désinscription et «${NB}Je viens${NB}» sont arrêtés.`,
+  origine: `L’adresse du site manque (CONTACT_ORIGIN)${NB}: les liens des emails ne peuvent pas être construits.`,
+  supabase: `Le serveur n’est pas relié à la base (Supabase)${NB}: rien n’est calculé ni envoyé.`,
+  identite: `Identité de l’organisateur manquante${NB}: aucun email réel ne partira tant qu’elle n’est pas renseignée (Administration, Vitrine).`,
+};
+
+export function raisonInactifEnClair(code: string): string {
+  return RAISONS_INACTIF[code] ?? `Raison non libellée («${NB}${code}${NB}»)${NB}: le planificateur est à l’arrêt.`;
+}
+
+/** Sans passage réussi depuis ce délai (mode log ou smtp), le planificateur est signalé en panne. */
+export const PASSAGE_EN_RETARD_MS = 10 * 60_000;
+
+export type Bandeau = { titre: string; lignes: string[] };
+
+/**
+ * Bandeaux de l'état d'envoi, partagés par la séquence et l'onglet Envois. « Les emails partent pour
+ * de vrai » suppose `pret && mode === 'smtp'` ; sinon chaque raison d'inactivité est dite en clair.
+ * `dernierPassage` est lu comme le dernier passage réussi : sans passage réussi depuis plus de
+ * 10 minutes (ou depuis le démarrage, après une erreur), une alerte s'ajoute.
+ */
+export function bandeauxEnvoi(etat: EtatEmails, maintenant: Date): Bandeau[] {
+  const bandeaux: Bandeau[] = [];
+  const { mode, pret, raisonsInactif, barriereActive, dernierPassage, derniereErreur } = etat;
+  const barriere = `Le site est encore privé (barrière d’accès)${NB}: en mode smtp, aucun email réel ne partirait tant qu’elle est active.`;
+  if (!pret) {
+    const lignes = raisonsInactif.length
+      ? raisonsInactif.map(raisonInactifEnClair)
+      : [`Le serveur ne précise pas la raison${NB}: vérifiez sa configuration.`];
+    if (barriereActive && !raisonsInactif.includes('barriere')) lignes.push(barriere);
+    bandeaux.push({
+      titre: mode === 'smtp' ? 'L’envoi réel est demandé, mais aucun email ne part.' : 'Aucun email ne part réellement.',
+      lignes,
+    });
+  } else if (mode !== 'smtp') {
+    const lignes = mode === 'log'
+      ? [`Mode simulation (EMAILS_MODE=log)${NB}: les envois sont calculés et notés dans le journal du serveur, sans être envoyés. Pour envoyer pour de vrai, passez EMAILS_MODE à smtp dans les variables du serveur.`]
+      : [RAISONS_INACTIF.mode_off];
+    if (barriereActive) lignes.push(barriere);
+    bandeaux.push({ titre: 'Aucun email ne part réellement.', lignes });
+  }
+
+  if (mode !== 'off' && pret) {
+    const depuis = dernierPassage ? maintenant.getTime() - new Date(dernierPassage).getTime() : null;
+    const enRetard = depuis !== null ? depuis > PASSAGE_EN_RETARD_MS : derniereErreur !== null;
+    if (enRetard) {
+      const lignes = [dernierPassage
+        ? `Aucun passage réussi depuis ${instantEnClair(dernierPassage)}, il y a plus de 10 minutes${NB}: les emails dus attendent.`
+        : `Aucun passage réussi depuis le démarrage du serveur${NB}: les emails dus attendent.`];
+      if (derniereErreur) lignes.push(`Dernière erreur, ${instantEnClair(derniereErreur.instant)}${NB}: ${derniereErreur.message}`);
+      bandeaux.push({ titre: 'Le planificateur ne passe plus.', lignes });
+    }
+  }
+  return bandeaux;
+}
 
 export type LigneBilanRegroupee = {
   etape: Etape;
@@ -318,6 +415,22 @@ export function insererLien(valeur: string, debut: number, fin: number): Inserti
   return selection
     ? { valeur: remplacer(valeur, debut, fin, code), debut: adresse, fin: adresse + 'https://'.length }
     : { valeur: remplacer(valeur, debut, fin, code), debut: debut + 1, fin: debut + 1 + texte.length };
+}
+
+/**
+ * Met « # » devant la ligne courante (contrat C-0.6 : une ligne `# Titre` devient le titre de l'email).
+ * Une ligne déjà titre, ou en liste, perd sa marque d'abord. Seule la ligne du début de la sélection
+ * change. Le curseur passe en fin de ligne, ou un texte à remplacer est sélectionné.
+ */
+export function insererTitre(valeur: string, debut: number): Insertion {
+  const debutLigne = valeur.lastIndexOf('\n', debut - 1) + 1;
+  const finLigne = valeur.indexOf('\n', debut) === -1 ? valeur.length : valeur.indexOf('\n', debut);
+  const texte = valeur.slice(debutLigne, finLigne).replace(/^(#+|-)\s*/, '');
+  const ligne = `# ${texte || 'Titre de l’email'}`;
+  const nouvelle = remplacer(valeur, debutLigne, finLigne, ligne);
+  return texte
+    ? { valeur: nouvelle, debut: debutLigne + ligne.length, fin: debutLigne + ligne.length }
+    : { valeur: nouvelle, debut: debutLigne + 2, fin: debutLigne + ligne.length };
 }
 
 /** Met « - » devant la ligne courante, ou devant chaque ligne sélectionnée. */
@@ -417,14 +530,30 @@ export type OptionsApercu = {
   exemples: boolean;
   /** Bienvenue : montrer l'encart « date proche ». */
   encart: boolean;
+  /**
+   * Aperçu pour une personne qui a accepté les annonces (contrat C-0.5). Comme à l'envoi, les autres
+   * dates ({{prochaines_dates}}) et {{lien_dates}} ne sont fournis qu'aux consentants. Par défaut :
+   * vrai pour l'annonce et les prochaines dates (leurs destinataires ont tous consenti), faux sinon.
+   */
+  annonces?: boolean;
+  /** Ligne d'identité du pied (identite_legale), null si l'identité manque. */
+  organisateur?: string | null;
 };
+
+/** Champs du contexte ajoutés par la vague finale (contrat C-0.5), portés par ContexteEmail après fusion. */
+export type ChampsContexteVagueFinale = { etape: Etape; annonces: boolean; organisateur: string | null };
+export type ContexteApercu = ContexteEmail & ChampsContexteVagueFinale;
+
+/** Valeur par défaut de la bascule « annonces » de l'aperçu. */
+export const annoncesParDefaut = (cle: Etape) => cle === 'annonce' || cle === 'prochaines_dates';
 
 /**
  * Contexte de rendreEmail pour l'aperçu, et l'instant simulé : l'échéance de l'étape pour la date
  * choisie (une étape datée), trois jours avant la date (bienvenue avec encart), sinon maintenant.
  */
-export function preparerApercu(options: OptionsApercu): { contexte: ContexteEmail; instant: Date } {
+export function preparerApercu(options: OptionsApercu): { contexte: ContexteApercu; instant: Date } {
   const { cle, origine, exemples } = options;
+  const annonces = options.annonces ?? annoncesParDefaut(cle);
   // Comme à l'envoi : la confirmation ne porte sur aucune date, et le vainqueur n'existe qu'après la soirée.
   const source = cle === 'confirmation' ? null : options.date ?? (exemples ? dateExemple() : null);
   const enrichie = source ? enrichir(source, exemples) : null;
@@ -446,14 +575,18 @@ export function preparerApercu(options: OptionsApercu): { contexte: ContexteEmai
   const annoncer = (ligne: DateCalendrier): DateAnnoncee => ({ ...enrichir(ligne, exemples), lienJeViens: jeViens });
   const jour = jourParisDe(instant);
   const confirmees = options.dates.filter((ligne) => ligne.statut === 'confirmee');
-  // Comme l'envoi (serveur/emails.mjs) : les 3 prochaines dates confirmées, sans celle de l'email, aucune pour la confirmation.
-  let prochaines = cle === 'confirmation' ? []
-    : confirmees.filter((ligne) => ligne.date_soiree > jour && ligne.id !== source?.id).slice(0, 3).map(annoncer);
-  if (!prochaines.length && exemples && cle !== 'confirmation') {
+  // Comme la RPC (sécurité M8) : une date dont la soirée liée est annulée ou reportée n'est pas proposée.
+  const proposables = confirmees.filter((ligne) => ligne.soiree?.statut !== 'annulee' && ligne.soiree?.statut !== 'reportee');
+  // Comme l'envoi (serveur/examen-envois.mjs) : les 3 prochaines dates confirmées, sans celle de l'email,
+  // seulement pour une personne qui a accepté les annonces, et jamais dans la confirmation.
+  const listeAutorisee = cle !== 'confirmation' && annonces;
+  let prochaines = !listeAutorisee ? []
+    : proposables.filter((ligne) => ligne.date_soiree > jour && ligne.id !== source?.id).slice(0, 3).map(annoncer);
+  if (!prochaines.length && exemples && listeAutorisee) {
     prochaines = [annoncer({ ...dateExemple(), id: 'exemple-prochaine', date_soiree: '2027-08-14' })];
   }
   const annoncees = cle === 'annonce' && source
-    ? [source, ...confirmees.filter((ligne) => ligne.id !== source.id && lundiDe(ligne.date_soiree) === lundiDe(source.date_soiree))]
+    ? [source, ...proposables.filter((ligne) => ligne.id !== source.id && lundiDe(ligne.date_soiree) === lundiDe(source.date_soiree))]
       .sort((a, b) => a.date_soiree.localeCompare(b.date_soiree))
       .map(annoncer)
     : [];
@@ -461,6 +594,9 @@ export function preparerApercu(options: OptionsApercu): { contexte: ContexteEmai
   return {
     instant,
     contexte: {
+      etape: cle,
+      annonces,
+      organisateur: options.organisateur ?? null,
       prenom: options.prenom.trim() || null,
       maintenant: instant,
       origine,

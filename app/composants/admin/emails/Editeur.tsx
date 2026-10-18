@@ -88,14 +88,20 @@ export function Editeur({ modele, dates, client, jeton, emailAdmin, focaliser, o
   const reglage = useMemo(() => ({ jours_decalage: b.brouillon.jours, heure_envoi: b.brouillon.heure || null }), [b.brouillon.jours, b.brouillon.heure]);
 
   function fermerConfirmation(revenir: boolean) {
-    if (revenir) b.revenirOrigine();
+    if (revenir) {
+      b.revenirOrigine();
+      // Le résultat affiché (enregistré, test parti) ne vaut plus pour le texte d'origine.
+      setResultat(null);
+    }
     setConfirmerOrigine(false);
     requestAnimationFrame(() => boutonOrigine.current?.focus());
   }
 
   // aria-disabled plutôt que disabled pendant l'envoi : le bouton garde le focus ; la garde est ici.
+  // Chaque action vide d'abord le résultat précédent : un résultat identique est annoncé de nouveau.
   async function enregistrer() {
     if (enregistrementEnCours) return;
+    setResultat(null);
     if (!b.valide) return setResultat({ ton: 'erreur', message: 'Corrigez les champs signalés avant d’enregistrer.' });
     setEnregistrementEnCours(true);
     const reponse = await enregistrerModele(client, cle, b.champs());
@@ -107,6 +113,7 @@ export function Editeur({ modele, dates, client, jeton, emailAdmin, focaliser, o
 
   async function envoyerTest() {
     if (!jeton || testEnCours) return;
+    setResultat(null);
     setTestEnCours(true);
     const reponse = await appelerApiAdmin<{ ok: boolean; mode: ModeEnvoi }>('/api/admin/emails/test', jeton, {
       cle, brouillon: { ...b.textes, preheader: b.textes.preheader ?? '', encart: b.textes.encart ?? null }, calendrierId: dateId || null,
@@ -136,6 +143,10 @@ export function Editeur({ modele, dates, client, jeton, emailAdmin, focaliser, o
         <h2 ref={titre} tabIndex={-1} className="mt-1 font-display text-3xl">{modele.nom}</h2>
         <p className="mt-2 text-sm text-encre-2">{POUR_QUI[cle]}.</p>
         {!modele.actif ? <p className={`${ALERTE} mt-3 text-sm`}>Cet email est désactivé{NB}: il ne part pas. Réactivez-le depuis la séquence.</p> : null}
+        {/* Garde-fou juridique (S2) : la confirmation part avant tout consentement vérifié. */}
+        {cle === 'confirmation' ? (
+          <p className={`${ALERTE} mt-3 text-sm`}>Cet email ne doit contenir aucune promotion{NB}: il sert seulement à vérifier l’adresse.</p>
+        ) : null}
       </header>
 
       <div className="grid gap-5 paysage:grid-cols-[minmax(0,1fr)_402px]">
@@ -158,7 +169,7 @@ export function Editeur({ modele, dates, client, jeton, emailAdmin, focaliser, o
             ) : null}
             {champ('sujet', 200, 'Les infos (variables) marchent aussi dans l’objet.')}
             {champ('preheader', 200, 'Quelques mots affichés après l’objet dans la boîte de réception.')}
-            {champ('corps', 8000, 'Une ligne vide sépare deux paragraphes. Une ligne dont l’info n’est pas encore connue (heure, billetterie…) n’apparaît pas.',
+            {champ('corps', 8000, `Une ligne vide sépare deux paragraphes. Une ligne qui commence par «${NB}#${NB}» devient le titre de l’email. Une ligne dont l’info n’est pas encore connue (heure, billetterie…) n’apparaît pas.`,
               <BarreInsertion cle={cle} jours={b.brouillon.jours} libelleCible={LIBELLES[insertion.cible]}
                 riche={insertion.cible === 'corps' || insertion.cible === 'encart'} appliquer={insertion.appliquer} />)}
             {b.bienvenue ? champ('encart', 4000, 'Ajouté à la bienvenue quand la date tombe dans les 7 jours qui suivent l’inscription.') : null}
@@ -181,11 +192,17 @@ export function Editeur({ modele, dates, client, jeton, emailAdmin, focaliser, o
           <button type="button" className={`${BOUTON_PLEIN} ${INACTIF}`} aria-disabled={enregistrementEnCours || undefined} onClick={() => void enregistrer()}>
             {enregistrementEnCours ? 'Enregistrement…' : 'Enregistrer'}
           </button>
-          <button type="button" className={`${BOUTON} ${INACTIF}`} aria-disabled={!jeton || testEnCours || undefined} onClick={() => void envoyerTest()}>
+          <button type="button" className={`${BOUTON} ${INACTIF}`} aria-disabled={!jeton || testEnCours || undefined}
+            aria-describedby={jeton ? undefined : 'test-sans-session'} onClick={() => void envoyerTest()}>
             {testEnCours ? 'Envoi du test…' : 'M’envoyer un test'}
           </button>
           {b.modifie ? <span className="text-sm font-semibold text-or-ink">Modifications non enregistrées</span> : null}
         </div>
+        {!jeton ? (
+          <p id="test-sans-session" className="text-sm text-encre-2">
+            Le test demande une session administrateur active{NB}: reconnectez-vous depuis l’administration pour l’envoyer.
+          </p>
+        ) : null}
         {/* Région permanente : le dernier résultat réussi (enregistré, test parti) est annoncé sans déplacer le focus. */}
         <p role="status" className="text-sm text-ok">{resultat?.ton === 'ok' ? resultat.message : ''}</p>
         {resultat?.ton === 'erreur' ? <p role="alert" className="text-sm text-rouge-alerte">{resultat.message}</p> : null}

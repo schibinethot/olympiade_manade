@@ -1,14 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { MODELES_DEFAUT, rendreEmail } from '../../serveur/gabarits-emails.mjs';
-import type { DateCalendrier, LigneBilan } from '../../app/composants/admin/emails/donnees';
+import { lireEtatEmails, type DateCalendrier, type EtatEmails, type LigneBilan } from '../../app/composants/admin/emails/donnees';
+import { OUTILS } from '../../app/composants/admin/emails/Insertion';
+import { nouvelleCle } from '../../app/composants/admin/emails/MessageInscrits';
 import {
+  bandeauxEnvoi,
   heureSaisie,
   heureValide,
   insererBouton,
   insererGras,
   insererLien,
   insererListe,
+  insererTitre,
   insererVariable,
+  raisonsDuBilan,
   instantEnClair,
   joursValides,
   libelleChoixJours,
@@ -183,6 +188,123 @@ describe('insertion de la syntaxe', () => {
     expect(insererBouton('a [b|c]', 0, 7).valeur).toBe('[[a bc|https://]]');
     expect(insererLien('[x]', 0, 3).valeur).toBe('[x](https://)');
   });
+
+  it('fait de la ligne courante le titre « # », sans doubler la marque (C-0.6)', () => {
+    expect(insererTitre('Bonjour\nRendez-vous à Lunel\nSuite', 12)).toEqual({ valeur: 'Bonjour\n# Rendez-vous à Lunel\nSuite', debut: 29, fin: 29 });
+    expect(insererTitre('# Déjà un titre', 3).valeur).toBe('# Déjà un titre');
+    expect(insererTitre('- Une puce', 0).valeur).toBe('# Une puce');
+    const vide = insererTitre('Intro\n\nFin', 6);
+    expect(vide.valeur).toBe('Intro\n# Titre de l’email\nFin');
+    expect(vide.valeur.slice(vide.debut, vide.fin)).toBe('Titre de l’email');
+  });
+
+  it('la barre propose le bouton Titre en premier', () => {
+    expect(OUTILS.map((outil) => outil.libelle)).toEqual(['Titre', 'Gras', 'Lien', 'Liste', 'Bouton']);
+  });
+});
+
+describe('bilan et état du serveur', () => {
+  it('compte les raisons des envois sautés ou en échec à partir de la vue, sans les en attente', () => {
+    const bilan: LigneBilan[] = [
+      { etape: 'veille', calendrier_id: 'a', reel: true, statut: 'saute', raison: 'plafond_jour', nombre: 2, dernier_envoi: null },
+      { etape: 'jour_j', calendrier_id: 'a', reel: true, statut: 'saute', raison: 'plafond_jour', nombre: 1, dernier_envoi: null },
+      { etape: 'veille', calendrier_id: 'a', reel: true, statut: 'echec', raison: null, nombre: 1, dernier_envoi: '2027-07-01T08:00:00Z' },
+      { etape: 'veille', calendrier_id: 'a', reel: true, statut: 'en_attente', raison: 'envoi_impossible', nombre: 4, dernier_envoi: null },
+      { etape: 'annonce', calendrier_id: 'b', reel: true, statut: 'saute', raison: 'code_futur', nombre: 3, dernier_envoi: null },
+      { etape: 'veille', calendrier_id: 'a', reel: true, statut: 'saute', raison: 'date_annulee', nombre: 5, dernier_envoi: null },
+    ];
+    expect(raisonsDuBilan(bilan)).toEqual([
+      { raison: 'date_annulee', libelle: 'Date annulée', nombre: 5 },
+      { raison: 'plafond_jour', libelle: 'Plafond d’un email automatique par jour atteint', nombre: 3 },
+      { raison: 'code_futur', libelle: 'Raison non libellée (code_futur)', nombre: 3 },
+      { raison: null, libelle: 'Autre raison (échec du serveur d’envoi après 3 essais…)', nombre: 1 },
+    ]);
+    expect(raisonsDuBilan([])).toEqual([]);
+  });
+
+  it('regroupe le bilan par étape et par date quelle que soit la raison', () => {
+    const bilan: LigneBilan[] = [
+      { etape: 'veille', calendrier_id: 'a', reel: true, statut: 'saute', raison: 'plafond_jour', nombre: 2, dernier_envoi: null },
+      { etape: 'veille', calendrier_id: 'a', reel: true, statut: 'saute', raison: 'date_annulee', nombre: 3, dernier_envoi: null },
+    ];
+    expect(regrouperBilan(bilan)).toMatchObject([{ etape: 'veille', calendrierId: 'a', saute: 5 }]);
+  });
+
+  it('lit la réponse de l’état avec des valeurs prudentes pour un champ absent ou faux', () => {
+    expect(lireEtatEmails(null)).toBeNull();
+    expect(lireEtatEmails({ mode: 'log', pret: true, cleLiens: true, dernierPassage: null })).toEqual({
+      mode: 'log', pret: true, raisonsInactif: [], cleLiens: true, barriereActive: false,
+      dernierPassage: null, dernierBilan: null, derniereErreur: null,
+    });
+    expect(lireEtatEmails({
+      mode: 'autre', pret: 'oui', raisonsInactif: ['barriere', 3], barriereActive: true, dernierPassage: 'pas une date',
+      dernierBilan: { envoyes: 2, sautes: 'x' }, derniereErreur: { instant: '2027-07-01T08:00:00Z', message: 'Supabase injoignable' },
+    })).toEqual({
+      mode: 'off', pret: false, raisonsInactif: ['barriere'], cleLiens: false, barriereActive: true, dernierPassage: null,
+      dernierBilan: { envoyes: 2 }, derniereErreur: { instant: '2027-07-01T08:00:00Z', message: 'Supabase injoignable' },
+    });
+  });
+
+  const ETAT: EtatEmails = {
+    mode: 'smtp', pret: true, raisonsInactif: [], cleLiens: true, barriereActive: false,
+    dernierPassage: '2027-07-01T07:58:00Z', dernierBilan: null, derniereErreur: null,
+  };
+  const A_8H = new Date('2027-07-01T08:00:00Z');
+
+  it('ne dit « les emails partent pour de vrai » que si le serveur est prêt en smtp', () => {
+    expect(bandeauxEnvoi(ETAT, A_8H)).toEqual([]);
+    const barriere = bandeauxEnvoi({ ...ETAT, pret: false, raisonsInactif: ['barriere', 'identite'], barriereActive: true }, A_8H);
+    expect(barriere).toEqual([{
+      titre: 'L’envoi réel est demandé, mais aucun email ne part.',
+      lignes: [
+        `Le site est encore privé (barrière d’accès)${NB}: aucun email réel ne part.`,
+        `Identité de l’organisateur manquante${NB}: aucun email réel ne partira tant qu’elle n’est pas renseignée (Administration, Vitrine).`,
+      ],
+    }]);
+    expect(bandeauxEnvoi({ ...ETAT, pret: false, raisonsInactif: [] }, A_8H)[0].lignes).toEqual([`Le serveur ne précise pas la raison${NB}: vérifiez sa configuration.`]);
+    expect(bandeauxEnvoi({ ...ETAT, pret: false, raisonsInactif: ['nouveau_code'] }, A_8H)[0].lignes[0]).toContain('nouveau_code');
+  });
+
+  it('dit la simulation et signale une barrière active même en mode log', () => {
+    const [bandeau] = bandeauxEnvoi({ ...ETAT, mode: 'log', barriereActive: true }, A_8H);
+    expect(bandeau.titre).toBe('Aucun email ne part réellement.');
+    expect(bandeau.lignes[0]).toContain('EMAILS_MODE=log');
+    expect(bandeau.lignes[1]).toContain('barrière d’accès');
+    expect(bandeauxEnvoi({ ...ETAT, mode: 'off', pret: false, raisonsInactif: ['mode_off'] }, A_8H)[0].lignes)
+      .toEqual([`Envoi coupé (EMAILS_MODE=off)${NB}: rien n’est calculé ni envoyé.`]);
+  });
+
+  it('alerte sans passage réussi depuis plus de 10 minutes, avec la dernière erreur', () => {
+    expect(bandeauxEnvoi({ ...ETAT, dernierPassage: '2027-07-01T07:50:00Z' }, A_8H)).toEqual([]);
+    const [panne] = bandeauxEnvoi({
+      ...ETAT, dernierPassage: '2027-07-01T07:49:00Z', derniereErreur: { instant: '2027-07-01T07:59:00Z', message: 'Supabase injoignable' },
+    }, A_8H);
+    expect(panne.titre).toBe('Le planificateur ne passe plus.');
+    expect(panne.lignes[0]).toContain('il y a plus de 10 minutes');
+    expect(panne.lignes[1]).toBe(`Dernière erreur, jeu. 01/07 à 9 h 59${NB}: Supabase injoignable`);
+    // Juste après le démarrage, sans erreur : pas d'alerte ; avec une erreur : alerte.
+    expect(bandeauxEnvoi({ ...ETAT, dernierPassage: null }, A_8H)).toEqual([]);
+    expect(bandeauxEnvoi({ ...ETAT, dernierPassage: null, derniereErreur: { instant: '2027-07-01T07:59:00Z', message: 'x' } }, A_8H)[0].lignes[0])
+      .toContain('depuis le démarrage du serveur');
+    // Mode off ou planificateur arrêté : l'alerte de panne n'ajoute rien aux raisons déjà dites.
+    expect(bandeauxEnvoi({ ...ETAT, mode: 'off', pret: false, raisonsInactif: ['mode_off'], dernierPassage: null }, A_8H)).toHaveLength(1);
+  });
+});
+
+describe('message aux inscrits : clé d’idempotence', () => {
+  it('tire un uuid v4 différent à chaque formulaire, même sans crypto.randomUUID', () => {
+    const forme = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+    expect(nouvelleCle()).toMatch(forme);
+    expect(nouvelleCle()).not.toBe(nouvelleCle());
+    const original = crypto.randomUUID;
+    try {
+      // @ts-expect-error simulation d'un contexte non sécurisé
+      crypto.randomUUID = undefined;
+      expect(nouvelleCle()).toMatch(forme);
+    } finally {
+      crypto.randomUUID = original;
+    }
+  });
 });
 
 describe('variables disponibles selon l’email', () => {
@@ -275,8 +397,35 @@ describe('contexte de l’aperçu', () => {
 
   it('exclut la date de l’email et garde 3 prochaines dates au plus', () => {
     const autres = [1, 2, 3, 4].map((n) => ({ ...LE_CRES, id: `autre-${n}`, date_soiree: `2027-09-0${n}` }));
-    const { contexte } = preparerApercu({ ...base, cle: 'message', reglage: { jours_decalage: null, heure_envoi: null }, dates: [SOMMIERES, ...autres] });
+    const { contexte } = preparerApercu({ ...base, cle: 'message', reglage: { jours_decalage: null, heure_envoi: null }, dates: [SOMMIERES, ...autres], annonces: true });
     expect(contexte.prochaines.map((date) => date.id)).toEqual(['autre-1', 'autre-2', 'autre-3']);
+  });
+
+  it('ne liste les autres dates qu’à une personne qui a accepté les annonces, comme l’envoi (B3)', () => {
+    const reglageVide = { jours_decalage: null, heure_envoi: null };
+    const dates = [SOMMIERES, LE_CRES];
+    // Par défaut : vrai pour l'annonce et les prochaines dates, faux ailleurs.
+    expect(preparerApercu({ ...base, cle: 'message', reglage: reglageVide, dates }).contexte).toMatchObject({ annonces: false, prochaines: [] });
+    expect(preparerApercu({ ...base, cle: 'bienvenue', reglage: reglageVide, dates }).contexte.prochaines).toEqual([]);
+    expect(preparerApercu({ ...base, cle: 'prochaines_dates', reglage: { jours_decalage: 7, heure_envoi: '10:00' }, dates }).contexte.annonces).toBe(true);
+    expect(preparerApercu({ ...base, cle: 'annonce', reglage: { jours_decalage: -10, heure_envoi: '10:00' }, dates }).contexte.annonces).toBe(true);
+    // Sans consentement, même les exemples ne fabriquent pas de liste.
+    expect(preparerApercu({ ...base, cle: 'veille', dates: [], date: null, exemples: true, annonces: false }).contexte.prochaines).toEqual([]);
+    expect(preparerApercu({ ...base, cle: 'veille', dates: [], date: null, exemples: true, annonces: true }).contexte.prochaines).toHaveLength(1);
+  });
+
+  it('ne propose pas une date dont la soirée liée est annulée ou reportée, comme la RPC (M8)', () => {
+    const reportee = { ...LE_CRES, id: 'reportee', date_soiree: '2027-08-20', soiree: { slug: 'x', statut: 'reportee' as const } };
+    const annulee = { ...LE_CRES, id: 'annulee', date_soiree: '2027-08-21', soiree: { slug: 'y', statut: 'annulee' as const } };
+    const { contexte } = preparerApercu({ ...base, cle: 'message', reglage: { jours_decalage: null, heure_envoi: null }, dates: [SOMMIERES, reportee, annulee, LE_CRES], annonces: true });
+    expect(contexte.prochaines.map((date) => date.id)).toEqual(['le-cres']);
+  });
+
+  it('passe l’étape et l’organisateur au rendu (contrat C-0.5)', () => {
+    const avec = preparerApercu({ ...base, cle: 'veille', organisateur: 'L’Olympiade des Manades est organisée par Association des Manades.' });
+    expect(avec.contexte).toMatchObject({ etape: 'veille', organisateur: 'L’Olympiade des Manades est organisée par Association des Manades.' });
+    expect(preparerApercu({ ...base, cle: 'confirmation', reglage: { jours_decalage: null, heure_envoi: null } }).contexte)
+      .toMatchObject({ etape: 'confirmation', organisateur: null, annonces: false });
   });
 
   it('ne met le lien de confirmation que dans la confirmation, et « Je viens » que dans l’annonce', () => {

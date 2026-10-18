@@ -47,10 +47,10 @@ const estOnglet = (valeur: string | null): valeur is Onglet => ONGLETS.some((ong
 const estEtape = (valeur: string | null): valeur is Etape => (ETAPES as readonly string[]).includes(valeur ?? '');
 
 /**
- * Question focalisée à l'ouverture ; « Rester » rend le focus à l'élément qui l'avait. « Quitter »
- * transmet cet élément, pour placer le focus sur l'onglet de destination si la sortie venait d'un onglet.
+ * Question focalisée à l'ouverture ; « Rester » rend le focus à l'élément qui l'avait. Après « Quitter »,
+ * la page place le focus d'après la seule destination (voir quitter).
  */
-function ConfirmationSortie({ onQuitter, onRester }: { onQuitter: (avant: Element | null) => void; onRester: () => void }) {
+function ConfirmationSortie({ onQuitter, onRester }: { onQuitter: () => void; onRester: () => void }) {
   const question = useRef<HTMLParagraphElement>(null);
   const avant = useRef<Element | null>(null);
   useEffect(() => {
@@ -69,7 +69,7 @@ function ConfirmationSortie({ onQuitter, onRester }: { onQuitter: (avant: Elemen
       </p>
       <div className="flex flex-wrap gap-2">
         <button type="button" className={BOUTON_PLEIN} onClick={rester}>Rester</button>
-        <button type="button" className={`${BOUTON} bg-creme`} onClick={() => onQuitter(avant.current)}>Quitter sans enregistrer</button>
+        <button type="button" className={`${BOUTON} bg-creme`} onClick={onQuitter}>Quitter sans enregistrer</button>
       </div>
     </div>
   );
@@ -86,7 +86,7 @@ function Contenu() {
   // Vrai quand l'éditeur est ouvert depuis la frise (et non par l'adresse) : il prend alors le focus.
   const ouvertDepuisLaFrise = useRef(false);
   const {
-    client, jeton, emailAdmin, erreurClient, donnees, etat, actualisation, recharger, remplacerModele, remplacerInfos,
+    client, jeton, emailAdmin, erreurClient, donnees, etat, actualisation, recharger, remplacerModele, remplacerInfos, ajouterMessage,
   } = useDonneesEmails();
 
   // Brouillons à protéger : l'éditeur et chaque message aux inscrits commencé.
@@ -108,13 +108,17 @@ function Contenu() {
     return () => window.removeEventListener('beforeunload', avertir);
   }, [aProteger]);
 
-  // Sortie confirmée depuis un onglet : le focus ira sur l'onglet de destination.
+  // Sortie confirmée vers un autre onglet de la page : le focus ira sur l'onglet de destination. La
+  // décision ne tient qu'à blocker.location : Safari ne donne pas le focus à un bouton cliqué, et
+  // document.activeElement ne dit donc pas d'où venait la sortie. Un retour à la séquence (éditeur
+  // refermé) laisse l'effet ci-dessous rendre le focus à « Modifier l'email ».
   const ongletApresSortie = useRef<Onglet | null>(null);
-  function quitter(avant: Element | null) {
+  function quitter() {
     if (blocker.state !== 'blocked') return;
-    if (avant instanceof HTMLElement && avant.getAttribute('role') === 'tab' && blocker.location.pathname === window.location.pathname) {
-      const destination = new URLSearchParams(blocker.location.search).get('onglet');
-      ongletApresSortie.current = estOnglet(destination) ? destination : 'sequence';
+    if (blocker.location.pathname === window.location.pathname) {
+      const demandee = new URLSearchParams(blocker.location.search).get('onglet');
+      const destination: Onglet = estOnglet(demandee) ? demandee : 'sequence';
+      if (destination !== onglet) ongletApresSortie.current = destination;
     }
     blocker.proceed();
   }
@@ -205,10 +209,10 @@ function Contenu() {
         </div>
       );
     }
-    const { modeles, dates, bilan, rattaches } = donnees.valeur;
+    const { modeles, dates, bilan, rattaches, messages } = donnees.valeur;
     if (onglet === 'dates') {
-      return <Dates dates={dates} rattaches={rattaches} modeles={modeles} client={client} jeton={jeton} etat={etat}
-        ecrireA={ecrireA} onInfos={remplacerInfos} onModifie={signalerBrouillon} />;
+      return <Dates dates={dates} rattaches={rattaches} modeles={modeles} messages={messages} client={client} jeton={jeton} etat={etat}
+        ecrireA={ecrireA} onInfos={remplacerInfos} onMessage={ajouterMessage} onModifie={signalerBrouillon} />;
     }
     if (onglet === 'envois') {
       return <Envois bilan={bilan} modeles={modeles} dates={dates} etat={etat} client={client}

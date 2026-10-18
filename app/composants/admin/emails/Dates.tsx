@@ -1,16 +1,16 @@
 /**
- * Onglet Dates : les dates à venir, leurs inscrits, leurs infos pratiques ({{infos_pratiques}}) et
- * le message aux inscrits (MessageInscrits). Les résultats passent par une région de statut
- * permanente ; le focus revient au déclencheur quand le message se ferme.
+ * Onglet Dates : les dates à venir, leurs inscrits, leurs infos pratiques ({{infos_pratiques}}), le
+ * message aux inscrits (MessageInscrits) et l'historique des messages déjà envoyés. Les résultats
+ * passent par une région de statut permanente ; le focus revient au déclencheur quand le message se ferme.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { formaterDate } from '../../../../serveur/gabarits-emails.mjs';
 import { BOUTON, CARTE, CHAMP } from '../CadreAdmin';
-import { enregistrerInfosPratiques, type DateCalendrier, type EtatChargement, type EtatEmails, type ModeleEmailLigne } from './donnees';
+import { enregistrerInfosPratiques, type DateCalendrier, type EtatChargement, type EtatEmails, type MessageEnvoye, type ModeleEmailLigne } from './donnees';
 import { MessageInscrits, personnes } from './MessageInscrits';
-import { jourParisDe, LIBELLES_STATUT_DATE, modelesUtilisant } from './outils';
+import { instantEnClair, jourParisDe, LIBELLES_STATUT_DATE, modelesUtilisant } from './outils';
 import { ALERTE, INACTIF } from './styles';
 
 const NB = '\u00a0';
@@ -58,6 +58,10 @@ function InfosPratiques({ date, client, utilisateurs, onEnregistre, onModifie }:
           ? `Reprises par {{infos_pratiques}} dans${NB}: ${utilisateurs.join(', ')}.`
           : 'Aucun email actif n’utilise {{infos_pratiques}} pour l’instant.'}
         {' '}{valeur.length}{NB}/{NB}{LIMITE_INFOS}
+        {/* Sécurité M9 : la colonne est lisible par tous (calendrier public). */}
+        <span className="mt-1 block font-semibold text-encre">
+          Ces infos sont publiques (visibles sur le site){NB}: n’y mettez rien de privé.
+        </span>
       </p>
       <div className="flex flex-wrap items-center gap-3">
         <button type="button" className={`${BOUTON} ${INACTIF}`} aria-disabled={inactif || undefined} onClick={() => void enregistrer()}>
@@ -70,11 +74,37 @@ function InfosPratiques({ date, client, utilisateurs, onEnregistre, onModifie }:
   );
 }
 
-function CarteDate({ date, dates, inscrits, modeleMessage, utilisateurs, client, jeton, simulation, ouvrirMessage, onInfos, onModifie }: {
+/** Messages déjà partis pour cette date : objet, moment, nombre de destinataires. */
+function HistoriqueMessages({ idTitre, messages }: { idTitre: string; messages: readonly MessageEnvoye[] | null }) {
+  const id = `${idTitre}-historique`;
+  return (
+    <section aria-labelledby={id} className="grid gap-2">
+      <h3 id={id} className="text-sm font-semibold">Messages envoyés</h3>
+      {messages === null ? <p className="text-sm text-rouge-alerte">L’historique des messages est illisible. Rechargez la page.</p>
+        : messages.length === 0 ? <p className="text-sm text-encre-2">Aucun message envoyé pour cette date.</p> : (
+          <ul className="grid gap-1.5 text-sm">
+            {messages.map((message) => (
+              <li key={message.id} className="rounded-xl border border-trait bg-sable px-3 py-2">
+                <span className="font-semibold">{message.sujet}</span>
+                <span className="block text-encre-2">
+                  {instantEnClair(message.cree_le)} · {personnes(message.destinataires)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+    </section>
+  );
+}
+
+function CarteDate({ date, dates, inscrits, modeleMessage, messages, utilisateurs, client, jeton, simulation, ouvrirMessage, onInfos, onMessage, onModifie }: {
   date: DateCalendrier;
   dates: readonly DateCalendrier[];
   inscrits: number | null;
   modeleMessage: ModeleEmailLigne | undefined;
+  /** Messages déjà envoyés pour cette date, du plus récent au plus ancien ; null si illisibles. */
+  messages: readonly MessageEnvoye[] | null;
+  onMessage: (message: MessageEnvoye) => void;
   utilisateurs: readonly string[];
   client: SupabaseClient;
   jeton: string | null;
@@ -122,7 +152,7 @@ function CarteDate({ date, dates, inscrits, modeleMessage, utilisateurs, client,
           </span>
         </div>
         {suspendue ? <p className={`${ALERTE} text-sm`}>La soirée liée est {date.soiree?.statut === 'annulee' ? 'annulée' : 'reportée'}{NB}: les rappels de cette date sont suspendus. Prévenez les inscrits.</p> : null}
-        {date.statut === 'annulee' ? <p className={`${ALERTE} text-sm`}>Date annulée{NB}: les rappels sont arrêtés. Prévenez les inscrits, et proposez-leur les autres dates avec {'{{prochaines_dates}}'}.</p> : null}
+        {date.statut === 'annulee' ? <p className={`${ALERTE} text-sm`}>Date annulée{NB}: les rappels sont arrêtés. Prévenez les inscrits. {'{{prochaines_dates}}'} ne leur liste les autres dates que s’ils ont accepté les annonces.</p> : null}
       </div>
 
       <InfosPratiques date={date} client={client} utilisateurs={utilisateurs} onEnregistre={onInfos} onModifie={signalerInfos} />
@@ -130,8 +160,11 @@ function CarteDate({ date, dates, inscrits, modeleMessage, utilisateurs, client,
       {ecrire && jeton && inscrits ? (
         <MessageInscrits date={date} dates={dates} inscrits={inscrits} modeleMessage={modeleMessage} jeton={jeton} onModifie={signaler}
           onFermer={() => fermer()}
-          onEnvoye={(nombre) => fermer(`Message enregistré pour ${personnes(nombre)}${NB}: il part au prochain passage du planificateur, dans la minute.${
-            simulation ? ` Mode simulation${NB}: rien ne part réellement.` : ''}`)} />
+          onEnvoye={(message) => {
+            onMessage(message);
+            fermer(`Message enregistré pour ${personnes(message.destinataires)}${NB}: il part au prochain passage du planificateur, dans la minute.${
+              simulation ? ` Mode simulation${NB}: rien ne part réellement.` : ''}`);
+          }} />
       ) : (
         <div className="flex flex-wrap items-center gap-3">
           <button ref={boutonEcrire} type="button" className={BOUTON} disabled={!peutEcrire} aria-describedby={idTitre}
@@ -143,14 +176,18 @@ function CarteDate({ date, dates, inscrits, modeleMessage, utilisateurs, client,
       )}
       {/* Région permanente : le résultat de l'envoi est annoncé sans déplacer le focus. */}
       <p role="status" className="text-ok">{annonce}</p>
+      <HistoriqueMessages idTitre={idTitre} messages={messages} />
     </article>
   );
 }
 
-export function Dates({ dates, rattaches, modeles, client, jeton, etat, ecrireA, onInfos, onModifie }: {
+export function Dates({ dates, rattaches, modeles, messages, client, jeton, etat, ecrireA, onInfos, onMessage, onModifie }: {
   dates: readonly DateCalendrier[];
   rattaches: Record<string, number> | null;
   modeles: readonly ModeleEmailLigne[];
+  /** Historique des messages aux inscrits, toutes dates ; null s'il est illisible. */
+  messages: readonly MessageEnvoye[] | null;
+  onMessage: (message: MessageEnvoye) => void;
   client: SupabaseClient;
   jeton: string | null;
   etat: EtatChargement<EtatEmails>;
@@ -173,8 +210,9 @@ export function Dates({ dates, rattaches, modeles, client, jeton, etat, ecrireA,
       {avenir.length === 0 ? <p className={CARTE}>Aucune date à venir au calendrier. Ajoutez-en depuis l’admin Vitrine.</p> : null}
       {avenir.map((date) => (
         <CarteDate key={date.id} date={date} dates={dates} inscrits={rattaches ? rattaches[date.id] ?? 0 : null}
-          modeleMessage={modeleMessage} utilisateurs={utilisateurs} client={client} jeton={jeton} simulation={simulation}
-          ouvrirMessage={ecrireA === date.id} onInfos={(infos) => onInfos(date.id, infos)} onModifie={onModifie} />
+          modeleMessage={modeleMessage} messages={messages ? messages.filter((message) => message.calendrier_id === date.id) : null}
+          utilisateurs={utilisateurs} client={client} jeton={jeton} simulation={simulation}
+          ouvrirMessage={ecrireA === date.id} onInfos={(infos) => onInfos(date.id, infos)} onMessage={onMessage} onModifie={onModifie} />
       ))}
     </div>
   );

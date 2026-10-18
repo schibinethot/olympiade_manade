@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { ETAPES, type Etape } from '../../../../serveur/gabarits-emails.mjs';
 import { useClientAdmin } from '../CadreAdmin';
-import { decalerJour, jourParisDe, LIBELLES_RAISONS } from './outils';
+import { decalerJour, jourParisDe } from './outils';
 
 const NB = '\u00a0';
 
@@ -56,26 +56,67 @@ export type DateCalendrier = {
 
 export type StatutEnvoi = 'en_attente' | 'envoye' | 'simule' | 'echec' | 'saute';
 
-/** Une ligne de la vue bilan_envois_emails. */
+/** Une ligne de la vue bilan_envois_emails, regroupée par (etape, calendrier_id, reel, statut, raison) (contrat C-0.4). */
 export type LigneBilan = {
   etape: Etape;
   calendrier_id: string | null;
   reel: boolean;
   statut: StatutEnvoi;
+  /** Raison d'un envoi sauté ou en échec (null sinon, ou si le serveur n'en a pas noté). */
+  raison?: string | null;
   nombre: number;
   dernier_envoi: string | null;
 };
 
 export type ModeEnvoi = 'off' | 'log' | 'smtp';
 
-/** Réponse de GET /api/admin/emails/etat. */
+export type BilanPassage = Partial<Record<'reserves' | 'envoyes' | 'simules' | 'echecs' | 'sautes', number>>;
+
+/** Réponse de GET /api/admin/emails/etat (contrat C-0.3), lue par lireEtatEmails. */
 export type EtatEmails = {
   mode: ModeEnvoi;
+  /** Vrai seulement si le planificateur envoie réellement dans ce mode. */
   pret: boolean;
+  /** Codes : mode_off, barriere, smtp_incomplet, expediteur, cle_liens, origine, supabase, identite. */
+  raisonsInactif: string[];
   cleLiens: boolean;
+  barriereActive: boolean;
   dernierPassage: string | null;
-  dernierBilan: Partial<Record<'reserves' | 'envoyes' | 'simules' | 'echecs' | 'sautes', number>> | null;
+  dernierBilan: BilanPassage | null;
+  derniereErreur: { instant: string; message: string } | null;
 };
+
+const MODES: readonly string[] = ['off', 'log', 'smtp'];
+const estInstant = (valeur: unknown): valeur is string => typeof valeur === 'string' && !Number.isNaN(Date.parse(valeur));
+
+/**
+ * Lit la réponse de /api/admin/emails/etat sans la croire sur parole : un champ absent ou mal formé prend
+ * la valeur la plus prudente (mode off, pas prêt, aucune barrière connue). Null si ce n'est pas un objet.
+ */
+export function lireEtatEmails(valeur: unknown): EtatEmails | null {
+  if (typeof valeur !== 'object' || valeur === null) return null;
+  const v = valeur as Record<string, unknown>;
+  const bilan = typeof v.dernierBilan === 'object' && v.dernierBilan !== null
+    ? Object.fromEntries(Object.entries(v.dernierBilan as Record<string, unknown>)
+      .filter((entree): entree is [string, number] => typeof entree[1] === 'number')) as BilanPassage
+    : null;
+  const erreur = typeof v.derniereErreur === 'object' && v.derniereErreur !== null ? v.derniereErreur as Record<string, unknown> : null;
+  return {
+    mode: typeof v.mode === 'string' && MODES.includes(v.mode) ? v.mode as ModeEnvoi : 'off',
+    pret: v.pret === true,
+    raisonsInactif: Array.isArray(v.raisonsInactif) ? v.raisonsInactif.filter((code): code is string => typeof code === 'string') : [],
+    cleLiens: v.cleLiens === true,
+    barriereActive: v.barriereActive === true,
+    dernierPassage: estInstant(v.dernierPassage) ? v.dernierPassage : null,
+    dernierBilan: bilan,
+    derniereErreur: erreur && estInstant(erreur.instant) && typeof erreur.message === 'string'
+      ? { instant: erreur.instant, message: erreur.message.slice(0, 300) }
+      : null,
+  };
+}
+
+/** Un message aux inscrits déjà envoyé (table messages_inscrits). */
+export type MessageEnvoye = { id: string; calendrier_id: string | null; sujet: string; cree_le: string; destinataires: number };
 
 export type EtatChargement<T> =
   | { statut: 'chargement' }
@@ -85,7 +126,8 @@ export type EtatChargement<T> =
 export const COLONNES_MODELE = 'cle, nom, actif, sujet, preheader, corps, encart, jours_decalage, heure_envoi, modifie_le';
 const COLONNES_DATE = 'id, nom, ville, arenes, date_soiree, heure, statut, lien_billetterie, infos_pratiques, soiree_id, '
   + 'soiree:soirees(slug, statut, soiree_manades(ordre, manades(nom)))';
-const COLONNES_BILAN = 'etape, calendrier_id, reel, statut, nombre, dernier_envoi';
+const COLONNES_BILAN = 'etape, calendrier_id, reel, statut, raison, nombre, dernier_envoi';
+const COLONNES_MESSAGES = 'id, calendrier_id, sujet, cree_le, destinataires';
 
 // ---------------------------------------------------------------------------
 // Appels aux endpoints admin du serveur
@@ -95,8 +137,7 @@ export type ReponseApi<T> = { ok: true; donnees: T } | { ok: false; statut: numb
 
 /** Codes `error` des endpoints admin (serveur/emails.mjs), dits à l'organisateur. */
 const MESSAGES_ERREUR: Readonly<Record<string, string>> = {
-  planificateur_inactif: `L’envoi est arrêté sur le serveur (mode off ou configuration incomplète)${NB}: rien ne peut partir.`,
-  service_indisponible: `Le service d’envoi est indisponible${NB}: sa configuration sur le serveur est incomplète.`,
+  planificateur_inactif: `L’envoi est arrêté sur le serveur (mode off ou configuration incomplète)${NB}: rien ne peut partir.`,  service_indisponible: `Le service d’envoi est indisponible${NB}: sa configuration sur le serveur est incomplète.`,
   adresse_admin_absente: `Votre compte n’a pas d’adresse email${NB}: le test ne peut pas partir.`,
   brouillon_invalide: `Le serveur n’a pas pu rendre ce texte${NB}: vérifiez les liens et la mise en forme.`,
   format_invalide: `Le serveur a refusé ce texte${NB}: vérifiez l’objet (200 caractères au plus) et le corps.`,
@@ -175,6 +216,15 @@ async function compterRattaches(client: SupabaseClient, calendrierId: string): P
   return count ?? 0;
 }
 
+/** Historique des messages aux inscrits des dates affichées (RLS : lecture admin). Null si illisible. */
+async function lireMessages(client: SupabaseClient, calendrierIds: readonly string[]): Promise<MessageEnvoye[] | null> {
+  if (!calendrierIds.length) return [];
+  const { data, error } = await client.from('messages_inscrits').select(COLONNES_MESSAGES)
+    .in('calendrier_id', [...calendrierIds]).order('cree_le', { ascending: false });
+  if (error) return null;
+  return (data ?? []) as MessageEnvoye[];
+}
+
 export type DonneesEmails = {
   modeles: ModeleEmailLigne[];
   /** Dates du calendrier à partir de J-8 (étapes « après » encore possibles), dans l'ordre. */
@@ -182,6 +232,8 @@ export type DonneesEmails = {
   bilan: LigneBilan[];
   /** Inscrits par date, ou null si le comptage a échoué. */
   rattaches: Record<string, number> | null;
+  /** Messages aux inscrits déjà envoyés pour ces dates, du plus récent au plus ancien ; null si illisibles. */
+  messages: MessageEnvoye[] | null;
 };
 
 const ordreEtape = (cle: Etape) => ETAPES.indexOf(cle);
@@ -215,13 +267,12 @@ export function useDonneesEmails() {
         ]);
         if (modeles.error || dates.error || bilan.error) throw modeles.error ?? dates.error ?? bilan.error;
         const lignesDates = (dates.data ?? []) as unknown as DateCalendrier[];
-        let rattaches: Record<string, number> | null = null;
-        try {
-          const comptes = await Promise.all(lignesDates.map((date) => compterRattaches(client, date.id)));
-          rattaches = Object.fromEntries(lignesDates.map((date, index) => [date.id, comptes[index]]));
-        } catch {
-          rattaches = null;
-        }
+        const [rattaches, messages] = await Promise.all([
+          Promise.all(lignesDates.map((date) => compterRattaches(client, date.id)))
+            .then((comptes) => Object.fromEntries(lignesDates.map((date, index) => [date.id, comptes[index]])))
+            .catch(() => null),
+          lireMessages(client, lignesDates.map((date) => date.id)),
+        ]);
         if (!actif) return;
         setDonnees({
           statut: 'ok',
@@ -232,6 +283,7 @@ export function useDonneesEmails() {
             dates: lignesDates,
             bilan: (bilan.data ?? []) as unknown as LigneBilan[],
             rattaches,
+            messages,
           },
         });
       } catch (erreur) {
@@ -250,9 +302,11 @@ export function useDonneesEmails() {
   useEffect(() => {
     if (!jeton) return;
     let actif = true;
-    void appelerApiAdmin<EtatEmails>('/api/admin/emails/etat', jeton).then((reponse) => {
+    void appelerApiAdmin<unknown>('/api/admin/emails/etat', jeton).then((reponse) => {
       if (!actif) return;
-      setEtat(reponse.ok ? { statut: 'ok', valeur: reponse.donnees } : { statut: 'erreur', message: reponse.message });
+      const lu = reponse.ok ? lireEtatEmails(reponse.donnees) : null;
+      setEtat(lu ? { statut: 'ok', valeur: lu }
+        : { statut: 'erreur', message: reponse.ok ? 'Le serveur a répondu sans état lisible. Réessayez.' : reponse.message });
     });
     return () => { actif = false; };
   }, [jeton, lecture.revision]);
@@ -276,6 +330,14 @@ export function useDonneesEmails() {
     });
   }, []);
 
+  /** Un message vient de partir : il rejoint l'historique de sa date sans tout relire. */
+  const ajouterMessage = useCallback((message: MessageEnvoye) => {
+    setDonnees((avant) => avant.statut !== 'ok' ? avant : {
+      statut: 'ok',
+      valeur: { ...avant.valeur, messages: [message, ...(avant.valeur.messages ?? []).filter((ligne) => ligne.id !== message.id)] },
+    });
+  }, []);
+
   return {
     client,
     jeton,
@@ -287,6 +349,7 @@ export function useDonneesEmails() {
     recharger,
     remplacerModele,
     remplacerInfos,
+    ajouterMessage,
   };
 }
 
@@ -294,12 +357,9 @@ export function useDonneesEmails() {
 // Comptes de l'onglet Envois
 // ---------------------------------------------------------------------------
 
-/** Raisons libellées (calcul des échéances et contrôles au moment de l'envoi). */
-export const RAISONS_CONNUES: readonly string[] = Object.keys(LIBELLES_RAISONS);
-
+// Les raisons des envois sautés ou en échec viennent de la vue du bilan, déjà lue (raisonsDuBilan) :
+// plus de requête HEAD par raison sur envois_emails.
 export type ComptesEnvois = {
-  /** Envois sautés ou en échec, par raison. */
-  raisons: Record<string, number>;
   abonnes: number;
   aConfirmer: number;
   annonces: number;
@@ -327,12 +387,7 @@ export function useComptesEnvois(client: SupabaseClient | null, calendrierIds: r
     const destinataires = () => client.from('destinataires_emails').select('id', { count: 'exact', head: true });
     void (async () => {
       try {
-        const [raisons, abonnes, aConfirmer, annonces, desinscrits, dates] = await Promise.all([
-          // Un envoi en attente peut porter une raison (nouvel essai prévu) : seuls les sautés et les échecs comptent.
-          Promise.all(RAISONS_CONNUES.map((raison) => compter(
-            client.from('envois_emails').select('id', { count: 'exact', head: true })
-              .eq('raison', raison).in('statut', ['saute', 'echec']),
-          ))),
+        const [abonnes, aConfirmer, annonces, desinscrits, dates] = await Promise.all([
           compter(destinataires().eq('abonne', true).eq('abonnement_a_confirmer', false)),
           compter(destinataires().eq('abonnement_a_confirmer', true)),
           compter(destinataires().eq('annonces', true).is('desinscrit_le', null)),
@@ -345,7 +400,6 @@ export function useComptesEnvois(client: SupabaseClient | null, calendrierIds: r
         setComptes({
           statut: 'ok',
           valeur: {
-            raisons: Object.fromEntries(RAISONS_CONNUES.map((raison, index) => [raison, raisons[index]])),
             abonnes,
             aConfirmer,
             annonces,
