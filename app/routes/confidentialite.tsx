@@ -266,9 +266,9 @@ export default function Confidentialite() {
             et 46 RGPD). Une copie des garanties peut être demandée via le {LIEN_CONTACT}.
           </p>
           <p>
-            Google et Meta, lorsqu’ils reçoivent des données (voir «&nbsp;Destinataires&nbsp;»), peuvent les transférer aux
-            États-Unis. Ces transferts reposent sur la décision d’adéquation de la Commission européenne relative au cadre de
-            protection des données UE–États-Unis (Data Privacy Framework).
+            Google et Meta, lorsqu’ils reçoivent des données (voir «&nbsp;Destinataires&nbsp;»), peuvent les transférer hors
+            de l’Union européenne, notamment aux États-Unis. Une copie des garanties applicables peut être demandée via le{' '}
+            {LIEN_CONTACT}.
           </p>
         </SectionLegale>
 
