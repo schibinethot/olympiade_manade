@@ -260,7 +260,10 @@ export function envoyerSmtp(smtp, message) {
       if (etape === 'starttls' && code === 220) {
         const clair = courant;
         etape = 'ehlo2';
-        courant = tls.connect({ socket: clair, servername: smtp.host, ...(smtp.ca ? { ca: smtp.ca } : {}) });
+        // SNI pour un nom d'hôte seulement (RFC 6066) ; une adresse IP sert à la seule vérification du certificat.
+        courant = tls.connect({
+          socket: clair, ...(net.isIP(smtp.host) ? { host: smtp.host } : { servername: smtp.host }), ...(smtp.ca ? { ca: smtp.ca } : {}),
+        });
         courant.on('data', (morceau) => lire(morceau.toString('utf8')));
         courant.on('error', (erreur) => echec(erreur));
         courant.once('secure', () => envoyer('EHLO olympiade-manade'));
