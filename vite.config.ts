@@ -17,6 +17,9 @@ const BIBLIOTHEQUES_REACT = /node_modules\/(react|react-dom|scheduler|react-rout
 const CODE_PARTAGE = /\/app\/(lib|donnees|composants)\//;
 const PROPRES_A_L_INSCRIPTION =
   /\/app\/(composants\/(CadreInscription|FormulaireCode|FormulaireInscription|SaisieCode)\.tsx|lib\/useOtpCooldown\.ts)$/;
+// Les composants de l'administration (dont l'éditeur des emails et le rendu des gabarits qu'il
+// importe) restent hors du groupe « app » : une page vitrine ne les charge pas.
+const PROPRES_A_L_ADMIN = /\/app\/composants\/admin\//;
 
 export default defineConfig(({ isSsrBuild }) => ({
   define: {
@@ -31,7 +34,10 @@ export default defineConfig(({ isSsrBuild }) => ({
             codeSplitting: {
               groups: [
                 { name: 'react', test: BIBLIOTHEQUES_REACT },
-                { name: 'app', test: (id: string) => CODE_PARTAGE.test(id) && !PROPRES_A_L_INSCRIPTION.test(id) },
+                {
+                  name: 'app',
+                  test: (id: string) => CODE_PARTAGE.test(id) && !PROPRES_A_L_INSCRIPTION.test(id) && !PROPRES_A_L_ADMIN.test(id),
+                },
               ],
             },
           },
