@@ -1,6 +1,22 @@
 // Logique de la page Classements, sans React : années à onglets, tri du palmarès, lecture d'un
-// classement complet écrit dans le détail d'un résultat.
+// classement complet écrit dans le détail d'un résultat, décompte des soirées gagnées.
 import type { Calendrier, Palmares } from './donnees';
+
+/**
+ * Clé d'identité du vainqueur pour regrouper les victoires d'une même manade : casse, accents,
+ * espaces et préfixe « Manade » gommés. Reprend la même règle que `identiteManade` dans manades.ts,
+ * dupliquée ici pour éviter une boucle d'imports avec ce module (qui lit lui-même `lireClassement`).
+ */
+function cleManade(nom: string): string {
+  const nettoye = nom
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLocaleLowerCase('fr-FR')
+    .replace(/^\s*manade\s+/i, '')
+    .trim()
+    .replace(/\s+/g, ' ');
+  return nettoye === 'michel robert' ? 'robert michel' : nettoye;
+}
 
 export type AnneesClassements = {
   /** Années à onglets, de la plus récente à la plus ancienne. */
@@ -67,4 +83,44 @@ export function lireClassement(detail: string | null): ClassementLu | null {
   }
   if (rangs.length < 2 || rangs[0].rang !== 1) return null;
   return { rangs, suite: reste.trim() || null };
+}
+
+export type VictoiresManade = {
+  /** Nom affiché de la manade, repris de la ligne de palmarès la plus récente. */
+  nom: string;
+  /** Soirées gagnées, uniquement les résultats dont le statut est « confirme ». */
+  victoires: number;
+};
+
+/**
+ * Soirées gagnées par manade pour une année, résultats confirmés uniquement. Triées par nombre
+ * de victoires décroissant, puis par nom. Variantes d'écriture d'un même nom regroupées
+ * (« Manade Arlatenco » et « Arlatenco », « Michel Robert » et « Robert Michel »).
+ */
+export function soireesGagneesParManade(palmares: Palmares[], annee: number): VictoiresManade[] {
+  const groupes = new Map<string, { nom: string; victoires: number; date: string }>();
+  for (const p of palmares) {
+    if (p.annee !== annee || p.statut !== 'confirme') continue;
+    const cle = cleManade(p.vainqueur);
+    const existant = groupes.get(cle);
+    const dateReference = p.date_soiree ?? `${p.annee}-00-00`;
+    if (!existant) {
+      groupes.set(cle, { nom: p.vainqueur.trim(), victoires: 1, date: dateReference });
+    } else {
+      existant.victoires += 1;
+      // Le nom affiché retient l'écriture de la ligne la plus récente, pour l'esthétique.
+      if (dateReference > existant.date) {
+        existant.nom = p.vainqueur.trim();
+        existant.date = dateReference;
+      }
+    }
+  }
+  return [...groupes.values()]
+    .map(({ nom, victoires }) => ({ nom, victoires }))
+    .sort((a, b) => b.victoires - a.victoires || a.nom.localeCompare(b.nom, 'fr-FR'));
+}
+
+/** Nombre de résultats confirmés d'une année, pour décider de masquer la rangée des victoires. */
+export function nombreResultatsConfirmes(palmares: Palmares[], annee: number): number {
+  return palmares.filter((p) => p.annee === annee && p.statut === 'confirme').length;
 }

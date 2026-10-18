@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { anneeChoisie, anneesClassements, lireClassement, resultatsAnnee } from '../../app/lib/classements';
+import {
+  anneeChoisie,
+  anneesClassements,
+  lireClassement,
+  nombreResultatsConfirmes,
+  resultatsAnnee,
+  soireesGagneesParManade,
+} from '../../app/lib/classements';
 import type { Calendrier, Palmares } from '../../app/lib/donnees';
 
 const resultat = (annee: number, ville: string, vainqueur: string, extra: Partial<Palmares> = {}): Palmares => ({
@@ -110,5 +117,51 @@ describe('lireClassement', () => {
     expect(lireClassement('Classement : Vinuesa devant Gillet.')).toBeNull();
     expect(lireClassement('Classement : 2. Vinuesa, 3. Gillet.')).toBeNull();
     expect(lireClassement(null)).toBeNull();
+  });
+});
+
+describe('soireesGagneesParManade', () => {
+  it('compte les victoires confirmées de l’année, groupe les variantes de nom et trie par nombre puis par nom', () => {
+    const palmares: Palmares[] = [
+      resultat(2026, 'Nîmes', 'Arlatenco'),
+      resultat(2026, 'Alès', 'Manade Arlatenco', { date_soiree: '2026-05-15' }),
+      resultat(2026, 'Bezouce', 'Labourayre', { statut: 'a_confirmer' }),
+      resultat(2026, 'Mouriès', 'Clément', { date_soiree: '2026-07-10' }),
+      resultat(2026, 'Beauvoisin', 'Devaux', { date_soiree: '2026-07-15' }),
+      resultat(2026, 'Lunel', 'Clément', { date_soiree: '2026-06-20' }),
+    ];
+    // L'écriture retenue est celle de la ligne la plus récente de la manade (Nîmes = « Arlatenco »
+    // plus récent qu'Alès = « Manade Arlatenco »). Même nombre de victoires : tri alphabétique
+    // français (Arlatenco avant Clément).
+    expect(soireesGagneesParManade(palmares, 2026)).toEqual([
+      { nom: 'Arlatenco', victoires: 2 },
+      { nom: 'Clément', victoires: 2 },
+      { nom: 'Devaux', victoires: 1 },
+    ]);
+  });
+
+  it('ignore les résultats à confirmer et les autres années', () => {
+    const palmares: Palmares[] = [
+      resultat(2026, 'Nîmes', 'Vinuesa'),
+      resultat(2026, 'Alès', 'Vinuesa', { statut: 'a_confirmer' }),
+      resultat(2025, 'Nîmes', 'Vinuesa'),
+    ];
+    expect(soireesGagneesParManade(palmares, 2026)).toEqual([{ nom: 'Vinuesa', victoires: 1 }]);
+  });
+
+  it('ne renvoie rien quand aucun résultat n’est confirmé pour l’année', () => {
+    expect(soireesGagneesParManade([resultat(2026, 'Nîmes', 'Vinuesa', { statut: 'a_confirmer' })], 2026)).toEqual([]);
+  });
+});
+
+describe('nombreResultatsConfirmes', () => {
+  it('compte les lignes confirmées de l’année, sans compter les « à confirmer »', () => {
+    const palmares: Palmares[] = [
+      resultat(2026, 'Nîmes', 'Vinuesa'),
+      resultat(2026, 'Alès', 'Clément'),
+      resultat(2026, 'Mouriès', 'Devaux', { statut: 'a_confirmer' }),
+      resultat(2025, 'Nîmes', 'Gillet'),
+    ];
+    expect(nombreResultatsConfirmes(palmares, 2026)).toBe(2);
   });
 });

@@ -1,4 +1,5 @@
 import type { InstantanePublic } from '../lib/contexte-etat';
+import { Fer } from './Fer';
 
 type Classements = NonNullable<NonNullable<InstantanePublic['soiree']>['classements']>;
 type Ligne = NonNullable<Classements['parEpreuve'][number]['public']>[number];
@@ -9,10 +10,22 @@ const LIBELLES = { public: 'Prix du public', jury: 'Jury', combine: 'Combiné' }
 function Tableau({ lignes, score }: { lignes: Ligne[] | LigneGeneral[]; score: (ligne: Ligne | LigneGeneral) => string }) {
   if (!lignes.length) return <p className="text-sm text-encre-2">Aucune note pour ce classement.</p>;
   return (
-    <ol className="grid gap-2">
+    <ol className="grid gap-1.5">
       {lignes.map((ligne) => (
-        <li key={ligne.manadeId} className="flex min-h-12 items-center justify-between gap-3 rounded-xl bg-sable px-3">
-          <span><span className="mr-2 font-bold tabular-nums">{ligne.rang}.</span>{ligne.manadeNom}</span>
+        <li
+          key={ligne.manadeId}
+          className="grid min-h-12 grid-cols-[2.25rem_auto_minmax(0,1fr)_auto] items-center gap-x-3 rounded-xl bg-sable px-3 py-1.5"
+        >
+          <span
+            className={`font-display text-[22px] leading-none font-bold italic tabular-nums ${
+              ligne.rang === 1 ? 'text-rouge' : 'text-encre'
+            }`}
+          >
+            {ligne.rang}
+            <sup className="text-[.45em]">{ligne.rang === 1 ? 'er' : 'e'}</sup>
+          </span>
+          <Fer manade={ligne.manadeNom} taille="petit" />
+          <span className="truncate text-[14.5px] font-semibold">{ligne.manadeNom}</span>
           <span className="text-sm tabular-nums text-encre-2">{score(ligne)}</span>
         </li>
       ))}
