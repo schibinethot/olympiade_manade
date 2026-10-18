@@ -35,7 +35,7 @@ function AperçuVote() {
 
   return (
     <fieldset
-      aria-label="Exemple de vote : cet aperçu n'envoie rien"
+      aria-label={'Exemple de vote\u00a0: cet aperçu n’envoie rien'}
       className="relative rounded-[22px] border border-white/20 bg-nuit-2 p-4 tablette:p-5"
     >
       {/* La légende doit être le premier enfant direct du fieldset. Flottante, elle reste dans la
@@ -67,7 +67,7 @@ function AperçuVote() {
             key={n}
             type="button"
             // Nom distinct des vrais boutons de vote (« 8 sur 10 »), affichés sur la même page une fois connecté.
-            aria-label={`Exemple : ${n} sur 10`}
+            aria-label={`Exemple : ${n} sur 10`}
             aria-pressed={choix === n}
             onClick={() => setChoix(n === choix ? null : n)}
             className={[
@@ -279,7 +279,7 @@ function Hero({
                   </Link>
                 ) : INSCRIPTION_OUVERTE ? (
                   <Link to="/inscription" className={BOUTON_PRINCIPAL}>
-                    Je m'inscris
+                    Je m’inscris
                     <Icone nom="fleche" className="size-4" />
                   </Link>
                 ) : (
@@ -299,7 +299,7 @@ function Hero({
               <div>
                 {INSCRIPTION_OUVERTE ? (
                   <Link to="/inscription" className={BOUTON_PRINCIPAL}>
-                    Je m'inscris pour noter
+                    Je m’inscris pour noter
                     <Icone nom="fleche" className="size-4" />
                   </Link>
                 ) : (

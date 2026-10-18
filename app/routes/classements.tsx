@@ -198,7 +198,7 @@ export default function Classements({ loaderData }: Route.ComponentProps) {
                 .flatMap((precedente) => resultatsAnnee(palmares, precedente))
                 .map((resultat) => (
                   <li key={resultat.id}>
-                    <LigneResultat resultat={resultat} niveau={4} />
+                    <LigneResultat resultat={resultat} />
                   </li>
                 ))}
             </ul>

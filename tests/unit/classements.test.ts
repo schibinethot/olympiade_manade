@@ -152,6 +152,11 @@ describe('soireesGagneesParManade', () => {
   it('ne renvoie rien quand aucun résultat n’est confirmé pour l’année', () => {
     expect(soireesGagneesParManade([resultat(2026, 'Nîmes', 'Vinuesa', { statut: 'a_confirmer' })], 2026)).toEqual([]);
   });
+
+  it('ignore un vainqueur vide', () => {
+    const palmares = [resultat(2026, 'Nîmes', '  '), resultat(2026, 'Alès', 'Vinuesa')];
+    expect(soireesGagneesParManade(palmares, 2026)).toEqual([{ nom: 'Vinuesa', victoires: 1 }]);
+  });
 });
 
 describe('nombreResultatsConfirmes', () => {

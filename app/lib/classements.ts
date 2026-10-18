@@ -102,6 +102,8 @@ export function soireesGagneesParManade(palmares: Palmares[], annee: number): Vi
   for (const p of palmares) {
     if (p.annee !== annee || p.statut !== 'confirme') continue;
     const cle = cleManade(p.vainqueur);
+    // Un vainqueur vide ne compte pour aucune manade.
+    if (!cle) continue;
     const existant = groupes.get(cle);
     const dateReference = p.date_soiree ?? `${p.annee}-00-00`;
     if (!existant) {
