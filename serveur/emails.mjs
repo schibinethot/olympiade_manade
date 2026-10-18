@@ -62,6 +62,19 @@ export function creerEmails(options = {}) {
   // Site privé (barrière ACCES_TOKEN) : les liens des e-mails (désinscription comprise) seraient
   // inaccessibles aux destinataires. Aucun envoi réel ne part ; le mode log reste possible.
   const smtpSuspendu = barriereActive && mode === 'smtp';
+  // Raisons connues au démarrage ; l'identité de l'organisateur (« identite », mode smtp) est relue par le
+  // planificateur (voir son etat()).
+  /** @type {string[]} */
+  const raisonsInactif = [];
+  if (mode === 'off') raisonsInactif.push('mode_off');
+  if (smtpSuspendu) raisonsInactif.push('barriere');
+  if (mode === 'smtp') {
+    const manques = poste.manques ?? (poste.pret ? [] : ['smtp_incomplet']);
+    for (const raison of ['smtp_incomplet', 'expediteur']) if (manques.includes(raison)) raisonsInactif.push(raison);
+  }
+  if (!cleLiens) raisonsInactif.push('cle_liens');
+  if (!origine) raisonsInactif.push('origine');
+  if (!serveurPret) raisonsInactif.push('supabase');
   const actif = configure && mode !== 'off' && poste.pret && !smtpSuspendu;
 
   /** @type {ContexteEmails} */
@@ -87,6 +100,7 @@ export function creerEmails(options = {}) {
     configure,
     smtpSuspendu,
     actif,
+    raisonsInactif,
   };
   const acces = creerAccesSupabase(ctx);
   const planificateur = creerPlanificateur(ctx, acces);
@@ -113,8 +127,13 @@ export function creerEmails(options = {}) {
     configure,
     mode,
     actif,
-    /** La confirmation part vraiment (SMTP réel) : l'accueil peut dire « vérifiez votre boîte mail ». */
-    confirmationActive: actif && mode === 'smtp',
+    /**
+     * La confirmation part vraiment (SMTP réel, planificateur prêt, identité de l'organisateur connue) : l'accueil
+     * peut dire « vérifiez votre boîte mail ». Relu à chaque appel.
+     */
+    get confirmationActive() {
+      return mode === 'smtp' && planificateur.etat().pret;
+    },
     /** @param {string | undefined} url */
     estRoute(url) {
       try { return CHEMINS.has(new URL(url ?? '/', 'http://serveur').pathname); }

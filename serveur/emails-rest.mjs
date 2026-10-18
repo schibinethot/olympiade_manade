@@ -3,18 +3,24 @@
 // Aucun corps ni détail d'une réponse PostgREST en erreur n'est journalisé (les 23505 contiennent
 // l'adresse) : seuls le statut HTTP et le code.
 
+import { heureParis } from './fuseau-paris.mjs';
+
+export { heureParis };
+
 /** @typedef {import('./gabarits-emails.mjs').Etape} Etape */
 /** @typedef {import('./gabarits-emails.mjs').DateEnrichie} DateEnrichie */
 /** @typedef {import('node:http').IncomingMessage} Requete */
 /** @typedef {import('node:http').ServerResponse} Reponse */
 
 /**
- * Transport : l'objet de emailsDepuisEnvironnement (courriel.mjs).
+ * Transport : l'objet de emailsDepuisEnvironnement (courriel.mjs). `manques` : ce qui manque en mode smtp
+ * (« smtp_incomplet », « expediteur »). `definitif` : refus permanent du serveur SMTP (5xx), sans nouvel essai.
  * @typedef {{
  *   mode: string,
  *   pret: boolean,
- *   envoyer: (email: { to: string, subject: string, text: string, html?: string, headers?: Record<string, string> }) =>
- *     Promise<{ mode: string, envoye: boolean, echec: boolean }>,
+ *   manques?: string[],
+ *   envoyer: (email: { to: string, subject: string, text: string, html?: string, headers?: Record<string, string>, etape?: string }) =>
+ *     Promise<{ mode: string, envoye: boolean, echec: boolean, definitif?: boolean }>,
  * }} Poste
  */
 
@@ -42,10 +48,15 @@
  *   configure: boolean,
  *   smtpSuspendu: boolean,
  *   actif: boolean,
+ *   raisonsInactif: string[],
  * }} ContexteEmails
  */
 
-/** @typedef {{ reserves: number, envoyes: number, simules: number, echecs: number, sautes: number }} Bilan */
+/**
+ * Bilan d'un passage. `liberes` : lignes réservées pour une échéance qui a changé (date déplacée), supprimées
+ * pour que la nouvelle échéance se réserve.
+ * @typedef {{ reserves: number, envoyes: number, simules: number, echecs: number, sautes: number, liberes: number }} Bilan
+ */
 
 /**
  * Destinataire embarqué dans une ligne d'envoi lue par le planificateur (ou relu après la réclamation).
@@ -76,7 +87,8 @@ export const JOUR_MS = 24 * HEURE_MS;
 export const LOT_LECTURE = 500;
 export const LOT_IDS = 50;
 const LOT_INSERTION = 500;
-export const LIMITE_RPC_OCTETS = 64 * 1024 * 1024;
+/** Réponse de emails_a_traiter : 1,3 Mo mesurés pour 5 000 personnes suivant la même date (rapport de la vague finale). */
+export const LIMITE_RPC_OCTETS = 16 * 1024 * 1024;
 const LIMITE_REST_OCTETS = 8 * 1024 * 1024;
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CONFLIT_ENVOIS = 'destinataire_id,etape,calendrier_id,message_id,reel';
@@ -84,18 +96,6 @@ const SELECT_DATE = 'id,nom,ville,arenes,date_soiree,heure,statut,lien_billetter
 const SELECT_DESTINATAIRE = 'id,email,abonne,annonces,abonnement_a_confirmer,confirme_le,desinscrit_le';
 export const SELECT_DESTINATAIRE_ENVOI = 'id,email,prenom,annonces,abonnement_a_confirmer,confirme_le,desinscrit_le';
 export const SELECT_ENVOI = `id,destinataire_id,etape,calendrier_id,message_id,raison,tentatives,prevu_le,envoye_le,destinataires_emails(${SELECT_DESTINATAIRE_ENVOI})`;
-
-const PARIS = new Intl.DateTimeFormat('en-CA', {
-  timeZone: 'Europe/Paris', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit',
-});
-
-/** Jour calendaire (« AAAA-MM-JJ ») et heure de Paris. @param {number} ms */
-export function heureParis(ms) {
-  /** @type {Record<string, string>} */
-  const p = {};
-  for (const { type, value } of PARIS.formatToParts(ms)) p[type] = value;
-  return { jour: `${p.year}-${p.month}-${p.day}`, heure: Number(p.hour) };
-}
 
 export const iso = (/** @type {number} */ ms) => new Date(ms).toISOString();
 export const enc = encodeURIComponent;
@@ -220,12 +220,12 @@ export function creerAccesSupabase(ctx) {
   }
 
   /**
-   * Appel PostgREST en service_role.
+   * Appel PostgREST en service_role, avec la taille de la réponse (journal de la RPC).
    * @param {string} chemin
    * @param {{ methode?: string, corps?: unknown, prefer?: string, delai?: number, max?: number }} [o]
-   * @returns {Promise<any>}
+   * @returns {Promise<{ donnees: any, octets: number }>}
    */
-  async function rest(chemin, { methode = 'GET', corps, prefer, delai = 10_000, max = LIMITE_REST_OCTETS } = {}) {
+  async function restMesure(chemin, { methode = 'GET', corps, prefer, delai = 10_000, max = LIMITE_REST_OCTETS } = {}) {
     const cle = /** @type {string} */ (serviceRoleKey);
     const reponse = await demander(`${supabaseUrl}${chemin}`, {
       method: methode,
@@ -240,7 +240,43 @@ export function creerAccesSupabase(ctx) {
     });
     const texteReponse = await texteBorne(reponse, max);
     if (!reponse.ok) throw new ErreurRest(reponse.status, codeErreur(texteReponse));
-    return texteReponse ? JSON.parse(texteReponse) : null;
+    return { donnees: texteReponse ? JSON.parse(texteReponse) : null, octets: Buffer.byteLength(texteReponse) };
+  }
+
+  /**
+   * Appel PostgREST en service_role. Une adresse e-mail n'est jamais placée dans `chemin` (journaux de l'API) :
+   * elle passe dans le corps d'un POST de RPC.
+   * @param {string} chemin
+   * @param {{ methode?: string, corps?: unknown, prefer?: string, delai?: number, max?: number }} [o]
+   * @returns {Promise<any>}
+   */
+  async function rest(chemin, o = {}) {
+    return (await restMesure(chemin, o)).donnees;
+  }
+
+  /**
+   * Ligne d'identité du pied des e-mails (revue juridique B4), lue dans identite_legale (même source que la page
+   * des mentions légales) : « L’Olympiade des Manades est organisée par <nom>, <forme>, <adresse>. », avec les
+   * seuls champs remplis. Sans nom (raison sociale), table vide ou absente de la base : null. Une autre erreur
+   * remonte (l'appelant garde la dernière valeur connue).
+   * @returns {Promise<string | null>}
+   */
+  async function lireOrganisateur() {
+    let lignes;
+    try {
+      lignes = await rest('/rest/v1/identite_legale?select=raison_sociale,forme_juridique,adresse&limit=1');
+    } catch (erreur) {
+      if (erreur instanceof ErreurRest && (erreur.statut === 404 || erreur.code === 'PGRST205' || erreur.code === '42P01')) return null;
+      throw erreur;
+    }
+    const identite = Array.isArray(lignes) ? lignes[0] : null;
+    // Une seule ligne : sauts de ligne et caractères de contrôle d'une adresse saisie sur plusieurs lignes deviennent
+    // des espaces.
+    const propre = (/** @type {unknown} */ v) => (typeof v === 'string' ? v.replace(/[\s\u0000-\u001f\u007f]+/g, ' ').trim() : '');
+    const nom = propre(identite?.raison_sociale);
+    if (!nom) return null;
+    const texteLigne = [nom, propre(identite?.forme_juridique), propre(identite?.adresse)].filter(Boolean).join(', ');
+    return `L’Olympiade des Manades est organisée par ${texteLigne}${texteLigne.endsWith('.') ? '' : '.'}`;
   }
 
   /** @param {string} id @returns {Promise<DestinataireLien | null>} */
@@ -263,11 +299,18 @@ export function creerAccesSupabase(ctx) {
     return dates;
   }
 
-  /** Les 3 prochaines dates confirmées (Paris), pour l'e-mail de test. @param {number} instant @returns {Promise<DateEnrichie[]>} */
+  /**
+   * Les 3 prochaines dates confirmées (Paris) dont la soirée liée n'est ni annulée ni reportée (comme la RPC),
+   * pour l'e-mail de test. @param {number} instant @returns {Promise<DateEnrichie[]>}
+   */
   async function lireProchaines(instant) {
     const { jour } = heureParis(instant);
-    const lignes = await rest(`/rest/v1/calendrier?select=${SELECT_DATE}&statut=eq.confirmee&date_soiree=gt.${jour}&order=date_soiree.asc,heure.asc.nullslast,id.asc&limit=3`) ?? [];
-    return lignes.map((/** @type {Record<string, any>} */ ligne) => dateDepuisLigne(ligne, null));
+    const lignes = await rest(`/rest/v1/calendrier?select=${SELECT_DATE},soirees(slug,statut)&statut=eq.confirmee&date_soiree=gt.${jour}`
+      + '&order=date_soiree.asc,heure.asc.nullslast,id.asc&limit=6') ?? [];
+    return lignes
+      .map((/** @type {Record<string, any>} */ ligne) => dateDepuisLigne(ligne, null))
+      .filter((/** @type {DateEnrichie} */ date) => date.soiree?.statut !== 'annulee' && date.soiree?.statut !== 'reportee')
+      .slice(0, 3);
   }
 
   /** Réserve des lignes d'envoi sans jamais écraser une ligne existante. @param {Record<string, unknown>[]} lignes */
@@ -285,7 +328,7 @@ export function creerAccesSupabase(ctx) {
     return inserees;
   }
 
-  return { rest, signaler, lireDestinataire, lireDates, lireProchaines, insererEnvois };
+  return { rest, restMesure, signaler, lireDestinataire, lireDates, lireProchaines, insererEnvois, lireOrganisateur };
 }
 
 /** @typedef {ReturnType<typeof creerAccesSupabase>} AccesSupabase */

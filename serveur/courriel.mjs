@@ -1,8 +1,10 @@
 // @ts-check
-// Email vers l'organisateur (CDC §4.0 contact, CA-13).
+// Email vers l'organisateur (CDC §4.0 contact, CA-13) et transport des e-mails de la séquence.
 // SMTP_MODE=off (défaut) : aucun envoi, le dépôt en base reste seul.
-// SMTP_MODE=log : le message est journalisé, sans réseau (recette sans identifiants).
+// SMTP_MODE=log : le message est journalisé (adresse masquée, sans corps), sans réseau (recette).
 // SMTP_MODE=smtp : envoi SMTP (STARTTLS), identifiants uniquement par l'environnement.
+// La séquence suit EMAILS_MODE (off, log, smtp), ou SMTP_MODE à défaut : la recette de la séquence en log ne
+// touche pas au formulaire de contact.
 
 import net from 'node:net';
 import tls from 'node:tls';
@@ -71,7 +73,7 @@ function motsEncodes(/** @type {string} */ valeur) {
   return mots.map(sujetEncode).join(`${CRLF} `);
 }
 
-/** « Nom <a@b.fr> » : nom encodé RFC 2047 s’il n’est pas ASCII simple. */
+/** « Nom <a@b.fr> » : nom toujours encodé RFC 2047 (mots de 30 octets), adresse sur sa propre ligne repliée. */
 function adresseAvecNom(/** @type {string} */ adresse) {
   const m = /^\s*(.*?)\s*<([^<>]+)>\s*$/.exec(adresse);
   if (!m) return adresse;
@@ -166,8 +168,26 @@ export function masquerEmail(email) {
   return `${String(email)[0]}***${String(email).slice(arobase)}`;
 }
 
+/** Étapes du dialogue SMTP propres à ce message : un refus 5xx y est définitif pour lui (adresse, contenu). */
+const ETAPES_DU_MESSAGE = new Set(['from', 'to', 'data', 'corps']);
+
 /**
- * @param {{ host: string, port: number, user: string, pass: string, timeoutMs?: number }} smtp
+ * Le message ne passera jamais tel quel : refus 5xx du serveur pour ce message, adresse ou en-tête invalides.
+ * Un 4xx, un délai dépassé ou une erreur réseau se réessaient ; un 5xx à l'authentification (réglage) aussi.
+ * @param {unknown} erreur
+ */
+export function echecDefinitif(erreur) {
+  const e = /** @type {{ definitif?: unknown, codeSmtp?: unknown, etapeSmtp?: unknown }} */ (erreur ?? {});
+  if (e.definitif === true) return true;
+  return typeof e.codeSmtp === 'number' && e.codeSmtp >= 500 && e.codeSmtp < 600 && ETAPES_DU_MESSAGE.has(String(e.etapeSmtp));
+}
+
+/**
+ * Envoi d'un message. La promesse se résout dès que le serveur accepte le corps (250 après DATA) : QUIT part
+ * ensuite sans attendre sa réponse, et un délai ou une erreur qui suivent sont ignorés. Un message accepté n'est
+ * donc jamais compté comme un échec (pas de nouvel essai, pas de doublon).
+ * @param {{ host: string, port: number, user: string, pass: string, timeoutMs?: number, ca?: string | Buffer }} smtp
+ *   `ca` : autorité de certification supplémentaire (relais interne, tests)
  * @param {{ from: string, to: string, subject: string, text: string, html?: string, replyTo?: string, headers?: Record<string, string> }} message
  */
 export function envoyerSmtp(smtp, message) {
@@ -176,19 +196,25 @@ export function envoyerSmtp(smtp, message) {
   let expediteur;
   /** @type {string} */
   let destinataire;
+  /** @type {string} */
+  let contenu;
   try {
     expediteur = adresseEnveloppe(message.from, 'expéditeur', true);
     destinataire = adresseEnveloppe(message.to, 'destinataire', false);
+    // Le contact reste en texte 8bit inchangé ; les e-mails de séquence (html, en-têtes) passent en multipart.
+    contenu = message.html !== undefined || message.headers ? construireMessage(message) : composerCourriel(message);
   } catch (erreur) {
-    return Promise.reject(erreur);
+    return Promise.reject(Object.assign(erreur instanceof Error ? erreur : new Error('Message invalide.'), { definitif: true }));
   }
   const timeoutMs = smtp.timeoutMs ?? 10_000;
-  // Le contact reste en texte 8bit inchangé ; les e-mails de séquence (html, en-têtes) passent en multipart.
-  const contenu = message.html !== undefined || message.headers ? construireMessage(message) : composerCourriel(message);
   return new Promise((resolve, reject) => {
+    /** Vrai dès que le corps est accepté : plus rien ne peut faire échouer cet envoi. */
+    let accepte = false;
     const echec = (/** @type {Error} */ erreur) => {
+      clearTimeout(delai);
+      courant.destroy();
       socket.destroy();
-      reject(erreur);
+      if (!accepte) reject(erreur);
     };
     const socket = net.connect(smtp.port, smtp.host);
     const delai = setTimeout(() => echec(new Error('Délai SMTP dépassé.')), timeoutMs);
@@ -234,7 +260,7 @@ export function envoyerSmtp(smtp, message) {
       if (etape === 'starttls' && code === 220) {
         const clair = courant;
         etape = 'ehlo2';
-        courant = tls.connect({ socket: clair, servername: smtp.host });
+        courant = tls.connect({ socket: clair, servername: smtp.host, ...(smtp.ca ? { ca: smtp.ca } : {}) });
         courant.on('data', (morceau) => lire(morceau.toString('utf8')));
         courant.on('error', (erreur) => echec(erreur));
         courant.once('secure', () => envoyer('EHLO olympiade-manade'));
@@ -269,16 +295,24 @@ export function envoyerSmtp(smtp, message) {
         return envoyer(`${contenu}\r\n.`);
       }
       if (etape === 'corps' && code === 250) {
+        // Accepté : l'envoi est réussi. QUIT part sans attendre ; la connexion se ferme au plus tard 5 s après.
+        accepte = true;
         etape = 'fin';
-        return envoyer('QUIT');
-      }
-      if (etape === 'fin' && code === 221) {
         clearTimeout(delai);
-        courant.end();
         resolve(undefined);
+        try {
+          courant.end('QUIT\r\n');
+        } catch {
+          // Connexion déjà rompue : sans effet sur un message accepté.
+        }
+        const fermeture = setTimeout(() => { courant.destroy(); socket.destroy(); }, 5_000);
+        fermeture.unref?.();
+        courant.once('close', () => clearTimeout(fermeture));
         return;
       }
-      echec(new Error(`SMTP refusé (${code}) à l'étape ${etape}.`));
+      // Réponse au QUIT (221 ou autre) : ignorée.
+      if (etape === 'fin') return;
+      echec(Object.assign(new Error(`SMTP refusé (${code}) à l'étape ${etape}.`), { codeSmtp: code, etapeSmtp: etape }));
     }
 
     socket.on('data', (morceau) => lire(morceau.toString('utf8')));
@@ -314,7 +348,8 @@ export function courrielDepuisEnvironnement(env, deps = {}) {
       const sujet = `Contact Olympiade — ${contact.prenom}`;
       const text = `Prénom : ${contact.prenom}\nEmail : ${contact.email}\n\n${contact.message}\n`;
       if (mode === 'log') {
-        journal({ level: 'info', message: 'courriel de contact journalisé', to: to || null, subject: sujet, text });
+        // Ni le corps (adresse et message du visiteur) ni l'objet (prénom) : l'adresse de l'organisateur, masquée.
+        journal({ level: 'info', message: 'courriel de contact journalisé', to: to ? masquerEmail(to) : null, longueur: text.length });
         return { mode, envoye: false, echec: false };
       }
       if (!pret || !from || !to) return { mode, envoye: false, echec: true };
@@ -324,13 +359,26 @@ export function courrielDepuisEnvironnement(env, deps = {}) {
   };
 }
 
+/** @param {string | undefined} valeur @returns {'off' | 'log' | 'smtp'} */
+const modeDe = (valeur) => (valeur === 'smtp' ? 'smtp' : valeur === 'log' ? 'log' : 'off');
+
 /**
- * Envoi des e-mails de la séquence (SMTP_* et EMAILS_FROM). Même modes que le contact.
+ * Mode de la séquence : EMAILS_MODE s'il est renseigné (une valeur inconnue vaut off), sinon SMTP_MODE.
+ * @param {NodeJS.ProcessEnv | Record<string, string | undefined>} env
+ */
+export function modeEmails(env) {
+  const propre = texte(env.EMAILS_MODE);
+  return propre ? modeDe(propre) : modeDe(env.SMTP_MODE);
+}
+
+/**
+ * Envoi des e-mails de la séquence (EMAILS_MODE, SMTP_* et EMAILS_FROM). Mêmes modes que le contact. En mode log,
+ * le journal porte l'adresse masquée et l'étape, jamais l'objet ni le corps (prénom, liens signés).
  * @param {NodeJS.ProcessEnv | Record<string, string | undefined>} env
  * @param {{ journal?: (ligne: unknown) => void, envoyer?: typeof envoyerSmtp }} [deps]
  */
 export function emailsDepuisEnvironnement(env, deps = {}) {
-  const mode = env.SMTP_MODE === 'smtp' ? 'smtp' : env.SMTP_MODE === 'log' ? 'log' : 'off';
+  const mode = modeEmails(env);
   const host = texte(env.SMTP_HOST);
   const port = Number(env.SMTP_PORT || 587);
   const user = texte(env.SMTP_USER);
@@ -338,37 +386,46 @@ export function emailsDepuisEnvironnement(env, deps = {}) {
   const from = texte(env.EMAILS_FROM);
   const journal = deps.journal ?? ((ligne) => console.log(JSON.stringify(ligne)));
   const transport = deps.envoyer ?? envoyerSmtp;
-  const pret = mode !== 'smtp' || Boolean(host && Number.isInteger(port) && port > 0 && user && pass && from);
+  /** @type {string[]} */
+  const manques = [];
+  if (mode === 'smtp' && !(host && Number.isInteger(port) && port > 0 && user && pass)) manques.push('smtp_incomplet');
+  if (mode === 'smtp' && !from) manques.push('expediteur');
+  const pret = manques.length === 0;
 
   return {
     mode,
     pret,
+    manques,
     /**
-     * @param {{ to: string, subject: string, text: string, html?: string, headers?: Record<string, string> }} email
-     * @returns {Promise<{ mode: 'off' | 'log' | 'smtp', envoye: boolean, echec: boolean }>}
+     * @param {{ to: string, subject: string, text: string, html?: string, headers?: Record<string, string>, etape?: string }} email
+     * @returns {Promise<{ mode: 'off' | 'log' | 'smtp', envoye: boolean, echec: boolean, definitif: boolean }>}
      */
     async envoyer(email) {
-      if (mode === 'off') return { mode, envoye: false, echec: false };
+      if (mode === 'off') return { mode, envoye: false, echec: false, definitif: false };
       if (mode === 'log') {
-        journal({ level: 'info', message: 'email journalisé', to: masquerEmail(email.to), subject: email.subject });
-        return { mode, envoye: false, echec: false };
+        journal({ level: 'info', message: 'email journalisé', to: masquerEmail(email.to), etape: email.etape ?? null });
+        return { mode, envoye: false, echec: false, definitif: false };
       }
       if (!pret) {
         journal({ level: 'error', message: 'smtp non configuré' });
-        return { mode, envoye: false, echec: true };
+        return { mode, envoye: false, echec: true, definitif: false };
       }
       if (typeof email.to !== 'string' || !DESTINATAIRE_VALIDE.test(email.to)) {
         journal({ level: 'error', message: 'destinataire invalide', to: masquerEmail(String(email.to).split(/[\r\n]/)[0]) });
-        return { mode, envoye: false, echec: true };
+        return { mode, envoye: false, echec: true, definitif: true };
       }
       try {
         await transport({ host, port, user, pass }, {
           from, to: email.to, subject: email.subject, text: email.text, html: email.html, headers: email.headers ?? {},
         });
-        return { mode, envoye: true, echec: false };
+        return { mode, envoye: true, echec: false, definitif: false };
       } catch (erreur) {
-        journal({ level: 'error', message: 'échec d’envoi email', to: masquerEmail(email.to), erreur: erreur instanceof Error ? erreur.message : 'inconnue' });
-        return { mode, envoye: false, echec: true };
+        const definitif = echecDefinitif(erreur);
+        journal({
+          level: 'error', message: 'échec d’envoi email', to: masquerEmail(email.to), etape: email.etape ?? null, definitif,
+          erreur: erreur instanceof Error ? erreur.message : 'inconnue',
+        });
+        return { mode, envoye: false, echec: true, definitif };
       }
     },
   };

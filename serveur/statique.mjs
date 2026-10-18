@@ -50,7 +50,8 @@ try {
     supervision: supervisionDepuisEnvironnement(process.env),
     planningNotation: planningNotationDepuisEnvironnement(process.env),
     contact: contactDepuisEnvironnement(process.env),
-    actualites: actualitesDepuisEnvironnement(process.env, { confirmationActive: emails.confirmationActive }),
+    // Relu à chaque dépôt : l'état du planificateur évolue (identité de l'organisateur renseignée, par exemple).
+    actualites: actualitesDepuisEnvironnement(process.env, { confirmationActive: () => emails.confirmationActive }),
     emails,
     consentementCookies: consentementCookiesDepuisEnvironnement(process.env),
     gtm: !!process.env.VITE_GTM_ID?.trim(),
@@ -88,13 +89,13 @@ serveur.listen(port, () => {
   );
 });
 
-// Arrêt propre au redéploiement (Railway envoie SIGTERM).
+// Arrêt propre au redéploiement (Railway envoie SIGTERM). Le planificateur d'e-mails finit le groupe en cours,
+// rend les lignes réclamées restantes et ne réclame plus rien ; la sortie attend au plus 5 s.
 for (const signal of /** @type {const} */ (['SIGTERM', 'SIGINT'])) {
   process.on(signal, () => {
     fileNotes?.arreter();
     instantane?.arreter();
-    emails.arreter();
-    serveur.close(() => process.exit(0));
     setTimeout(() => process.exit(0), 5000).unref();
+    void emails.arreter().finally(() => serveur.close(() => process.exit(0)));
   });
 }

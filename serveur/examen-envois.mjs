@@ -1,9 +1,17 @@
 // @ts-check
-// Examen d'un groupe de lignes d'envoi réclamées, juste avant l'envoi (fonctions sans entrée-sortie).
-// Tout est relu ici : un état changé depuis la réservation l'emporte (désinscription, consentement, date
-// annulée, soirée suspendue, modèle désactivé, fenêtre dépassée).
+// Examen d'un groupe de lignes d'envoi réclamées, juste avant l'envoi (fonctions sans entrée-sortie). Le
+// planificateur relit, juste avant l'appel, le destinataire, les dates du lot et les modèles : un état changé
+// depuis la réservation l'emporte (désinscription, consentement, date annulée, déplacée ou supprimée, soirée
+// suspendue, modèle désactivé ou réglé autrement, fenêtre dépassée).
 
-import { dateDeBienvenue } from './echeances-emails.mjs';
+import {
+  ETAPES_DE_DATE,
+  FENETRE_ENVOI_MS,
+  comparerDates,
+  dateDeBienvenue,
+  echeance,
+  soireeSuspendue,
+} from './echeances-emails.mjs';
 import { HEURE_MS, MINUTE_MS, heureParis } from './emails-rest.mjs';
 import { liensPour } from './liens-emails.mjs';
 
@@ -16,14 +24,16 @@ import { liensPour } from './liens-emails.mjs';
 /** @typedef {import('./echeances-emails.mjs').EmailsATraiter} EmailsATraiter */
 /** @typedef {import('./echeances-emails.mjs').ModeleRpc} ModeleRpc */
 
-/** Une étape due part dans les 12 h qui suivent son échéance (même règle que calculerEnvois). */
-const FENETRE_ENVOI_MS = 12 * HEURE_MS;
 /** Le message n° 8 ne part plus 24 h après sa création : l'information serait périmée. */
 const FENETRE_MESSAGE_MS = 24 * HEURE_MS;
-export const DELAI_NOUVEL_ESSAI_MS = 5 * MINUTE_MS;
+/** Délai avant chaque nouvel essai après un échec réessayable : 5, 30 puis 120 min (4 essais au plus). */
+export const DELAIS_NOUVEL_ESSAI_MS = Object.freeze([5 * MINUTE_MS, 30 * MINUTE_MS, 120 * MINUTE_MS]);
+export const TENTATIVES_MAX = DELAIS_NOUVEL_ESSAI_MS.length + 1;
 
-/** Étapes 2 à 5 : relues au moment de l'envoi (date annulée ou soirée suspendue entre-temps). */
-const ETAPES_DE_DATE = new Set(['j_moins_7', 'veille', 'jour_j', 'lendemain']);
+/** Étapes 2 à 5 (rappels d'une date suivie) : leur date est relue au moment de l'envoi. */
+const ETAPES_RAPPEL = new Set(['j_moins_7', 'veille', 'jour_j', 'lendemain']);
+/** Étapes calées sur une date : l'échéance est recalculée au moment de l'envoi (date ou réglage changé). */
+const ETAPES_CALEES = new Set(/** @type {readonly string[]} */ (ETAPES_DE_DATE));
 
 /**
  * @typedef {{
@@ -33,26 +43,19 @@ const ETAPES_DE_DATE = new Set(['j_moins_7', 'veille', 'jour_j', 'lendemain']);
  *   messages: Map<string, { id: string, sujet: string, corps: string }>,
  *   origine: string,
  *   cleLiens: string,
+ *   organisateur: string | null,
  * }} ContexteEnvoi
  */
 
 /**
+ * `liberees` : lignes réservées pour une échéance qui n'est plus la bonne (date déplacée, réglage changé), à
+ * supprimer sans envoi pour que la nouvelle échéance se réserve au calcul suivant (l'unicité l'en empêcherait).
  * @typedef {{
  *   sautes: { ids: string[], raison: string }[],
+ *   liberees: string[],
  *   envoi: { lignes: LigneEnvoi[], modele: ModeleEmail, contexte: ContexteEmail, entetes: Record<string, string> } | null,
  * }} Examen
  */
-
-/** Tri des dates : date_soiree, heure (nulle en dernier), id. @param {DateEnrichie} a @param {DateEnrichie} b */
-function comparerDates(a, b) {
-  const cle = (/** @type {DateEnrichie} */ d) => `${d.date_soiree} ${d.heure ?? '~'} ${d.id}`;
-  return cle(a) < cle(b) ? -1 : cle(a) > cle(b) ? 1 : 0;
-}
-
-/** @param {DateEnrichie | undefined} date */
-function soireeSuspendue(date) {
-  return date?.soiree?.statut === 'annulee' || date?.soiree?.statut === 'reportee';
-}
 
 /**
  * Raison de ne pas envoyer une étape de date (2 à 5), relue au moment de l'envoi.
@@ -66,12 +69,17 @@ function raisonDate(date) {
   return null;
 }
 
-/** Une ligne peut être réclamée : jamais réclamée, ou en attente d'un nouvel essai dont le délai est passé. @param {LigneEnvoi} ligne @param {number} instant */
+/**
+ * Une ligne peut être réclamée : jamais réclamée (ou rendue après une relecture impossible), ou en attente d'un
+ * nouvel essai dont le délai est passé (5, 30 puis 120 min après l'essai précédent).
+ * @param {LigneEnvoi} ligne @param {number} instant
+ */
 export function eligible(ligne, instant) {
   if (ligne.raison === null) return true;
   if (ligne.raison !== 'envoi_impossible') return false;
+  const delai = DELAIS_NOUVEL_ESSAI_MS[Math.max(0, Math.min(ligne.tentatives, DELAIS_NOUVEL_ESSAI_MS.length) - 1)];
   const derniere = Date.parse(ligne.envoye_le ?? '');
-  return Number.isNaN(derniere) || derniere + DELAI_NOUVEL_ESSAI_MS * ligne.tentatives <= instant;
+  return Number.isNaN(derniere) || derniere + delai <= instant;
 }
 
 /** @param {LigneEnvoi[]} lignes @returns {LigneEnvoi[][]} */
@@ -89,8 +97,8 @@ export function grouper(lignes) {
 }
 
 /**
- * Ce qu'il faut faire d'un groupe de lignes réclamées : lignes sautées (avec leur raison) et, peut-être,
- * un e-mail à rendre et envoyer.
+ * Ce qu'il faut faire d'un groupe de lignes réclamées : lignes sautées (avec leur raison), lignes à libérer et,
+ * peut-être, un e-mail à rendre et envoyer.
  * @param {LigneEnvoi[]} groupe
  * @param {DestinataireEnvoi | null} d destinataire relu après la réclamation
  * @param {ContexteEnvoi} ctx
@@ -100,7 +108,8 @@ export function grouper(lignes) {
 export function examiner(groupe, d, ctx, instant) {
   const premiere = groupe[0];
   const etape = premiere.etape;
-  const tout = (/** @type {string} */ raison) => ({ sautes: [{ ids: groupe.map((l) => l.id), raison }], envoi: null });
+  /** @returns {Examen} */
+  const tout = (/** @type {string} */ raison) => ({ sautes: [{ ids: groupe.map((l) => l.id), raison }], liberees: [], envoi: null });
   if (!d) return tout('destinataire_absent');
   if (etape !== 'confirmation' && d.desinscrit_le !== null) return tout('desinscrit');
   if (etape === 'confirmation' && !d.abonnement_a_confirmer) return tout('deja_confirme');
@@ -134,7 +143,7 @@ export function examiner(groupe, d, ctx, instant) {
   let annoncees = [];
   let encartDateProche = false;
 
-  if (ETAPES_DE_DATE.has(etape)) {
+  if (ETAPES_RAPPEL.has(etape)) {
     const relue = premiere.calendrier_id ? ctx.dates.get(premiere.calendrier_id) : undefined;
     const raison = raisonDate(relue);
     if (raison) return tout(raison);
@@ -152,23 +161,36 @@ export function examiner(groupe, d, ctx, instant) {
         if (raison) sautes.push({ ids: [ligne.id], raison });
         else valides.push({ ligne, date: /** @type {DateEnrichie} */ (relue) });
       }
-      if (!valides.length) return { sautes, envoi: null };
+      if (!valides.length) return { sautes, liberees: [], envoi: null };
       valides.sort((a, b) => comparerDates(a.date, b.date));
       lignes = valides.map((v) => v.ligne);
       date = valides[0].date;
       annoncees = valides.map((v) => ({ ...v.date, lienJeViens: jeViensPour(v.date) }));
     }
   } else if (etape === 'bienvenue') {
-    const bienvenue = dateDeBienvenue(ctx.donnees, { id: d.id, confirme_le: d.confirme_le });
+    // Dates relues du lot : une date annulée, ou dont la soirée est suspendue, depuis le calcul n'est pas citée.
+    const bienvenue = dateDeBienvenue(
+      { dates: [...ctx.dates.values()], rattachements: ctx.donnees.rattachements },
+      { id: d.id, confirme_le: d.confirme_le },
+    );
     date = bienvenue.date;
     encartDateProche = bienvenue.encartDateProche;
   } else if (etape === 'message') {
     date = (premiere.calendrier_id && ctx.dates.get(premiere.calendrier_id)) || null;
   }
 
-  // {{prochaines_dates}} annonce d'autres dates : seulement avec le consentement aux annonces, ou dans un
-  // message de l'organisateur aux inscrits d'une date (report, annulation). Sinon la ligne disparaît.
-  const listeAutorisee = etape === 'message' || (etape !== 'confirmation' && d.annonces === true);
+  // Date déplacée, ou réglage du modèle changé, depuis la réservation (QA B1) : l'échéance recalculée n'est plus
+  // celle de la ligne. Rien ne part ; la ligne est libérée pour que la nouvelle échéance se réserve.
+  if (ETAPES_CALEES.has(etape) && date && enregistre) {
+    const attendue = echeance(enregistre, date);
+    if (attendue && attendue.getTime() !== Date.parse(premiere.prevu_le)) {
+      return { sautes: [], liberees: groupe.map((l) => l.id), envoi: null };
+    }
+  }
+
+  // {{prochaines_dates}} annonce d'autres dates : seulement avec le consentement aux annonces (revue juridique
+  // B3), jamais dans une confirmation. Sinon la ligne disparaît.
+  const listeAutorisee = etape !== 'confirmation' && d.annonces === true;
   const prochaines = !listeAutorisee ? [] : ctx.donnees.prochaines
     .filter((p) => p.id !== date?.id)
     .slice(0, 3)
@@ -177,6 +199,7 @@ export function examiner(groupe, d, ctx, instant) {
 
   return {
     sautes,
+    liberees: [],
     envoi: {
       lignes,
       modele,
@@ -184,13 +207,16 @@ export function examiner(groupe, d, ctx, instant) {
         prenom: d.prenom,
         maintenant: new Date(instant),
         origine: ctx.origine,
+        etape,
+        annonces: d.annonces === true,
+        organisateur: ctx.organisateur,
         date,
         prochaines,
         annoncees,
         encartDateProche,
         liens: {
           desinscription: liens.desinscription,
-          confirmation: etape === 'confirmation' ? liens.confirmation : null,
+          confirmation: etape === 'confirmation' ? liens.confirmation(premiere.id) : null,
           jeViens: etape === 'annonce' && date ? jeViensPour(date) : null,
         },
       },

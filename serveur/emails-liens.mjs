@@ -2,13 +2,18 @@
 // Liens publics signés des e-mails :
 // - POST /api/emails/lien            pages publiques (decrire, confirmer, desinscrire, arreter_annonces, je_viens)
 // - POST /api/emails/desinscription  désinscription en un clic des messageries (RFC 8058)
+// - GET  /api/emails/desinscription  303 vers la page de désinscription (jeton en fragment), sans écriture
 // Aucun GET ne change d'état (les messageries et antivirus ouvrent les liens). Limites : par IP pour les
-// seuls refus (lien invalide, expiré ou malformé), par destinataire pour un jeton valable.
+// seuls refus (lien invalide, expiré ou malformé), par destinataire pour un jeton valable. Aucune adresse
+// dans une URL PostgREST : le retrait de l'abonnement passe par une RPC, en POST, avec l'identifiant.
 
 import { ipClientActualites } from './actualites.mjs';
 import { UUID, enc, iso, lireCorps, objet } from './emails-rest.mjs';
 import { finDeJourParis, verifierLien } from './liens-emails.mjs';
 import { FENETRE_MS, LIMITE_JETON, creerLimiteurFormulaire, lireJson, repondreJson } from './protections-formulaire.mjs';
+
+/** Jeton recopié dans le fragment d'une redirection : la forme d'un jeton signé, rien d'autre. */
+const FORME_JETON_REDIRIGE = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 
 /** @typedef {import('./emails-rest.mjs').ContexteEmails} ContexteEmails */
 /** @typedef {import('./emails-rest.mjs').AccesSupabase} AccesSupabase */
@@ -72,6 +77,7 @@ export function creerLiensPublics(ctx, acces) {
       const charge = verifierLien(cleLiens, jeton, instant, type);
       if (charge) {
         if (!UUID.test(charge.d) || (charge.t === 'je_viens' && !UUID.test(String(charge.c)))) return null;
+        if (charge.t === 'confirmation' && !UUID.test(String(charge.n))) return null;
         return charge;
       }
     }
@@ -85,16 +91,31 @@ export function creerLiensPublics(ctx, acces) {
     return { type, abonne: d.abonne === true, annonces: d.annonces === true, desinscrit: d.desinscrit_le !== null };
   }
 
-  /** Date d'un lien « Je viens », encore confirmée et à la même date qu'à la signature. @param {ChargeLien} charge */
+  /**
+   * Date d'un lien « Je viens », encore confirmée, à la même date qu'à la signature, et dont la soirée liée n'est
+   * ni annulée ni reportée (sécurité M8). @param {ChargeLien} charge
+   */
   async function dateJeViens(charge) {
-    const lignes = await rest(`/rest/v1/calendrier?select=id,nom,ville,date_soiree,statut&id=eq.${enc(String(charge.c))}&limit=1`);
+    const lignes = await rest(`/rest/v1/calendrier?select=id,nom,ville,date_soiree,statut,soirees(statut)&id=eq.${enc(String(charge.c))}&limit=1`);
     const date = Array.isArray(lignes) ? lignes[0] : null;
     if (!date || date.statut !== 'confirmee') return null;
+    const soiree = objet(date.soirees) ? date.soirees.statut : null;
+    if (soiree === 'annulee' || soiree === 'reportee') return null;
     try {
       return finDeJourParis(date.date_soiree) === charge.e ? date : null;
     } catch {
       return null;
     }
+  }
+
+  /**
+   * La demande de confirmation de ce lien existe encore (sécurité M1) : une nouvelle demande, un renvoi ou la
+   * purge la suppriment, et l'ancien lien meurt avec elle. @param {ChargeLien} charge
+   */
+  async function demandeEnCours(charge) {
+    const lignes = await rest(`/rest/v1/envois_emails?select=id&id=eq.${enc(String(charge.n))}`
+      + `&destinataire_id=eq.${enc(charge.d)}&etape=eq.confirmation&limit=1`);
+    return Array.isArray(lignes) && lignes.length === 1;
   }
 
   /** @param {ChargeLien} charge @returns {Promise<{ statut: number } | { etat: unknown }>} */
@@ -104,25 +125,39 @@ export function creerLiensPublics(ctx, acces) {
       // Plus aucune ligne : plus aucun e-mail.
       return { etat: d ? etatDe('desinscription', d) : { type: 'desinscription', abonne: false, annonces: false, desinscrit: true } };
     }
-    if (charge.t === 'confirmation') return d ? { etat: etatDe('confirmation', d) } : { statut: 410 };
+    if (charge.t === 'confirmation') {
+      // Une adresse déjà confirmée garde son lien (succès neutre) ; une demande remplacée ou purgée, non.
+      if (!d) return { statut: 410 };
+      if (d.abonnement_a_confirmer && !(await demandeEnCours(charge))) return { statut: 410 };
+      return { etat: etatDe('confirmation', d) };
+    }
     const date = await dateJeViens(charge);
     if (!d || !date || d.desinscrit_le !== null || d.confirme_le === null) return { statut: 410 };
     return { etat: { ...etatDe('je_viens', d), date: { nom: date.nom, ville: date.ville, date: date.date_soiree } } };
   }
 
-  /** Clic de confirmation : un seul PATCH, le déclencheur de la base applique tous les effets. @param {string} id @param {number} instant */
-  async function confirmer(id, instant) {
+  /**
+   * Clic de confirmation : la demande du lien doit exister encore (sinon 410), puis un seul PATCH, le
+   * déclencheur de la base applique tous les effets.
+   * @param {ChargeLien} charge @param {number} instant @returns {Promise<{ statut: number } | { etat: unknown }>}
+   */
+  async function confirmer(charge, instant) {
+    const d = await lireDestinataire(charge.d);
+    if (!d) return { statut: 410 };
+    if (!d.abonnement_a_confirmer) return { etat: 'deja_fait' };
+    if (!(await demandeEnCours(charge))) return { statut: 410 };
+    const id = charge.d;
     const lignes = await rest(`/rest/v1/destinataires_emails?id=eq.${enc(id)}&abonnement_a_confirmer=is.true&select=id,abonnement_a_confirmer`, {
       methode: 'PATCH',
       corps: { abonnement_confirme_le: iso(instant) },
       prefer: 'return=representation',
     });
-    return Array.isArray(lignes) && lignes.some((ligne) => ligne.abonnement_a_confirmer === false) ? 'fait' : 'deja_fait';
+    return { etat: Array.isArray(lignes) && lignes.some((ligne) => ligne.abonnement_a_confirmer === false) ? 'fait' : 'deja_fait' };
   }
 
   /**
-   * « Tout arrêter » : d'abord desinscrit_le et annonces (la ligne devient liste d'opposition), PUIS la
-   * suppression de l'abonnement. Dans l'ordre inverse, le déclencheur de retrait effacerait la ligne.
+   * « Tout arrêter » : d'abord desinscrit_le et annonces (la ligne devient liste d'opposition), PUIS le retrait
+   * de l'abonnement (RPC, par identifiant). Dans l'ordre inverse, le déclencheur de retrait effacerait la ligne.
    * @param {string} id @param {number} instant
    */
   async function desinscrire(id, instant) {
@@ -136,7 +171,7 @@ export function creerLiensPublics(ctx, acces) {
         prefer: 'return=minimal',
       });
     }
-    if (d.abonne) await rest(`/rest/v1/abonnements_actualites?email=eq.${enc(d.email)}`, { methode: 'DELETE', prefer: 'return=minimal' });
+    if (d.abonne) await rest('/rest/v1/rpc/retirer_abonnement_destinataire', { methode: 'POST', corps: { p_destinataire: d.id } });
     return deja && !d.abonne ? 'deja_fait' : 'fait';
   }
 
@@ -209,7 +244,7 @@ export function creerLiensPublics(ctx, acces) {
     /** @type {{ statut: number } | { etat: unknown }} */
     let resultat;
     if (demande.action === 'decrire') resultat = await decrire(charge);
-    else if (demande.action === 'confirmer') resultat = { etat: await confirmer(charge.d, instant) };
+    else if (demande.action === 'confirmer') resultat = await confirmer(charge, instant);
     else if (demande.action === 'desinscrire') resultat = { etat: await desinscrire(charge.d, instant) };
     else if (demande.action === 'arreter_annonces') resultat = { etat: await arreterAnnonces(charge.d) };
     else resultat = await jeViens(charge);
@@ -223,7 +258,23 @@ export function creerLiensPublics(ctx, acces) {
    * @param {Requete} req @param {Reponse} res
    */
   async function repondreUnClic(req, res) {
-    if (req.method !== 'POST') return repondreJson(req, res, 405, { error: 'Méthode non autorisée.' }, { Allow: 'POST' });
+    // Lien ouvert dans un navigateur (ou par un antivirus) : la page de désinscription, jeton en fragment, et
+    // aucune écriture (sécurité M2).
+    if (req.method === 'GET' || req.method === 'HEAD') {
+      req.resume();
+      const jeton = new URL(req.url ?? '/', 'http://serveur').searchParams.get('j') ?? '';
+      const fragment = jeton.length <= LIMITE_JETON && FORME_JETON_REDIRIGE.test(jeton) ? `#j=${jeton}` : '';
+      res.writeHead(303, {
+        Location: `/emails/desinscription${fragment}`,
+        'Cache-Control': 'no-store',
+        'Referrer-Policy': 'no-referrer',
+        'X-Content-Type-Options': 'nosniff',
+        'Content-Length': '0',
+        ...(req.headers['x-forwarded-proto'] === 'https' ? { 'Strict-Transport-Security': 'max-age=31536000' } : {}),
+      });
+      return res.end();
+    }
+    if (req.method !== 'POST') return repondreJson(req, res, 405, { error: 'Méthode non autorisée.' }, { Allow: 'GET, POST' });
     if (!configure) return repondreJson(req, res, 503, { error: 'Service momentanément indisponible.' });
     const ip = ipClientActualites(req, trustRailwayProxy);
     const jeton = new URL(req.url ?? '/', 'http://serveur').searchParams.get('j') ?? '';

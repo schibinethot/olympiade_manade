@@ -2,13 +2,16 @@
 // Endpoints admin AAL2 de la séquence d'e-mails :
 // - POST /api/admin/emails/test     rend un brouillon et l'envoie à l'adresse de l'admin (10 par heure)
 // - POST /api/admin/emails/message  message n° 8 aux rattachés confirmés et non désinscrits d'une date
-// - GET  /api/admin/emails/etat     mode, planificateur, clé des liens, barrière, dernier passage
+// - GET  /api/admin/emails/etat     mode, prêt, raisons d'inactivité, clé des liens, barrière, dernier passage,
+//                                   dernier bilan, dernière erreur
+// Toute requête passe d'abord par une limite par IP (60 par 10 min), avant tout appel à Supabase.
 
 import { createHash } from 'node:crypto';
+import { ipClientActualites } from './actualites.mjs';
 import { verifierAdmin } from './admin-serveur.mjs';
 import { HEURE_MS, MINUTE_MS, UUID, enc, iso, lireCorps, objet } from './emails-rest.mjs';
 import { ETAPES, MODELES_DEFAUT, rendreEmail } from './gabarits-emails.mjs';
-import { repondreJson, rogner } from './protections-formulaire.mjs';
+import { FENETRE_MS, creerLimiteurFormulaire, repondreJson, rogner } from './protections-formulaire.mjs';
 
 /** @typedef {import('./emails-rest.mjs').ContexteEmails} ContexteEmails */
 /** @typedef {import('./emails-rest.mjs').AccesSupabase} AccesSupabase */
@@ -24,6 +27,8 @@ export const CHEMIN_MESSAGE = '/api/admin/emails/message';
 export const CHEMIN_ETAT = '/api/admin/emails/etat';
 
 const TESTS_PAR_HEURE = 10;
+/** Requêtes admin par IP et par 10 minutes, avant la vérification du jeton (sécurité M4). */
+const REQUETES_ADMIN_PAR_IP = 60;
 const DOUBLON_MESSAGE_MS = 10 * MINUTE_MS;
 const PAGE_RATTACHES = 1_000;
 const LIMITE_CORPS_ADMIN = 65_536;
@@ -60,15 +65,23 @@ function validerTest(brut) {
   };
 }
 
-/** @param {unknown} brut @returns {{ calendrierId: string, sujet: string, corps: string } | null} */
+/**
+ * `cle` (facultative) : clé d'idempotence générée par l'admin à l'ouverture du formulaire (sécurité M3).
+ * @param {unknown} brut @returns {{ calendrierId: string, sujet: string, corps: string, cle: string | null } | null}
+ */
 function validerMessage(brut) {
   if (!objet(brut)) return null;
   const cles = Object.keys(brut);
-  if (cles.length !== 3 || !['calendrierId', 'sujet', 'corps'].every((cle) => cles.includes(cle))) return null;
-  const { calendrierId, sujet, corps } = brut;
+  const requises = ['calendrierId', 'sujet', 'corps'];
+  if (!requises.every((cle) => cles.includes(cle)) || cles.some((cle) => ![...requises, 'cle'].includes(cle))) return null;
+  const { calendrierId, sujet, corps, cle } = brut;
   if (typeof calendrierId !== 'string' || !UUID.test(calendrierId)) return null;
   if (!texteRequis(sujet, 200) || !texteRequis(corps, 8000)) return null;
-  return { calendrierId, sujet: rogner(/** @type {string} */ (sujet)), corps: rogner(/** @type {string} */ (corps)) };
+  if (cle !== undefined && (typeof cle !== 'string' || !UUID.test(cle))) return null;
+  return {
+    calendrierId, sujet: rogner(/** @type {string} */ (sujet)), corps: rogner(/** @type {string} */ (corps)),
+    cle: typeof cle === 'string' ? cle.toLowerCase() : null,
+  };
 }
 
 /**
@@ -77,8 +90,9 @@ function validerMessage(brut) {
  * @param {() => Record<string, unknown>} etat état du planificateur, pour /etat
  */
 export function creerAdminEmails(ctx, acces, etat) {
-  const { supabaseUrl, publishableKey, demander, serveurPret, origine, maintenant, poste, mode, actif, reel } = ctx;
-  const { rest, lireDates, lireProchaines, insererEnvois } = acces;
+  const { supabaseUrl, publishableKey, demander, serveurPret, origine, maintenant, poste, mode, actif, reel, trustRailwayProxy } = ctx;
+  const { rest, lireDates, lireProchaines, insererEnvois, lireOrganisateur } = acces;
+  const limiteurIp = creerLimiteurFormulaire({ maintenant, parIp: REQUETES_ADMIN_PAR_IP, global: 1_000_000 });
   /** @type {Map<string, { debut: number, n: number }>} */
   const testsParAdmin = new Map();
   /** @type {Map<string, { cree: number, promesse: Promise<{ messageId: string, destinataires: number }> }>} */
@@ -127,28 +141,39 @@ export function creerAdminEmails(ctx, acces, etat) {
     // Liens d'exemple, sans jeton : un e-mail de test ne doit donner aucun pouvoir sur une vraie adresse.
     const base = origine.replace(/\/+$/, '');
     const exempleJeViens = `${base}/emails/je-viens`;
-    const prochaines = (await lireProchaines(instant))
+    // Même règle que l'envoi réel (examen-envois.mjs), pour une personne qui a accepté les annonces : la liste
+    // des prochaines dates hors confirmation, « Je viens » et {{dates_annoncees}} dans l'annonce seulement.
+    const prochaines = demande.cle === 'confirmation' ? [] : (await lireProchaines(instant))
       .filter((p) => p.id !== date?.id)
       .map((p) => ({ ...p, lienJeViens: exempleJeViens }));
+    const annonce = demande.cle === 'annonce';
+    /** @type {string | null} */
+    let organisateur = null;
+    try { organisateur = await lireOrganisateur(); } catch { /* le test part sans la ligne d'identité */ }
     /** @type {ContexteEmail} */
     const contexte = {
       prenom: PRENOM_EXEMPLE,
       maintenant: new Date(instant),
       origine,
+      etape: demande.cle,
+      annonces: true,
+      organisateur,
       date,
       prochaines,
-      annoncees: date ? [{ ...date, lienJeViens: exempleJeViens }] : [],
+      annoncees: annonce && date ? [{ ...date, lienJeViens: exempleJeViens }] : [],
       encartDateProche: demande.cle === 'bienvenue' && date !== null,
       liens: {
         desinscription: `${base}/emails/desinscription`,
         confirmation: demande.cle === 'confirmation' ? `${base}/emails/confirmation` : null,
-        jeViens: date ? exempleJeViens : null,
+        jeViens: annonce && date ? exempleJeViens : null,
       },
     };
     let rendu;
     try { rendu = rendreEmail(demande.brouillon, contexte, { cible: 'email' }); }
     catch { return repondreJson(req, res, 400, { error: 'brouillon_invalide' }); }
-    const resultat = await poste.envoyer({ to: admin.email, subject: `[Test] ${rendu.sujet}`, text: rendu.texte, html: rendu.html });
+    const resultat = await poste.envoyer({
+      to: admin.email, subject: `[Test] ${rendu.sujet}`, text: rendu.texte, html: rendu.html, etape: `test:${demande.cle}`,
+    });
     if (resultat.echec) return repondreJson(req, res, 502, { error: 'envoi_impossible' });
     return repondreJson(req, res, 200, { ok: true, mode });
   }
@@ -169,6 +194,23 @@ export function creerAdminEmails(ctx, acces, etat) {
     return [...new Set(ids)];
   }
 
+  /**
+   * Message déjà enregistré sous cette clé d'idempotence. @param {string} cle
+   * @returns {Promise<{ id: string, destinataires: number, calendrier_id: string | null, sujet: string, corps: string } | null>}
+   */
+  async function messageDeCle(cle) {
+    const lignes = await rest(`/rest/v1/messages_inscrits?select=id,destinataires,calendrier_id,sujet,corps&cle=eq.${enc(cle)}&limit=1`);
+    return Array.isArray(lignes) && lignes[0] ? lignes[0] : null;
+  }
+
+  /**
+   * Une clé ne sert qu'à un message : même date, même objet, même texte. @param {{ calendrier_id?: string | null, sujet?: string, corps?: string }} existant
+   * @param {{ calendrierId: string, sujet: string, corps: string }} demande
+   */
+  function memeMessage(existant, demande) {
+    return existant.calendrier_id === demande.calendrierId && existant.sujet === demande.sujet && existant.corps === demande.corps;
+  }
+
   /** @param {Requete} req @param {Reponse} res @param {{ id: string }} admin */
   async function envoyerMessage(req, res, admin) {
     if (!actif) return repondreJson(req, res, 503, { error: 'planificateur_inactif' });
@@ -185,29 +227,57 @@ export function creerAdminEmails(ctx, acces, etat) {
     const instant = maintenant();
     for (const [cle, entree] of messagesRecents) if (instant - entree.cree >= DOUBLON_MESSAGE_MS) messagesRecents.delete(cle);
     const destinataires = await rattachesDe(demande.calendrierId);
-    // Un double clic (ou une nouvelle tentative après une panne) réutilise le même message : les envois
-    // déjà réservés ne sont pas dupliqués, ceux qui manquaient sont ajoutés.
-    const cle = createHash('sha256').update([admin.id, demande.calendrierId, demande.sujet, demande.corps].join('\n')).digest('hex');
-    let entree = messagesRecents.get(cle);
-    if (!entree) {
-      if (destinataires.length === 0) return repondreJson(req, res, 200, { ok: true, destinataires: 0 });
-      const promesse = rest('/rest/v1/messages_inscrits?select=id', {
-        methode: 'POST',
-        corps: {
-          calendrier_id: demande.calendrierId, sujet: demande.sujet, corps: demande.corps, cree_par: admin.id,
-          destinataires: destinataires.length,
-        },
-        prefer: 'return=representation',
-      }).then((lignes) => {
-        const id = Array.isArray(lignes) ? lignes[0]?.id : null;
-        if (typeof id !== 'string') throw new Error('message non enregistré');
-        return { messageId: id, destinataires: destinataires.length };
-      });
-      entree = { cree: instant, promesse };
-      messagesRecents.set(cle, entree);
-      promesse.catch(() => messagesRecents.delete(cle));
+
+    /** @type {{ messageId: string, destinataires: number }} */
+    let message;
+    if (demande.cle) {
+      // Clé d'idempotence (sécurité M3), unique en base : un nouvel essai, depuis n'importe quelle réplique,
+      // renvoie le résultat du premier et complète les envois qui manquaient.
+      const existant = await messageDeCle(demande.cle);
+      if (existant && !memeMessage(existant, demande)) return repondreJson(req, res, 409, { error: 'cle_deja_utilisee' });
+      if (existant) message = { messageId: existant.id, destinataires: existant.destinataires };
+      else {
+        if (destinataires.length === 0) return repondreJson(req, res, 200, { ok: true, destinataires: 0 });
+        const lignes = await rest('/rest/v1/messages_inscrits?on_conflict=cle&select=id,destinataires', {
+          methode: 'POST',
+          corps: {
+            calendrier_id: demande.calendrierId, sujet: demande.sujet, corps: demande.corps, cree_par: admin.id,
+            destinataires: destinataires.length, cle: demande.cle,
+          },
+          prefer: 'resolution=ignore-duplicates,return=representation',
+        });
+        const cree = Array.isArray(lignes) ? lignes[0] : null;
+        // Deux essais simultanés : celui qui n'a rien inséré relit le message de l'autre.
+        const retenu = cree ?? await messageDeCle(demande.cle);
+        if (!retenu || typeof retenu.id !== 'string') throw new Error('message non enregistré');
+        if (!cree && !memeMessage(retenu, demande)) return repondreJson(req, res, 409, { error: 'cle_deja_utilisee' });
+        message = { messageId: retenu.id, destinataires: Number(retenu.destinataires) };
+      }
+    } else {
+      // Sans clé : un double clic (ou une nouvelle tentative après une panne) réutilise le même message, en
+      // mémoire de cette réplique, pendant 10 minutes.
+      const cle = createHash('sha256').update([admin.id, demande.calendrierId, demande.sujet, demande.corps].join('\n')).digest('hex');
+      let entree = messagesRecents.get(cle);
+      if (!entree) {
+        if (destinataires.length === 0) return repondreJson(req, res, 200, { ok: true, destinataires: 0 });
+        const promesse = rest('/rest/v1/messages_inscrits?select=id', {
+          methode: 'POST',
+          corps: {
+            calendrier_id: demande.calendrierId, sujet: demande.sujet, corps: demande.corps, cree_par: admin.id,
+            destinataires: destinataires.length,
+          },
+          prefer: 'return=representation',
+        }).then((lignes) => {
+          const id = Array.isArray(lignes) ? lignes[0]?.id : null;
+          if (typeof id !== 'string') throw new Error('message non enregistré');
+          return { messageId: id, destinataires: destinataires.length };
+        });
+        entree = { cree: instant, promesse };
+        messagesRecents.set(cle, entree);
+        promesse.catch(() => messagesRecents.delete(cle));
+      }
+      message = await entree.promesse;
     }
-    const message = await entree.promesse;
     await insererEnvois(destinataires.map((id) => ({
       destinataire_id: id, etape: 'message', calendrier_id: demande.calendrierId, message_id: message.messageId, reel,
       statut: 'en_attente', raison: null, prevu_le: iso(instant),
@@ -221,6 +291,11 @@ export function creerAdminEmails(ctx, acces, etat) {
     if (req.method !== methode) {
       req.resume();
       return repondreJson(req, res, 405, { error: 'methode_non_autorisee' }, { Allow: methode });
+    }
+    // Limite par IP avant tout appel à Supabase : un jeton forgé ne fait pas travailler l'API d'Auth.
+    if (!limiteurIp.accepter(ipClientActualites(req, trustRailwayProxy))) {
+      req.resume();
+      return repondreJson(req, res, 429, { error: 'too_many_requests' }, { 'Retry-After': String(Math.ceil(FENETRE_MS / 1000)) });
     }
     const verification = await verifierAdmin(req, { supabaseUrl, publishableKey, demander });
     if (!verification.ok) {

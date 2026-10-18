@@ -3,11 +3,23 @@
 // lesquels sont sautés. Fonctions pures, importées par le planificateur (envoi) et par l'admin
 // (estimation des envois à venir). Isomorphe : aucun import node:*, aucune dépendance.
 //
-// Fuseau : heures et jours de Paris, changements d'heure compris. Un « jour » court jusqu'à 06:00
-// le lendemain, comme prive.jour_des_soirees en base : une inscription à 00:30, pendant la soirée,
-// compte encore pour la date de la veille (encart, plafond, même jour que la bienvenue).
+// Fuseau : heures et jours de Paris (serveur/fuseau-paris.mjs). Un « jour » court jusqu'à 06:00 le
+// lendemain, comme prive.jour_des_soirees en base : une inscription à 00:30, pendant la soirée, compte
+// encore pour la date de la veille (encart, plafond, même jour que la bienvenue).
+//
+// Horizons : la bienvenue n'est examinée que dans les 24 h qui suivent la confirmation, une étape de date que
+// dans les 48 h qui suivent son échéance (ou les 48 h qui suivent le rattachement). Au-delà, rien n'est
+// calculé ni enregistré : la RPC ne renvoie plus les envois anciens (volume borné).
 
-import { ETAPES, lireJour } from './gabarits-emails.mjs';
+import { ETAPES } from './gabarits-emails.mjs';
+import {
+  decalerJour,
+  ecartJours,
+  instantParis,
+  jourCalendaireParis as jourCalendaire,
+  jourDesSoirees,
+  lireJour,
+} from './fuseau-paris.mjs';
 
 /** @typedef {import('./gabarits-emails.mjs').Etape} Etape */
 /** @typedef {import('./gabarits-emails.mjs').DateEnrichie} DateEnrichie */
@@ -33,17 +45,14 @@ import { ETAPES, lireJour } from './gabarits-emails.mjs';
  */
 
 /**
+ * Un destinataire de la RPC, sans adresse ni prénom (relus avant l'envoi). `abonnement_a_confirmer` : une
+ * demande de confirmation attend son clic ET le plafond des demandes (C6) permet encore d'en envoyer une.
  * @typedef {{
  *   id: string,
- *   email: string,
- *   prenom: string | null,
- *   profil_id: string | null,
- *   abonne: boolean,
  *   abonnement_a_confirmer: boolean,
  *   desinscrit: boolean,
  *   annonces: boolean,
  *   confirme_le: string | null,
- *   inscrit_le: string,
  * }} Destinataire
  */
 
@@ -57,24 +66,20 @@ import { ETAPES, lireJour } from './gabarits-emails.mjs';
  */
 
 /**
+ * Un envoi déjà enregistré, du mode courant.
  * @typedef {{
- *   id: string,
  *   destinataire_id: string,
  *   etape: Etape,
  *   calendrier_id: string | null,
- *   message_id: string | null,
- *   reel: boolean,
  *   statut: 'en_attente' | 'envoye' | 'simule' | 'echec' | 'saute',
  *   raison: string | null,
- *   tentatives: number,
  *   prevu_le: string,
- *   envoye_le: string | null,
- *   cree_le: string,
  * }} Envoi
  */
 
 /**
- * Réponse de la RPC `emails_a_traiter(p_maintenant, p_reel)`. `envois` ne contient que ceux du mode courant.
+ * Réponse de la RPC `emails_a_traiter(p_maintenant, p_reel)`, décodée par lireEmailsATraiter. `envois` ne
+ * contient que ceux du mode courant, et seulement ceux dont le calcul a besoin.
  * @typedef {{
  *   modeles: ModeleRpc[],
  *   dates: DateEnrichie[],
@@ -109,23 +114,31 @@ import { ETAPES, lireJour } from './gabarits-emails.mjs';
 /** @typedef {{ id: string, date_soiree: string, statut: string }} DateEstimee */
 /** @typedef {{ etape: Etape, calendrierId: string, prevuLe: string, destinataires: number }} EnvoiEstime */
 
-const FUSEAU = 'Europe/Paris';
 const HEURE_MS = 3_600_000;
 const JOUR_MS = 24 * HEURE_MS;
-/** Une étape due part dans les 12 h qui suivent son échéance ; au-delà, elle est sautée. */
-const FENETRE_ENVOI_MS = 12 * HEURE_MS;
+/** Une étape due part dans les 12 h qui suivent son échéance ; au-delà, elle est sautée (aussi à l'envoi). */
+export const FENETRE_ENVOI_MS = 12 * HEURE_MS;
 /** Au plus une annonce, et un e-mail « prochaines dates », par personne tous les 7 jours glissants. */
 const DELAI_GLISSANT_MS = 7 * JOUR_MS;
-/** Jusqu'à cette heure, la nuit compte encore pour la veille (prive.jour_des_soirees). */
-const FIN_DES_SOIREES_MS = 6 * HEURE_MS;
 /** Encart « date proche » de la bienvenue : la date tombe 0 à 7 jours après la confirmation. */
 const ENCART_JOURS_MAX = 7;
+/** La bienvenue n'est examinée que dans les 24 h qui suivent la confirmation (RPC : confirmés depuis 24 h). */
+const HORIZON_BIENVENUE_MS = 24 * HEURE_MS;
+/** Une étape de date n'est examinée que dans les 48 h qui suivent son échéance, ou le rattachement. */
+const HORIZON_ETAPE_MS = 48 * HEURE_MS;
 
-const ETAPES_DE_DATE = /** @type {const} */ (['j_moins_7', 'veille', 'jour_j', 'lendemain', 'prochaines_dates']);
+/** Étapes calées sur une date suivie (2 à 6 de la séquence), dans l'ordre. */
+export const ETAPES_DE_DATE = /** @type {const} */ (['j_moins_7', 'veille', 'jour_j', 'lendemain', 'prochaines_dates']);
 const SANS_ECHEANCE = new Set(['confirmation', 'bienvenue', 'message']);
-/** Statuts qui occupent le plafond (et la fenêtre des annonces). */
+/**
+ * Statuts qui occupent le plafond journalier et les délais glissants des annonces : un envoi parti, simulé
+ * ou réservé. Un envoi interrompu (echec « interrompu ») compte aussi : il est peut-être parti (voir compte).
+ */
 const STATUTS_COMPTES = new Set(['envoye', 'simule', 'en_attente']);
 const HORS_PLAFOND = new Set(['confirmation', 'message']);
+
+/** Un envoi qui compte (plafond, délais) : parti, simulé, réservé, ou interrompu après sa réclamation. @param {Envoi} envoi */
+const compte = (envoi) => STATUTS_COMPTES.has(envoi.statut) || (envoi.statut === 'echec' && envoi.raison === 'interrompu');
 /**
  * Ordre de priorité sous le plafond : bienvenue, étapes de la date la plus proche, lendemain,
  * annonce, prochaines dates.
@@ -133,54 +146,84 @@ const HORS_PLAFOND = new Set(['confirmation', 'message']);
  */
 const PALIERS = { bienvenue: 0, j_moins_7: 1, veille: 1, jour_j: 1, lendemain: 2, annonce: 3, prochaines_dates: 4 };
 
-// ——— Heure de Paris ———
-
-const PARTIES_PARIS = new Intl.DateTimeFormat('en-US', {
-  timeZone: FUSEAU, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit',
-});
-
-/** Heure murale de Paris à l'instant `ms`, exprimée comme si elle était en UTC (à la seconde). */
-function murParis(/** @type {number} */ ms) {
-  /** @type {Record<string, number>} */
-  const parties = {};
-  for (const { type, value } of PARTIES_PARIS.formatToParts(ms)) if (type !== 'literal') parties[type] = Number(value);
-  return Date.UTC(parties.year, parties.month - 1, parties.day, parties.hour, parties.minute, parties.second);
-}
-
-/** Écart entre l'heure de Paris et UTC à l'instant `ms` (+1 h ou +2 h). */
-function decalageParis(/** @type {number} */ ms) {
-  const seconde = Math.floor(ms / 1000) * 1000;
-  return murParis(seconde) - seconde;
-}
-
-const jourUtc = (/** @type {number} */ ms) => new Date(ms).toISOString().slice(0, 10);
-
-/** Jour calendaire de Paris : « AAAA-MM-JJ ». */
-const jourCalendaire = (/** @type {number} */ ms) => jourUtc(murParis(ms));
-
-/** Jour « des soirées » : avant 06:00 (Paris), l'instant compte encore pour la veille. */
-const jourDesSoirees = (/** @type {number} */ ms) => jourUtc(murParis(ms) - FIN_DES_SOIREES_MS);
-
-const decalerJour = (/** @type {string} */ jour, /** @type {number} */ jours) => jourUtc(lireJour(jour).utc.getTime() + jours * JOUR_MS);
-
-const ecartJours = (/** @type {string} */ de, /** @type {string} */ a) => Math.round((lireJour(a).utc.getTime() - lireJour(de).utc.getTime()) / JOUR_MS);
-
 /** Lundi de la semaine (lundi à dimanche) d'un jour : clé de regroupement des annonces. */
 const lundiDe = (/** @type {string} */ jour) => decalerJour(jour, -((lireJour(jour).utc.getUTCDay() + 6) % 7));
 
+// ——— Réponse de la RPC ———
+
+/** @param {unknown} valeur @returns {string | null} */
+function instantRpc(valeur) {
+  if (valeur === null) return null;
+  if (typeof valeur !== 'number' || !Number.isFinite(valeur)) throw new Error('réponse RPC invalide');
+  return new Date(valeur).toISOString();
+}
+
+/** @param {unknown} valeur @param {number} longueur @returns {unknown[]} */
+function tuple(valeur, longueur) {
+  if (!Array.isArray(valeur) || valeur.length !== longueur) throw new Error('réponse RPC invalide');
+  return valeur;
+}
+
 /**
- * Instant (ms) du jour `jour` à l'heure `heure` de Paris.
- * @param {string} jour « AAAA-MM-JJ »
- * @param {string} heure « HH:MM » ou « HH:MM:SS »
+ * Décode la réponse compacte de la RPC `emails_a_traiter` (une ligne par personne, dates citées par leur
+ * position dans `dates`, horodatages en millisecondes : voir la migration) en EmailsATraiter. Lève une
+ * erreur sur une forme inattendue.
+ * @param {unknown} brut
+ * @returns {EmailsATraiter}
  */
-function instantParis(jour, heure) {
-  const morceaux = /^(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(heure);
-  const [heures, minutes, secondes] = morceaux ? [morceaux[1], morceaux[2], morceaux[3] ?? '0'].map(Number) : [];
-  if (!morceaux || heures > 23 || minutes > 59 || secondes > 59) throw new RangeError(`Heure invalide : ${heure}`);
-  const mur = lireJour(jour).utc.getTime() + ((heures * 60 + minutes) * 60 + secondes) * 1000;
-  // Le décalage lu à l'heure murale prise pour UTC peut être faux d'une heure près d'un changement
-  // d'heure : on le relit à l'instant obtenu.
-  return mur - decalageParis(mur - decalageParis(mur));
+export function lireEmailsATraiter(brut) {
+  const r = /** @type {Record<string, unknown>} */ (brut);
+  if (!r || typeof r !== 'object' || Array.isArray(r)
+      || !['modeles', 'dates', 'prochaines', 'destinataires'].every((cle) => Array.isArray(r[cle]))) {
+    throw new Error('réponse RPC invalide');
+  }
+  const dates = /** @type {DateEnrichie[]} */ (r.dates);
+  /** @param {unknown} valeur @returns {string | null} */
+  const date = (valeur) => {
+    if (valeur === null || typeof valeur === 'string') return valeur;
+    const cible = typeof valeur === 'number' ? dates[valeur] : undefined;
+    if (!cible) throw new Error('réponse RPC invalide');
+    return cible.id;
+  };
+  /** @type {Destinataire[]} */
+  const destinataires = [];
+  /** @type {Rattachement[]} */
+  const rattachements = [];
+  /** @type {Envoi[]} */
+  const envois = [];
+  for (const ligne of /** @type {unknown[]} */ (r.destinataires)) {
+    const [id, aDemander, desinscrit, annonces, confirmeLe, sesRattachements, sesEnvois] = tuple(ligne, 7);
+    if (typeof id !== 'string' || !Array.isArray(sesRattachements) || !Array.isArray(sesEnvois)) throw new Error('réponse RPC invalide');
+    destinataires.push({
+      id, abonnement_a_confirmer: aDemander === true, desinscrit: desinscrit === true, annonces: annonces === true,
+      confirme_le: instantRpc(confirmeLe),
+    });
+    for (const rattachement of sesRattachements) {
+      const [calendrierId, origine, creeLe] = tuple(rattachement, 3);
+      const calendrier = date(calendrierId);
+      if (calendrier === null) throw new Error('réponse RPC invalide');
+      rattachements.push({
+        destinataire_id: id, calendrier_id: calendrier,
+        origine: /** @type {Rattachement['origine']} */ (origine), cree_le: /** @type {string} */ (instantRpc(creeLe)),
+      });
+    }
+    for (const envoi of sesEnvois) {
+      const [etape, calendrierId, statut, raison, prevuLe] = tuple(envoi, 5);
+      envois.push({
+        destinataire_id: id, etape: /** @type {Etape} */ (etape), calendrier_id: date(calendrierId),
+        statut: /** @type {Envoi['statut']} */ (statut), raison: /** @type {string | null} */ (raison),
+        prevu_le: /** @type {string} */ (instantRpc(prevuLe)),
+      });
+    }
+  }
+  return {
+    modeles: /** @type {ModeleRpc[]} */ (r.modeles),
+    dates,
+    prochaines: /** @type {DateEnrichie[]} */ (r.prochaines),
+    destinataires,
+    rattachements,
+    envois,
+  };
 }
 
 // ——— Échéances ———
@@ -199,7 +242,9 @@ export function echeance(modele, date) {
 }
 
 /** Soirée liée annulée ou reportée : garde-fou du design (§2), pour une date qui se dit confirmée. */
-const soireeSuspendue = (/** @type {DateEnrichie} */ date) => date.soiree?.statut === 'annulee' || date.soiree?.statut === 'reportee';
+export const soireeSuspendue = (/** @type {DateEnrichie | null | undefined} */ date) => (
+  date?.soiree?.statut === 'annulee' || date?.soiree?.statut === 'reportee'
+);
 
 /**
  * @template {ReglageModele} M
@@ -229,7 +274,7 @@ function grouper(lignes, cle) {
 const comparerTextes = (/** @type {string} */ a, /** @type {string} */ b) => (a < b ? -1 : a > b ? 1 : 0);
 
 /** Tri des dates de la RPC : `date_soiree`, puis `heure` (nulle en dernier), puis `id`. */
-const comparerDates = (/** @type {DateEnrichie} */ a, /** @type {DateEnrichie} */ b) => (
+export const comparerDates = (/** @type {DateEnrichie} */ a, /** @type {DateEnrichie} */ b) => (
   comparerTextes(a.date_soiree, b.date_soiree) || comparerTextes(a.heure ?? '~', b.heure ?? '~') || comparerTextes(a.id, b.id)
 );
 
@@ -322,12 +367,13 @@ const aUnEnvoi = (/** @type {Envoi[]} */ envois, /** @type {Etape} */ etape, /**
 
 /** Un envoi compté de cette étape, toutes dates confondues, prévu il y a moins de 7 jours. */
 const envoiRecent = (/** @type {readonly Envoi[]} */ envois, /** @type {Etape} */ etape, /** @type {number} */ maintenant) => (
-  envois.some((envoi) => envoi.etape === etape && STATUTS_COMPTES.has(envoi.statut) && maintenant - Date.parse(envoi.prevu_le) < DELAI_GLISSANT_MS)
+  envois.some((envoi) => envoi.etape === etape && compte(envoi) && maintenant - Date.parse(envoi.prevu_le) < DELAI_GLISSANT_MS)
 );
 
 /**
  * La date de l'inscription (rattachement d'origine `inscription` le plus récent) et l'encart. Seule
- * une date confirmée est citée : la RPC peut renvoyer une date lointaine annulée ou prévisionnelle.
+ * une date confirmée, dont la soirée liée n'est ni annulée ni reportée, est citée : la RPC peut renvoyer une
+ * date lointaine annulée ou prévisionnelle.
  * @param {string | null} confirmeLe
  * @param {readonly Rattachement[]} rattachements du destinataire
  * @param {Map<string, DateEnrichie>} dates
@@ -344,16 +390,16 @@ function bienvenuePour(confirmeLe, rattachements, dates) {
       creeLe = Date.parse(rattachement.cree_le);
     }
   }
-  if (!date || date.statut !== 'confirmee') return { date: null, encartDateProche: false };
-  if (confirmeLe === null || soireeSuspendue(date)) return { date, encartDateProche: false };
+  if (!date || date.statut !== 'confirmee' || soireeSuspendue(date)) return { date: null, encartDateProche: false };
+  if (confirmeLe === null) return { date, encartDateProche: false };
   const ecart = ecartJours(jourDesSoirees(Date.parse(confirmeLe)), date.date_soiree);
   return { date, encartDateProche: ecart >= 0 && ecart <= ENCART_JOURS_MAX };
 }
 
 /**
  * Date de la bienvenue d'un destinataire, pour son rendu ({{date}}, {{ville}}, encart) : la date
- * rattachée par l'inscription, si elle figure dans `donnees.dates` et qu'elle est confirmée ; sinon
- * null. `encartDateProche` vaut vrai si la soirée liée n'est pas suspendue et si la date tombe 0 à
+ * rattachée par l'inscription, si elle figure dans `donnees.dates`, qu'elle est confirmée et que sa soirée
+ * liée n'est ni annulée ni reportée ; sinon null. `encartDateProche` vaut vrai si la date tombe 0 à
  * 7 jours (Paris) après `confirme_le`.
  * @param {Pick<EmailsATraiter, 'dates' | 'rattachements'>} donnees
  * @param {Pick<Destinataire, 'id' | 'confirme_le'>} destinataire
@@ -482,11 +528,11 @@ function envoisDe(destinataire, ctx) {
   /** @type {Rang[]} */
   const attendus = [];
 
-  // Règle 2 : la bienvenue, dans les 12 h qui suivent la confirmation.
-  const bienvenue = envois.find((envoi) => envoi.etape === 'bienvenue' && STATUTS_COMPTES.has(envoi.statut));
+  // Règle 2 : la bienvenue, dans les 12 h qui suivent la confirmation ; examinée pendant 24 h (horizon).
+  const bienvenue = envois.find((envoi) => envoi.etape === 'bienvenue' && compte(envoi));
   let jourBienvenue = bienvenue ? ctx.jour(Date.parse(bienvenue.prevu_le)) : null;
-  if (ctx.modeles.has('bienvenue') && !aUnEnvoi(envois, 'bienvenue', null)) {
-    const confirmation = Date.parse(confirmeLe);
+  const confirmation = Date.parse(confirmeLe);
+  if (ctx.modeles.has('bienvenue') && !aUnEnvoi(envois, 'bienvenue', null) && ctx.maintenant <= confirmation + HORIZON_BIENVENUE_MS) {
     if (ctx.maintenant > confirmation + FENETRE_ENVOI_MS) {
       sautes.push({ ...envoiPrevu(destinataire.id, 'bienvenue', [], confirmation), raison: 'fenetre_depassee' });
     } else {
@@ -510,10 +556,13 @@ function envoisDe(destinataire, ctx) {
   for (const rattachement of rattachements) {
     const date = ctx.dates.get(rattachement.calendrier_id);
     if (!date) continue;
+    // Horizon : un rattachement récent examine toutes ses étapes (déjà passées à l'inscription comprises).
+    const rattachementRecent = ctx.maintenant - Date.parse(rattachement.cree_le) <= HORIZON_ETAPE_MS;
     for (const etape of ETAPES_DE_DATE) {
       const modele = ctx.modeles.get(etape);
       const instant = modele ? ctx.echeance(modele, date) : null;
       if (instant === null || aUnEnvoi(envois, etape, date.id)) continue;
+      if (!rattachementRecent && ctx.maintenant - instant > HORIZON_ETAPE_MS) continue;
       const issue = issueEtape(etape, date, rattachement, instant, situation, ctx);
       /** @type {Rang} */
       const rang = { palier: PALIERS[etape], dateSoiree: date.date_soiree, instant, jour: ctx.jour(instant) };
@@ -533,7 +582,7 @@ function envoisDe(destinataire, ctx) {
 
   // Règle 5 : le plafond journalier.
   const occupes = new Set(envois
-    .filter((envoi) => STATUTS_COMPTES.has(envoi.statut) && !HORS_PLAFOND.has(envoi.etape))
+    .filter((envoi) => compte(envoi) && !HORS_PLAFOND.has(envoi.etape))
     .map((envoi) => ctx.jour(Date.parse(envoi.prevu_le))));
   const plafond = appliquerPlafond(candidats, attendus, occupes);
   return { aEnvoyer: [...aEnvoyer, ...plafond.aEnvoyer], sautes: [...sautes, ...plafond.sautes] };

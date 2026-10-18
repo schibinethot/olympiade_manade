@@ -361,6 +361,8 @@ function repondre(fichiers, req, res) {
 
   const enTetes = {
     ...EN_TETES_COMMUNS,
+    // Pages des liens d'e-mail : le jeton (fragment, ou ?j= d'un ancien lien) ne part jamais dans un Referer.
+    ...(chemin === '/emails' || chemin.startsWith('/emails/') ? { 'Referrer-Policy': 'no-referrer' } : {}),
     ...fichier.enTetes,
     'Content-Type': fichier.type,
     ETag: variante.etag,
