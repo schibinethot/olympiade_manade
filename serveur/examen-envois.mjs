@@ -1,8 +1,8 @@
 // @ts-check
 // Examen d'un groupe de lignes d'envoi réclamées, juste avant l'envoi (fonctions sans entrée-sortie). Le
-// planificateur relit, juste avant l'appel, le destinataire, les dates du lot et les modèles : un état changé
-// depuis la réservation l'emporte (désinscription, consentement, date annulée, déplacée ou supprimée, soirée
-// suspendue, modèle désactivé ou réglé autrement, fenêtre dépassée).
+// planificateur relit, juste avant l'appel, le destinataire, les dates du lot (prochaines dates comprises) et les
+// modèles : un état changé depuis la réservation l'emporte (désinscription, consentement, date annulée, déplacée ou
+// supprimée, soirée suspendue, modèle désactivé ou réglé autrement, fenêtre dépassée).
 
 import {
   ETAPES_DE_DATE,
@@ -189,10 +189,18 @@ export function examiner(groupe, d, ctx, instant) {
   }
 
   // {{prochaines_dates}} annonce d'autres dates : seulement avec le consentement aux annonces (revue juridique
-  // B3), jamais dans une confirmation. Sinon la ligne disparaît.
+  // B3), jamais dans une confirmation. Sinon la ligne disparaît. Les dates du calcul (jusqu'à 5 min plus tôt) sont
+  // prises dans leur version relue (mineur n° 4) : une date annulée, supprimée, passée ou dont la soirée est
+  // suspendue depuis n'y figure plus.
   const listeAutorisee = etape !== 'confirmation' && d.annonces === true;
+  const { jour: aujourdhui } = heureParis(instant);
   const prochaines = !listeAutorisee ? [] : ctx.donnees.prochaines
-    .filter((p) => p.id !== date?.id)
+    .flatMap((p) => {
+      const relue = ctx.dates.get(p.id);
+      return relue && relue.id !== date?.id && relue.statut === 'confirmee' && !soireeSuspendue(relue)
+        && relue.date_soiree > aujourdhui ? [relue] : [];
+    })
+    .sort(comparerDates)
     .slice(0, 3)
     .map((p) => ({ ...p, lienJeViens: jeViensPour(p) }));
   if (etape === 'prochaines_dates' && prochaines.length === 0) return tout('aucune_date');

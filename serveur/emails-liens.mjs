@@ -126,8 +126,10 @@ export function creerLiensPublics(ctx, acces) {
       return { etat: d ? etatDe('desinscription', d) : { type: 'desinscription', abonne: false, annonces: false, desinscrit: true } };
     }
     if (charge.t === 'confirmation') {
-      // Une adresse déjà confirmée garde son lien (succès neutre) ; une demande remplacée ou purgée, non.
+      // Une adresse déjà confirmée et toujours abonnée garde son lien (succès neutre) ; une demande remplacée ou
+      // purgée, ou un abonnement retiré depuis (désinscription, purge), non (mineur n° 6).
       if (!d) return { statut: 410 };
+      if (!d.abonnement_a_confirmer && !d.abonne) return { statut: 410 };
       if (d.abonnement_a_confirmer && !(await demandeEnCours(charge))) return { statut: 410 };
       return { etat: etatDe('confirmation', d) };
     }
@@ -138,13 +140,14 @@ export function creerLiensPublics(ctx, acces) {
 
   /**
    * Clic de confirmation : la demande du lien doit exister encore (sinon 410), puis un seul PATCH, le
-   * déclencheur de la base applique tous les effets.
+   * déclencheur de la base applique tous les effets. Déjà confirmée : « déjà fait » si l'adresse est toujours
+   * abonnée, 410 si l'abonnement a été retiré depuis (elle n'est plus abonnée : rien à confirmer).
    * @param {ChargeLien} charge @param {number} instant @returns {Promise<{ statut: number } | { etat: unknown }>}
    */
   async function confirmer(charge, instant) {
     const d = await lireDestinataire(charge.d);
     if (!d) return { statut: 410 };
-    if (!d.abonnement_a_confirmer) return { etat: 'deja_fait' };
+    if (!d.abonnement_a_confirmer) return d.abonne ? { etat: 'deja_fait' } : { statut: 410 };
     if (!(await demandeEnCours(charge))) return { statut: 410 };
     const id = charge.d;
     const lignes = await rest(`/rest/v1/destinataires_emails?id=eq.${enc(id)}&abonnement_a_confirmer=is.true&select=id,abonnement_a_confirmer`, {

@@ -738,10 +738,19 @@ describe('planificateur des e-mails', () => {
     expect(log.emails.actif).toBe(true);
   });
 
-  it('sur Railway sans confiance dans X-Real-IP : avertissement au démarrage', async () => {
+  it('sur Railway sans confiance dans X-Real-IP : avertissement au démarrage, liens et limiteur admin (mineur n° 5)', async () => {
     const { emails, journal } = preparer({ mode: 'log', plus: { railway: true } });
     await emails.demarrer();
-    expect(journal.some((l) => /EMAILS_TRUST_RAILWAY_PROXY/.test(String((l as { message?: string }).message)))).toBe(true);
+    const avertissement = journal.find((l) => /EMAILS_TRUST_RAILWAY_PROXY/.test(String((l as { message?: string }).message))) as
+      { level: string; message: string } | undefined;
+    expect(avertissement).toMatchObject({ level: 'warn' });
+    expect(avertissement?.message).toMatch(/liens des e-mails/);
+    expect(avertissement?.message).toMatch(/requêtes admin/);
+    // Aucune nouvelle raison d'inactivité : le planificateur reste prêt.
+    expect(emails.etat()).toMatchObject({ pret: true, raisonsInactif: [] });
+    const confiant = preparer({ mode: 'log', plus: { railway: true, trustRailwayProxy: true } });
+    await confiant.emails.demarrer();
+    expect(confiant.journal.some((l) => /EMAILS_TRUST_RAILWAY_PROXY/.test(String((l as { message?: string }).message)))).toBe(false);
   });
 
   it('relit la date au moment de l’envoi : date annulée ou soirée suspendue entre la réservation et l’envoi', async () => {
@@ -1699,5 +1708,90 @@ describe('correctifs n° 1 : planificateur', () => {
     await refus.emails.passer();
     expect(refus.base.tables.envois_emails.find((e) => e.etape === 'bienvenue' && e.destinataire_id === ID.alice))
       .toMatchObject({ statut: 'echec', raison: 'refus_definitif' });
+  });
+
+  it('arreter() (SIGTERM) rend aussitôt les groupes réclamés pas commencés, sans attendre le groupe en cours (mineur n° 3)', async () => {
+    const { base, emails, courriel } = preparer({ mode: 'smtp' });
+    base.tables.modeles_emails = modeles();
+    base.tables.calendrier = [date(ID.aujourdhui, '2027-07-29')];
+    for (let i = 0; i < 3; i++) {
+      const id = `77777777-7777-4777-8777-0000000000${String(i).padStart(2, '0')}`;
+      base.tables.destinataires_emails.push(destinataire(id, `p${i}@exemple.fr`));
+      base.tables.envois_emails.push(envoi(id, 'jour_j', ID.aujourdhui, {
+        reel: true, statut: 'en_attente', envoye_le: null, prevu_le: '2027-07-29T08:00:00Z', cree_le: '2027-07-29T08:00:00Z',
+      }));
+    }
+    // Premier envoi lent (relais SMTP qui traîne au-delà du délai d'arrêt) : il ne répond qu'à la demande du test.
+    let repondre: () => void = () => undefined;
+    let enVol = false;
+    courriel.envoyer.mockImplementation(() => new Promise((ok) => {
+      enVol = true;
+      repondre = () => ok({ mode: 'smtp', envoye: true, echec: false });
+    }));
+    const passage = emails.passer();
+    await vi.waitFor(() => expect(enVol).toBe(true));
+    let arrete = false;
+    const arret = emails.arreter().then(() => { arrete = true; });
+    const enAttente = (raison: string | null) => base.tables.envois_emails.filter((e) => e.statut === 'en_attente' && e.raison === raison).length;
+    // L'envoi en cours n'a pas répondu, les deux autres groupes sont déjà rendus ; l'arrêt attend la fin du premier.
+    await vi.waitFor(() => expect(enAttente(null)).toBe(2));
+    expect(enAttente('en_cours')).toBe(1);
+    expect(arrete).toBe(false);
+    repondre();
+    await passage;
+    await arret;
+    expect(courriel.envoyer).toHaveBeenCalledTimes(1);
+    expect(base.tables.envois_emails.filter((e) => e.statut === 'envoye')).toHaveLength(1);
+    expect(enAttente(null)).toBe(2);
+    expect(enAttente('en_cours')).toBe(0);
+  });
+
+  it('{{prochaines_dates}} : les prochaines dates du calcul sont relues après la réclamation (mineur n° 4)', async () => {
+    const { base, emails, courriel } = preparer({ mode: 'smtp' });
+    scenarioDeBase(base);
+    base.tables.modeles_emails = modeles().map((m) => (m.cle === 'jour_j' ? { ...m, corps: `${m.corps}\n\n{{prochaines_dates}}` } : m));
+    base.tables.destinataires_emails = base.tables.destinataires_emails.filter((d) => d.id === ID.bruno);
+    Object.assign(base.tables.destinataires_emails[0], { annonces: true });
+    const septembre = 'aaaaaaaa-0000-4000-8000-000000000005';
+    base.tables.calendrier.push(date(ID.aout, '2027-08-06'), date(ID.aout2, '2027-08-13'), date(septembre, '2027-09-03'));
+    // Après le calcul, au moment de la réclamation : une date annulée, une soirée reportée.
+    base.intercepter = (appel) => {
+      if (appel.methode === 'PATCH' && (appel.corps as Ligne | undefined)?.raison === 'en_cours') {
+        Object.assign(base.tables.calendrier.find((c) => c.id === ID.aout) ?? {}, { statut: 'annulee' });
+        Object.assign(base.tables.calendrier.find((c) => c.id === ID.aout2) ?? {}, { soiree: { slug: 's', statut: 'reportee' } });
+      }
+      return null;
+    };
+    await emails.passer();
+    const jourJ = courriel.envoyer.mock.calls.map((c) => c[0] as { etape: string; text: string }).find((m) => m.etape === 'jour_j');
+    expect(jourJ?.text).toContain(`Ville ${ID.demain}`);
+    expect(jourJ?.text).toContain(`Ville ${septembre}`);
+    expect(jourJ?.text).not.toContain(`Ville ${ID.aout}`);
+    expect(jourJ?.text).not.toContain(`Ville ${ID.aout2}`);
+    // Sans consentement aux annonces, aucune liste : les prochaines dates ne sont pas relues pour rien.
+    const sans = preparer({ mode: 'smtp' });
+    scenarioDeBase(sans.base);
+    sans.base.tables.destinataires_emails = sans.base.tables.destinataires_emails.filter((d) => d.id === ID.bruno);
+    sans.base.tables.calendrier.push(date(septembre, '2027-09-03'));
+    await sans.emails.passer();
+    const relectures = sans.base.appels.filter((a) => a.methode === 'GET' && a.chemin === '/rest/v1/calendrier' && a.params.has('id'));
+    expect(relectures.map((a) => a.params.get('id'))).toEqual([`in.(${ID.aujourdhui})`]);
+  });
+
+  it('confirmation d’une adresse qui n’est plus abonnée : 410, et non « déjà fait » (mineur n° 6)', async () => {
+    const { base, emails } = preparer();
+    scenarioDeBase(base);
+    // Alice a confirmé, puis son abonnement a été retiré (désinscription, purge d'un spectateur) : rien à confirmer.
+    Object.assign(base.tables.destinataires_emails[0], { abonne: false, abonnement_a_confirmer: false });
+    const demande = envoi(ID.alice, 'confirmation', null, { reel: true, statut: 'envoye' });
+    base.tables.envois_emails.push(demande);
+    const serveur = await lancer(emails);
+    const j = signerLien(CLE, { t: 'confirmation', d: ID.alice, n: String(demande.id), e: MAINTENANT + 60_000 });
+    for (const action of ['decrire', 'confirmer']) expect((await lien(serveur, { jeton: j, action })).status, action).toBe(410);
+    expect(base.ecritures()).toHaveLength(0);
+    // Toujours abonnée : succès neutre, comme avant.
+    Object.assign(base.tables.destinataires_emails[0], { abonne: true });
+    expect(await (await lien(serveur, { jeton: j, action: 'confirmer' })).json()).toEqual({ ok: true, etat: 'deja_fait' });
+    expect((await lien(serveur, { jeton: j, action: 'decrire' })).status).toBe(200);
   });
 });

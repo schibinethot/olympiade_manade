@@ -99,6 +99,9 @@ export function creerPlanificateur(ctx, acces) {
   let arretDemande = false;
   /** @type {(() => void)[]} */
   const finDuPassage = [];
+  /** Groupes réclamés dont l'examen n'a pas commencé : arreter() les rend sans attendre le groupe en cours. */
+  /** @type {Set<LigneEnvoi[]>} */
+  const nonCommences = new Set();
   /** @type {string | null} */
   let dernierPassage = null;
   /** @type {Bilan | null} */
@@ -291,14 +294,18 @@ export function creerPlanificateur(ctx, acces) {
   /**
    * Dates du lot relues juste après les destinataires (sécurité I1) : un passage peut durer, une date annulée,
    * déplacée ou supprimée entre la réservation et l'envoi l'emporte. Une date disparue est retirée (date_absente).
-   * La date citée par une bienvenue (rattachement d'inscription) est relue aussi.
+   * La date citée par une bienvenue (rattachement d'inscription) est relue aussi, et les prochaines dates du calcul
+   * dès qu'un e-mail du lot peut les lister ({{prochaines_dates}} : consentant aux annonces, hors confirmation).
    * @param {LigneEnvoi[][]} reclames @param {Map<string, DateEnrichie>} dates @param {EmailsATraiter} sources
+   * @param {Map<string, DestinataireEnvoi>} frais destinataires relus
    */
-  async function relireDates(reclames, dates, sources) {
+  async function relireDates(reclames, dates, sources, frais) {
     const bienvenues = new Set(reclames.flat().filter((l) => l.etape === 'bienvenue').map((l) => l.destinataire_id));
+    const listes = reclames.some((groupe) => groupe[0].etape !== 'confirmation' && frais.get(groupe[0].destinataire_id)?.annonces === true);
     const ids = [...new Set([
       ...reclames.flat().map((l) => l.calendrier_id).filter((id) => id !== null),
       ...sources.rattachements.filter((r) => bienvenues.has(r.destinataire_id) && r.origine === 'inscription').map((r) => r.calendrier_id),
+      ...(listes ? sources.prochaines.map((p) => p.id) : []),
     ])];
     if (!ids.length) return;
     const fraiches = await lireDates(/** @type {string[]} */ (ids));
@@ -416,9 +423,13 @@ export function creerPlanificateur(ctx, acces) {
       /** @type {LigneEnvoi[][]} */
       const reclames = [];
       for (const groupe of lot) {
+        if (arretDemande) break;
         try {
           const retenues = await reclamer(groupe, maintenant());
-          if (retenues.length) reclames.push(retenues);
+          if (retenues.length) {
+            reclames.push(retenues);
+            nonCommences.add(retenues);
+          }
         } catch (erreur) {
           // État incertain : une ligne touchée sera soldée « interrompu », jamais renvoyée.
           signaler('réclamation d’un e-mail impossible', erreur, { etape: groupe[0].etape });
@@ -431,14 +442,16 @@ export function creerPlanificateur(ctx, acces) {
       let frais;
       try {
         frais = await relireDestinataires(reclames.map((groupe) => groupe[0].destinataire_id));
-        await relireDates(reclames, dates, sources);
+        await relireDates(reclames, dates, sources, frais);
       } catch (erreur) {
         signaler('relecture avant envoi impossible', erreur);
-        for (const groupe of reclames) await rendre(groupe);
+        for (const groupe of reclames) if (nonCommences.delete(groupe)) await rendre(groupe);
         throw erreur;
       }
       for (const groupe of reclames) {
-        // Arrêt demandé pendant le groupe précédent : celui-ci, réclamé mais pas commencé, est rendu.
+        // Déjà rendu par arreter() (SIGTERM pendant un groupe précédent ou pendant la relecture).
+        if (!nonCommences.delete(groupe)) continue;
+        // Arrêt demandé sans que arreter() ait vu ce groupe : rendu ici, sans examen.
         if (arretDemande) {
           await rendre(groupe);
           continue;
@@ -564,7 +577,8 @@ export function creerPlanificateur(ctx, acces) {
       if (railway && !trustRailwayProxy) {
         journal({
           level: 'warn', timestamp: iso(Date.now()),
-          message: 'liens des e-mails : EMAILS_TRUST_RAILWAY_PROXY faux sur Railway, toutes les IP partagent la limite des liens refusés',
+          message: 'liens des e-mails et endpoints admin : EMAILS_TRUST_RAILWAY_PROXY faux sur Railway, toutes les IP partagent '
+            + 'la limite des liens refusés et celle des requêtes admin (60 par 10 min, /test, /message et /etat compris)',
         });
       }
       if (!actif) {
@@ -584,16 +598,22 @@ export function creerPlanificateur(ctx, acces) {
   }
 
   /**
-   * Arrêt (SIGTERM) : plus de nouveau passage ; un passage en cours finit son groupe, rend les autres lignes
-   * réclamées et s'arrête. La promesse se résout à la fin du passage en cours (aussitôt s'il n'y en a pas).
+   * Arrêt (SIGTERM) : plus de nouveau passage, plus aucune réclamation. Les groupes réclamés mais pas commencés sont
+   * rendus aussitôt, sans attendre le groupe en cours : un envoi SMTP lent peut dépasser le délai d'arrêt (statique.mjs).
+   * La promesse se résout quand ils sont rendus et que le passage en cours a fini (aussitôt s'il n'y en a pas).
    * @returns {Promise<void>}
    */
   function arreter() {
     arretDemande = true;
     if (minuteur) clearInterval(minuteur);
     minuteur = null;
-    if (!enCours) return Promise.resolve();
-    return new Promise((resoudre) => { finDuPassage.push(resoudre); });
+    const rendus = [...nonCommences].map((groupe) => {
+      nonCommences.delete(groupe);
+      return rendre(groupe);
+    });
+    /** @type {Promise<void>} */
+    const fin = enCours ? new Promise((resoudre) => { finDuPassage.push(resoudre); }) : Promise.resolve();
+    return Promise.all([fin, ...rendus]).then(() => undefined);
   }
 
   return { passer, demarrer, arreter, etat };
