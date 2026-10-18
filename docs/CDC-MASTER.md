@@ -487,9 +487,19 @@ Toutes les heures sont celles de Paris. Les jours et heures ci-dessous sont des 
 
 **Procédure de mise en production** (revue de code du 18/10/2026)
 1. migration appliquée, puis code déployé avec `EMAILS_MODE=log` : un passage sans erreur, pages de lien et POST en un clic vérifiés
-2. passage en `EMAILS_MODE=smtp` **avec la barrière d’accès encore active** : le planificateur reste inactif (raison « barrière »), rien ne part aux destinataires
-3. « M’envoyer un test » depuis `/admin/emails` : le mail de test arrive en smtp, ce qui valide la configuration (SMTP, expéditeur, liens, identité) avant tout envoi réel
-4. seulement ensuite, levée de la barrière : le premier passage réel envoie les confirmations des abonnés repris. Une erreur de réglage découverte à ce moment toucherait toute la base
+2. avant `smtp`, compter les dépôts en prod par version du consentement : `select consentement_version, count(*) from public.abonnements_actualites group by 1;`. Un dépôt à l’ancien texte (`2026-10-17`, sans « les dates ») est confirmé par le clic, mais sans les annonces des prochaines dates
+3. passage en `EMAILS_MODE=smtp` **avec la barrière d’accès encore active** : le planificateur reste inactif (raison « barrière »), rien ne part aux destinataires
+4. « M’envoyer un test » depuis `/admin/emails` : le mail de test arrive en smtp, ce qui valide la configuration (SMTP, expéditeur, liens, identité) avant tout envoi réel
+5. vérifier le plafond horaire du plan Brevo face à la taille de la base reprise : le premier passage réel envoie une confirmation à chaque abonné repris, au débit de `EMAILS_DEBIT_PAR_SECONDE` (5 par seconde par défaut)
+6. seulement ensuite, levée de la barrière : le premier passage réel envoie les confirmations des abonnés repris. Une erreur de réglage découverte à ce moment toucherait toute la base
+7. reprise après une panne au premier passage réel (relais indisponible plus de 2 h 35, plafond du plan atteint) : les confirmations en échec ne repartent pas d’elles-mêmes et seraient purgées 30 jours après la tentative. Une fois la cause corrigée, supprimer ces lignes pour qu’elles repartent au passage suivant. Le plafond des demandes (3 par 30 jours) compte déjà la première : il en reste 2. Ne jamais y inclure `interrompu`, peut-être parti
+
+   ```sql
+   delete from public.envois_emails
+   where etape = 'confirmation' and reel and statut = 'echec'
+     and raison in ('envoi_impossible', 'refus_definitif')
+     and envoye_le between '<début de la panne>' and '<fin de la panne>';
+   ```
 
 ---
 
