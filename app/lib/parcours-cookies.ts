@@ -1,7 +1,8 @@
 /**
  * Mode d'affichage du bandeau de consentement cookies selon la route.
  *
- * - `aucun`   : écran géant – jamais de bandeau (ne gêne pas les téléspectateurs)
+ * - `aucun`   : écran géant et pages des liens d'email – jamais de bandeau (ne gêne pas les
+ *               téléspectateurs, ne retarde pas une désinscription)
  * - `bandeau` : barre basse non bloquante (tunnels, comptes, admin, pages légales)
  * - `fenetre` : boîte centrée + voile bloquant (accueil, classements, dates, contact, 404…)
  *
@@ -49,9 +50,9 @@ export const PARCOURS_COOKIES = [
     libelle: 'Aucun bandeau',
     accroche: "Rien ne s'affiche. L'écran géant projette les classements sans jamais superposer de pop-up.",
     exemple: '/ecran/nimes-2027',
-    prefixes: ['/ecran'] as const,
+    prefixes: ['/ecran', '/emails'] as const,
     noteRoutes:
-      "L'écran géant du festival : il ne dépose aucun traceur optionnel, le consentement n'a pas lieu d'être.",
+      "L'écran géant du festival, et les pages ouvertes depuis un email (confirmation, désinscription, «\u00a0Je viens\u00a0»)\u00a0: elles ne déposent aucun traceur optionnel, le consentement n'a pas lieu d'être. Une désinscription n'est jamais retardée par une fenêtre de cookies.",
   },
 ] as const;
 
@@ -67,7 +68,7 @@ const PREFIXES_AUCUN = PARCOURS_COOKIES.find((p) => p.mode === 'aucun')!.prefixe
 export function modeConsentement(chemin: string): ModeConsentement {
   const sansSufixe = chemin.split('?')[0] ?? '/';
 
-  // Écran géant : aucun bandeau
+  // Écran géant et liens d'email : aucun bandeau
   if (
     PREFIXES_AUCUN.some(
       (prefixe) => sansSufixe === prefixe || sansSufixe.startsWith(`${prefixe}/`),

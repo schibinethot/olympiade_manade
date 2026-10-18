@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode, type Ref } from 'react';
+import { useNavigate } from 'react-router';
 import { formaterDateLongue } from '../lib/dates';
 import {
   appelerLien,
@@ -38,6 +39,12 @@ const ENTETES: Record<TypeLien, { surtitre: string; titre: string; intro: string
   },
 };
 
+/**
+ * Désinscription sans annonces : un seul bouton. Intro de même longueur que celle à deux choix,
+ * affichée pendant le chargement : la page ne saute pas quand l'état du lien arrive.
+ */
+const INTRO_UN_CHOIX = 'Un seul bouton arrête tous les emails de l’Olympiade des Manades.';
+
 const DEJA_DESINSCRIT = 'Vous ne recevez déjà plus d’emails de l’Olympiade des Manades.';
 
 type Chargement =
@@ -59,10 +66,18 @@ export function LienEmail({ type }: { type: TypeLien }) {
   const [succes, setSucces] = useState<ReactNode>(null);
   const [aAgi, setAAgi] = useState(false);
   const resultat = useRef<HTMLParagraphElement>(null);
+  const messageEchec = useRef<HTMLParagraphElement>(null);
+  const navigate = useNavigate();
   const entete = ENTETES[type];
 
-  // Le jeton est lu dans l'adresse puis retiré de l'adresse (voir recupererJeton).
-  useEffect(() => setJeton(recupererJeton(window.location.pathname)), []);
+  // Le jeton est lu dans l'adresse (#j=, sinon ?j=) puis retiré de l'adresse par le routeur, pour que
+  // useLocation ne le garde pas (voir recupererJeton).
+  useEffect(() => {
+    const { pathname, href } = window.location;
+    const lu = recupererJeton(pathname, href);
+    if (lu.retirer) navigate(pathname, { replace: true });
+    setJeton(lu.jeton);
+  }, [navigate]);
 
   useEffect(() => {
     if (jeton === null) return;
@@ -86,6 +101,10 @@ export function LienEmail({ type }: { type: TypeLien }) {
   useEffect(() => {
     if (aAgi && (succes || erreurDefinitive)) resultat.current?.focus();
   }, [aAgi, succes, erreurDefinitive]);
+  // Échec réessayable : le bouton, désactivé pendant l'appel, a perdu le focus ; il passe au message.
+  useEffect(() => {
+    if (echec) messageEchec.current?.focus();
+  }, [echec]);
 
   async function agir(action: ActionLien, etat: EtatLien) {
     if (envoi || !jeton) return;
@@ -107,7 +126,20 @@ export function LienEmail({ type }: { type: TypeLien }) {
   const pret = chargement.phase === 'pret' ? chargement.etat : null;
   const dejaDesinscrit = pret !== null && type === 'desinscription' && pret.desinscrit;
   const montreBoutons = pret !== null && !succes && !dejaDesinscrit;
-  const deuxChoix = type === 'desinscription' && montreBoutons && pret.annonces;
+  const enChargement = chargement.phase === 'jeton' || chargement.phase === 'chargement';
+
+  /**
+   * Intro de la page. Désinscription : celle à deux choix pendant le chargement, puis selon les
+   * annonces ; elle reste après l'action (pas de saut), et disparaît pour un lien refusé ou une
+   * adresse déjà désinscrite.
+   */
+  function intro(): string | null {
+    if (type !== 'desinscription') return entete.intro;
+    if (enChargement) return entete.intro;
+    if (!pret || pret.desinscrit) return null;
+    return pret.annonces ? entete.intro : INTRO_UN_CHOIX;
+  }
+  const texteIntro = intro();
 
   function boutons(etat: EtatLien): ReactNode {
     if (type === 'confirmation') {
@@ -142,7 +174,7 @@ export function LienEmail({ type }: { type: TypeLien }) {
   return (
     <>
       <TitrePage surtitre={entete.surtitre} titre={entete.titre}>
-        {type === 'desinscription' && !deuxChoix ? null : <p>{entete.intro}</p>}
+        {texteIntro ? <p>{texteIntro}</p> : null}
       </TitrePage>
       <div className="px-4 pt-6 pb-10 tablette:px-7 paysage:px-10 bureau:px-14">
         <div
@@ -150,7 +182,7 @@ export function LienEmail({ type }: { type: TypeLien }) {
           aria-busy={chargement.phase === 'chargement' || envoi !== null}
         >
           <div role="status">
-            {chargement.phase === 'jeton' || chargement.phase === 'chargement' ? (
+            {enChargement ? (
               <p className="text-[15px] text-encre-2">Vérification du lien…</p>
             ) : null}
             {succes ? <Message icone="valide" reussi refMessage={resultat}>{succes}</Message> : null}
@@ -165,7 +197,7 @@ export function LienEmail({ type }: { type: TypeLien }) {
                 {messageErreur(chargement.nature, type)}
               </Message>
             ) : null}
-            {echec ? <Message icone="alerte" marge>{echec}</Message> : null}
+            {echec ? <Message icone="alerte" marge refMessage={messageEchec}>{echec}</Message> : null}
           </div>
         </div>
       </div>

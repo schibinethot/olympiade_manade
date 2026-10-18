@@ -22,6 +22,23 @@ describe('modeConsentement', () => {
     });
   });
 
+  // ── Mode aucun : pages des liens d'email ─────────────────────────────────
+  describe('aucun : pages /emails/* (jeton signé, désinscription jamais retardée)', () => {
+    for (const chemin of ['/emails/confirmation', '/emails/desinscription', '/emails/je-viens', '/emails']) {
+      it(`retourne aucun sur ${chemin}`, () => {
+        expect(modeConsentement(chemin)).toBe('aucun');
+      });
+    }
+
+    it('ignore la query string d’un ancien lien en ?j=', () => {
+      expect(modeConsentement('/emails/desinscription?j=jeton')).toBe('aucun');
+    });
+
+    it('ne confond pas /emailsX avec /emails', () => {
+      expect(modeConsentement('/emailsX')).toBe('fenetre');
+    });
+  });
+
   // ── Mode bandeau ─────────────────────────────────────────────────────────
   describe('bandeau : tunnels et pages compte/admin/légales', () => {
     const cas: string[] = [

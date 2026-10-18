@@ -7,7 +7,7 @@ export const meta: Route.MetaFunction = () => [
   { name: 'robots', content: 'noindex' },
 ];
 
-// Route sans pré-rendu (repli monopage) : le jeton du lien (?j=) n'est lu que dans le navigateur.
+// Route sans pré-rendu (repli monopage) : le jeton du lien (#j=, ou ?j= en repli) n'est lu que dans le navigateur.
 export default function EmailsJeViens() {
   return <LienEmail type="je_viens" />;
 }

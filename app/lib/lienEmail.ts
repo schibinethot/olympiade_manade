@@ -107,8 +107,12 @@ export async function decrireLien(jeton: string, signal: AbortSignal): Promise<E
   return decrit;
 }
 
-// Le jeton est lu une fois dans l'adresse (?j=) puis gardé dans l'onglet et retiré de l'adresse :
-// l'outil de mesure ne le voit pas, et un rechargement de la page continue de fonctionner.
+// Le jeton est lu une fois dans l'adresse puis gardé dans l'onglet et retiré de l'adresse : l'outil
+// de mesure ne le voit pas, et un rechargement de la page continue de fonctionner.
+//
+// Les liens des emails portent le jeton dans le fragment (#j=…) : le navigateur ne l'envoie ni au
+// serveur (journaux) ni dans le Referer. L'ancienne forme (?j=…) reste lue en repli. Le retrait de
+// l'adresse passe par le routeur (navigate, voir LienEmail) : useLocation ne garde pas le jeton.
 const CLE_JETON = 'olympiade-lien-email';
 
 function stockageOnglet(): Storage | null {
@@ -119,31 +123,38 @@ function stockageOnglet(): Storage | null {
   }
 }
 
-/** Jeton de la page `chemin` : celui de l'adresse (retiré ensuite de l'adresse), sinon celui gardé dans l'onglet. */
-export function recupererJeton(chemin: string): string {
+/** Jeton d'une adresse : le fragment `#j=` d'abord, puis `?j=` ; `present` si l'adresse en porte un, même vide. */
+export function jetonDeLAdresse(adresse: string): { jeton: string; present: boolean } {
+  const url = new URL(adresse);
+  const fragment = new URLSearchParams(url.hash.replace(/^#/, ''));
+  const present = fragment.has('j') || url.searchParams.has('j');
+  const jeton = fragment.get('j')?.trim() || url.searchParams.get('j')?.trim() || '';
+  return { jeton, present };
+}
+
+/**
+ * Jeton de la page `chemin` : celui de l'adresse `adresse`, sinon celui gardé dans l'onglet.
+ * `retirer` dit si l'adresse porte un jeton à effacer (l'appelant remplace l'entrée d'historique).
+ */
+export function recupererJeton(chemin: string, adresse: string): { jeton: string; retirer: boolean } {
   const stockage = stockageOnglet();
-  const url = new URL(window.location.href);
-  const dansAdresse = url.searchParams.get('j')?.trim() ?? '';
-  if (url.searchParams.has('j')) {
-    url.searchParams.delete('j');
-    window.history.replaceState(window.history.state, '', url);
-  }
+  const { jeton: dansAdresse, present } = jetonDeLAdresse(adresse);
   if (dansAdresse) {
     try {
       stockage?.setItem(CLE_JETON, JSON.stringify({ chemin, jeton: dansAdresse }));
     } catch {
       // Stockage refusé : le jeton reste dans l'état de la page, seul un rechargement le perdrait.
     }
-    return dansAdresse;
+    return { jeton: dansAdresse, retirer: true };
   }
   try {
     const garde: unknown = JSON.parse(stockage?.getItem(CLE_JETON) ?? 'null');
     if (typeof garde === 'object' && garde !== null) {
       const { chemin: cheminGarde, jeton } = garde as Record<string, unknown>;
-      if (cheminGarde === chemin && typeof jeton === 'string') return jeton;
+      if (cheminGarde === chemin && typeof jeton === 'string') return { jeton, retirer: present };
     }
   } catch {
     // Valeur abîmée : comme un lien sans jeton.
   }
-  return '';
+  return { jeton: '', retirer: present };
 }

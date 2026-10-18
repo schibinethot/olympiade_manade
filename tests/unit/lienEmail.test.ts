@@ -1,5 +1,45 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { appelerLien, ErreurLien, etatValide, signalAvecDelai } from '../../app/lib/lienEmail';
+import { appelerLien, ErreurLien, etatValide, jetonDeLAdresse, recupererJeton, signalAvecDelai } from '../../app/lib/lienEmail';
+
+describe('jeton des liens d’email (fragment #j=, repli ?j=)', () => {
+  const ORIGINE = 'https://olympiadedesmanades.fr';
+
+  it('lit le fragment en priorité, puis la query', () => {
+    expect(jetonDeLAdresse(`${ORIGINE}/emails/confirmation#j=abc.def`)).toEqual({ jeton: 'abc.def', present: true });
+    expect(jetonDeLAdresse(`${ORIGINE}/emails/confirmation?j=ancien`)).toEqual({ jeton: 'ancien', present: true });
+    expect(jetonDeLAdresse(`${ORIGINE}/emails/confirmation?j=ancien#j=nouveau`)).toEqual({ jeton: 'nouveau', present: true });
+    expect(jetonDeLAdresse(`${ORIGINE}/emails/confirmation?j=ancien#j=`)).toEqual({ jeton: 'ancien', present: true });
+  });
+
+  it('dit si l’adresse porte un jeton, même vide, pour le retirer', () => {
+    expect(jetonDeLAdresse(`${ORIGINE}/emails/desinscription`)).toEqual({ jeton: '', present: false });
+    expect(jetonDeLAdresse(`${ORIGINE}/emails/desinscription#j=`)).toEqual({ jeton: '', present: true });
+    expect(jetonDeLAdresse(`${ORIGINE}/emails/desinscription#autre=1`)).toEqual({ jeton: '', present: false });
+  });
+
+  describe('recupererJeton', () => {
+    afterEach(() => vi.unstubAllGlobals());
+
+    function onglet() {
+      const valeurs = new Map<string, string>();
+      vi.stubGlobal('window', {
+        sessionStorage: {
+          getItem: (cle: string) => valeurs.get(cle) ?? null,
+          setItem: (cle: string, valeur: string) => { valeurs.set(cle, valeur); },
+        },
+      });
+    }
+
+    it('garde le jeton de l’adresse dans l’onglet et demande de le retirer de l’adresse', () => {
+      onglet();
+      expect(recupererJeton('/emails/confirmation', `${ORIGINE}/emails/confirmation#j=secret`)).toEqual({ jeton: 'secret', retirer: true });
+      // Rechargement : l'adresse est propre, le jeton vient de l'onglet.
+      expect(recupererJeton('/emails/confirmation', `${ORIGINE}/emails/confirmation`)).toEqual({ jeton: 'secret', retirer: false });
+      // Un jeton gardé pour une autre page ne sert pas.
+      expect(recupererJeton('/emails/desinscription', `${ORIGINE}/emails/desinscription`)).toEqual({ jeton: '', retirer: false });
+    });
+  });
+});
 
 const DATE = { nom: 'Soirée des arènes', ville: 'Nîmes', date: '2027-07-24' };
 

@@ -47,10 +47,14 @@ if (typeof window !== 'undefined') {
  * - l'hôte est olympiadedesmanades.fr ou www.olympiadedesmanades.fr
  * - au moins une catégorie (mesure ou publicité) est acceptée
  * - le script `#olympiade-gtm` n'est pas encore présent dans le DOM
+ * - la page n'est pas une page de lien d'email (`/emails/*`) : son adresse a porté un jeton signé,
+ *   qui ne doit jamais partir vers un outil de mesure (ceinture, en plus du mode « aucun »)
  */
 export function chargerGoogleTagManager(mesure: boolean, publicite: boolean): void {
   if (!import.meta.env.VITE_GTM_ID) return;
-  const hote = typeof window !== 'undefined' ? window.location.hostname : '';
+  if (typeof window === 'undefined') return;
+  if (window.location.pathname.startsWith('/emails/')) return;
+  const hote = window.location.hostname;
   if (hote !== 'olympiadedesmanades.fr' && hote !== 'www.olympiadedesmanades.fr') return;
   if (!mesure && !publicite) return;
   if (typeof document === 'undefined') return;
