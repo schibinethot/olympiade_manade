@@ -124,7 +124,7 @@ function Liste() {
 
   return <section className={`${CARTE} min-w-0`} aria-label="Liste des abonnés">
     <p className="text-sm text-encre-2">
-      Adresses recueillies sur l’accueil pour les actualités, informations pratiques, résultats et notations. Chaque nouvelle
+      Adresses recueillies sur l’accueil pour les actualités, les dates, les informations pratiques, les résultats et les notations. Chaque nouvelle
       adresse reçoit d’abord un email de confirmation&nbsp;: tant que la personne n’a pas cliqué, rien d’autre ne lui part.
     </p>
     <div role="alert">{erreurClient || erreur ? <p className="mt-4 text-rouge-alerte">{erreurClient || erreur}</p> : null}</div>
