@@ -181,7 +181,8 @@ test('supabase-js retardé de 8 s : la navigation vers /dates affiche le pré-re
 test('supabase-js retardé de 8 s : /noter en accès direct quitte « Chargement… » en moins de 4 s', async ({ page }) => {
   const retenues = await retenirModuleSupabase(page, 8000);
   await page.goto('/noter');
-  await expect(page.getByRole('heading', { level: 1, name: /Les votes ouvriront/ })).toBeVisible({ timeout: 4000 });
+  // Le titre pinceau est maintenant le h1 visible (refonte : correction #2).
+  await expect(page.getByRole('heading', { level: 1, name: /Notez les Olympiades/ })).toBeVisible({ timeout: 4000 });
   await expect(page.getByText('Chargement…')).toHaveCount(0);
   await expect(page.getByText('Inscriptions bientôt ouvertes')).toBeVisible();
   expect(retenues()).toBeGreaterThan(0);
@@ -191,7 +192,8 @@ test('supabase-js bloqué avec une session sur l’appareil : /noter s’affiche
   await poserSession(page);
   const retenues = await retenirModuleSupabase(page);
   await page.goto('/noter');
-  await expect(page.getByRole('heading', { level: 1, name: /Les votes ouvriront/ })).toBeVisible({ timeout: 4000 });
+  // Le titre pinceau est maintenant le h1 visible (refonte : correction #2).
+  await expect(page.getByRole('heading', { level: 1, name: /Notez les Olympiades/ })).toBeVisible({ timeout: 4000 });
   await expect(page.getByText('Inscriptions bientôt ouvertes')).toBeVisible({ timeout: 4000 });
   expect(retenues()).toBeGreaterThan(0);
 });

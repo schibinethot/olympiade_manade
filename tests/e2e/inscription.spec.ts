@@ -475,9 +475,9 @@ test('/noter, spectateur inscrit : « Bonjour Léa », prochaine date et suivi d
   await simulerCalendrier(page);
   await page.clock.setFixedTime(new Date('2026-10-10T12:00:00+02:00'));
   await page.goto('/noter');
-  const texte = page.getByRole('main').getByText(/Bonjour Léa\./);
+  // Refonte /noter : le texte « Bonjour Léa » est dans le hero, sans la phrase de suivi des notes.
+  const texte = page.getByRole('main').getByText(/Bonjour Léa/);
   await expect(texte).toBeVisible();
-  await expect(texte).toContainText('Retrouvez les passages proposés et le suivi de vos notes ci-dessous.');
   await expect(texte).toContainText('Les votes ouvriront le samedi 1er mai 2027 à 21h, aux arènes André Blanc, à Mouriès.');
   await expect(page.getByRole('main').getByRole('link', { name: LIEN_INSCRIPTION })).toHaveCount(0);
   await expect(page.getByText(INSCRIPTIONS_FERMEES)).toHaveCount(0);

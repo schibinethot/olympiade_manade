@@ -36,7 +36,7 @@ function AperçuVote() {
   return (
     <fieldset
       aria-label="Exemple de vote : cet aperçu n'envoie rien"
-      className="relative rounded-[22px] border border-white/20 bg-nuit/70 p-4 tablette:p-5 backdrop-blur-sm"
+      className="relative rounded-[22px] border border-white/20 bg-nuit-2 p-4 tablette:p-5"
     >
       {/* La légende doit être le premier enfant direct du fieldset. */}
       <legend className="w-full">
@@ -136,7 +136,7 @@ function CommentCaSePasseSec() {
       className="px-4 pt-12 pb-4 tablette:px-7 tablette:pt-16 paysage:px-10 bureau:px-14"
     >
       <p className="text-[10.5px] font-bold tracking-[0.2em] text-or-ink uppercase">
-        Le soir de l'Olympiade
+        Le vote du public
       </p>
       <h2
         id="titre-comment"
@@ -150,7 +150,7 @@ function CommentCaSePasseSec() {
           <li
             key={etape.num}
             className={[
-              'relative py-6 pr-4',
+              'relative pt-3 pb-6 pr-4',
               // filet gauche à partir de la 2e étape sur mobile, filet haut pour toutes sur bureau
               i > 0
                 ? 'border-t border-trait paysage:border-t-0 paysage:border-l paysage:pl-8 paysage:pr-0 tablette:border-t-0 tablette:border-l tablette:pl-8 tablette:pr-4'
@@ -159,7 +159,7 @@ function CommentCaSePasseSec() {
           >
             <span
               aria-hidden="true"
-              className="block font-display text-[56px] font-bold italic leading-none text-or-ink/30 tabular-nums paysage:text-[72px]"
+              className="block font-display text-[56px] font-bold italic leading-none text-or-ink tabular-nums paysage:text-[72px]"
             >
               {etape.num}
             </span>
@@ -209,13 +209,6 @@ function Hero({
 }: HeroProps) {
   const ouvert = etat === 'ouvert';
 
-  // Texte accessible du h1, relu par les tests de chargement
-  const labelH1 = session
-    ? `Notez les manades${prenom ? `, ${prenom}` : ''}`
-    : soiree
-      ? `Les votes ouvriront ${momentSoiree(soiree)}`
-      : "Les votes ouvriront le soir de l'Olympiade";
-
   return (
     <section
       aria-labelledby="hero-noter-titre"
@@ -255,22 +248,13 @@ function Hero({
               )}
             </div>
 
-            {/* Titre pinceau (décoratif) + h1 (sémantique) */}
-            <div>
-              <p
-                aria-hidden="true"
-                className="font-brush text-[52px] leading-[.92] font-normal text-white tablette:text-[64px] paysage:text-[72px]"
-              >
-                Notez les Olympiades
-              </p>
-              <h1
-                id="hero-noter-titre"
-                className="sr-only"
-                aria-label={labelH1}
-              >
-                {labelH1}
-              </h1>
-            </div>
+            {/* Titre pinceau : le h1 visible de la page */}
+            <h1
+              id="hero-noter-titre"
+              className="font-brush text-[52px] leading-[.92] font-normal text-white tablette:text-[64px] paysage:text-[72px]"
+            >
+              Notez les Olympiades
+            </h1>
 
             {/* Phrase d'ouverture */}
             <p className="max-w-[40ch] text-[15px] leading-[1.5] text-white/90">
@@ -279,7 +263,7 @@ function Hero({
                 : session
                   ? `Bonjour${prenom ? ` ${prenom}` : ''} : vous êtes inscrit. Les votes ouvriront${soiree ? ` ${momentSoiree(soiree)}` : ' le soir de l’Olympiade'}.`
                   : soiree
-                    ? `Les votes ouvriront ${momentSoiree(soiree)}. Inscrivez-vous dès maintenant pour être prêt le soir venu.`
+                    ? `Les votes ouvriront ${momentSoiree(soiree)}. ${INSCRIPTION_OUVERTE ? 'Inscrivez-vous dès maintenant pour être prêt le soir venu.' : 'Vous noterez chaque manade de 1 à 10, dès la fin de son passage.'}`
                     : 'Le soir de l’Olympiade, notez chaque manade de 1 à 10, dès la fin de son passage.'}
             </p>
 
