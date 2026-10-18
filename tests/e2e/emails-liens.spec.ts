@@ -92,6 +92,24 @@ test('le jeton quitte l’adresse mais un rechargement fonctionne, et le résult
   await expect(page.locator('p:focus')).toContainText('Merci, votre adresse est confirmée.');
 });
 
+test('quitter la page de lien dans l’onglet retire le jeton du stockage, un rechargement le garde', async ({ page }) => {
+  await simuler(page, { type: 'confirmation', abonne: true, annonces: true, desinscrit: false });
+  await page.goto('/emails/confirmation#j=jeton-a-oublier');
+  await expect(page.getByRole('button', { name: 'Confirmer mon adresse' })).toBeVisible();
+  const garde = () => page.evaluate(() => sessionStorage.getItem('olympiade-lien-email'));
+  expect(await garde()).toContain('jeton-a-oublier');
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Confirmer mon adresse' })).toBeVisible();
+  expect(await garde()).toContain('jeton-a-oublier');
+  // Navigation dans le site (même onglet, sans rechargement) : la page de lien est démontée.
+  await page.evaluate(() => {
+    const lien = document.querySelector<HTMLAnchorElement>('footer a[href="/mentions-legales"]');
+    lien?.click();
+  });
+  await expect(page).toHaveURL(/\/mentions-legales$/);
+  expect(await garde()).toBeNull();
+});
+
 test('un ancien lien en ?j= fonctionne encore, et son jeton quitte aussi l’adresse', async ({ page }) => {
   const corps = await simuler(page, { type: 'desinscription', abonne: true, annonces: true, desinscrit: false });
   await page.goto('/emails/desinscription?j=jeton-ancien');

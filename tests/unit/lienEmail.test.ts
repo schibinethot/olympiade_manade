@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { appelerLien, ErreurLien, etatValide, jetonDeLAdresse, recupererJeton, signalAvecDelai } from '../../app/lib/lienEmail';
+import {
+  appelerLien, ErreurLien, etatValide, garderJeton, jetonDeLAdresse, oublierJeton, recupererJeton, signalAvecDelai,
+} from '../../app/lib/lienEmail';
 
 describe('jeton des liens d’email (fragment #j=, repli ?j=)', () => {
   const ORIGINE = 'https://olympiadedesmanades.fr';
@@ -26,6 +28,7 @@ describe('jeton des liens d’email (fragment #j=, repli ?j=)', () => {
         sessionStorage: {
           getItem: (cle: string) => valeurs.get(cle) ?? null,
           setItem: (cle: string, valeur: string) => { valeurs.set(cle, valeur); },
+          removeItem: (cle: string) => { valeurs.delete(cle); },
         },
       });
     }
@@ -37,6 +40,24 @@ describe('jeton des liens d’email (fragment #j=, repli ?j=)', () => {
       expect(recupererJeton('/emails/confirmation', `${ORIGINE}/emails/confirmation`)).toEqual({ jeton: 'secret', retirer: false });
       // Un jeton gardé pour une autre page ne sert pas.
       expect(recupererJeton('/emails/desinscription', `${ORIGINE}/emails/desinscription`)).toEqual({ jeton: '', retirer: false });
+    });
+
+    it('oublie le jeton de l’onglet quand on quitte la page, et peut le remettre (nouveau montage)', () => {
+      onglet();
+      recupererJeton('/emails/confirmation', `${ORIGINE}/emails/confirmation#j=secret`);
+      oublierJeton();
+      expect(recupererJeton('/emails/confirmation', `${ORIGINE}/emails/confirmation`)).toEqual({ jeton: '', retirer: false });
+      garderJeton('/emails/confirmation', 'secret');
+      expect(recupererJeton('/emails/confirmation', `${ORIGINE}/emails/confirmation`)).toEqual({ jeton: 'secret', retirer: false });
+    });
+
+    it('un stockage refusé ne casse rien', () => {
+      vi.stubGlobal('window', {
+        get sessionStorage(): Storage { throw new DOMException('refusé', 'SecurityError'); },
+      });
+      expect(() => oublierJeton()).not.toThrow();
+      expect(() => garderJeton('/emails/confirmation', 'x')).not.toThrow();
+      expect(recupererJeton('/emails/confirmation', `${ORIGINE}/emails/confirmation#j=x`)).toEqual({ jeton: 'x', retirer: true });
     });
   });
 });

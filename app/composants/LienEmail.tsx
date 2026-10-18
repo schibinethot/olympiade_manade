@@ -5,7 +5,9 @@ import {
   appelerLien,
   decrireLien,
   ErreurLien,
+  garderJeton,
   MESSAGES_LIEN,
+  oublierJeton,
   recupererJeton,
   type ActionLien,
   type EtatLien,
@@ -70,13 +72,24 @@ export function LienEmail({ type }: { type: TypeLien }) {
   const navigate = useNavigate();
   const entete = ENTETES[type];
 
+  // Jeton lu une fois : un nouveau montage (mode strict de React) le remet dans l'onglet au lieu de relire
+  // une adresse déjà nettoyée.
+  const jetonLu = useRef<string | null>(null);
+
   // Le jeton est lu dans l'adresse (#j=, sinon ?j=) puis retiré de l'adresse par le routeur, pour que
-  // useLocation ne le garde pas (voir recupererJeton).
+  // useLocation ne le garde pas (voir recupererJeton). Il est gardé dans l'onglet pour un rechargement,
+  // et retiré de l'onglet quand on quitte la page (revue de code, mineur n° 8).
   useEffect(() => {
     const { pathname, href } = window.location;
-    const lu = recupererJeton(pathname, href);
-    if (lu.retirer) navigate(pathname, { replace: true });
-    setJeton(lu.jeton);
+    if (jetonLu.current === null) {
+      const lu = recupererJeton(pathname, href);
+      if (lu.retirer) navigate(pathname, { replace: true });
+      jetonLu.current = lu.jeton;
+      setJeton(lu.jeton);
+    } else if (jetonLu.current) {
+      garderJeton(pathname, jetonLu.current);
+    }
+    return () => oublierJeton();
   }, [navigate]);
 
   useEffect(() => {

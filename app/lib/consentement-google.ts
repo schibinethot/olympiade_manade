@@ -7,6 +7,8 @@
  * @see plan-consentement-cookies.md section « CSP quand GTM est configuré »
  */
 
+import { oublierJeton } from './lienEmail';
+
 declare global {
   interface Window {
     dataLayer?: unknown[];
@@ -59,6 +61,9 @@ export function chargerGoogleTagManager(mesure: boolean, publicite: boolean): vo
   if (!mesure && !publicite) return;
   if (typeof document === 'undefined') return;
   if (document.getElementById('olympiade-gtm')) return;
+  // Ceinture du mineur n° 8 : un jeton de lien d'email resté dans l'onglet (page quittée par une
+  // navigation complète, sans démontage) n'est jamais lisible par une balise GTM.
+  oublierJeton();
 
   window.dataLayer = window.dataLayer ?? [];
   (window.dataLayer as unknown[]).push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });

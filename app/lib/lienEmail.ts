@@ -132,6 +132,28 @@ export function jetonDeLAdresse(adresse: string): { jeton: string; present: bool
   return { jeton, present };
 }
 
+/** Garde le jeton de la page `chemin` dans l'onglet (un rechargement le retrouve). */
+export function garderJeton(chemin: string, jeton: string): void {
+  try {
+    stockageOnglet()?.setItem(CLE_JETON, JSON.stringify({ chemin, jeton }));
+  } catch {
+    // Stockage refusé : le jeton reste dans l'état de la page, seul un rechargement le perdrait.
+  }
+}
+
+/**
+ * Retire le jeton de l'onglet. Appelé quand la page de lien est quittée dans l'onglet (démontage) : une
+ * autre page du site, où la mesure d'audience peut être chargée, ne le trouve plus. Un rechargement ne
+ * démonte rien : le jeton reste disponible pour lui.
+ */
+export function oublierJeton(): void {
+  try {
+    stockageOnglet()?.removeItem(CLE_JETON);
+  } catch {
+    // Stockage illisible : rien n'y a été gardé.
+  }
+}
+
 /**
  * Jeton de la page `chemin` : celui de l'adresse `adresse`, sinon celui gardé dans l'onglet.
  * `retirer` dit si l'adresse porte un jeton à effacer (l'appelant remplace l'entrée d'historique).
@@ -140,11 +162,7 @@ export function recupererJeton(chemin: string, adresse: string): { jeton: string
   const stockage = stockageOnglet();
   const { jeton: dansAdresse, present } = jetonDeLAdresse(adresse);
   if (dansAdresse) {
-    try {
-      stockage?.setItem(CLE_JETON, JSON.stringify({ chemin, jeton: dansAdresse }));
-    } catch {
-      // Stockage refusé : le jeton reste dans l'état de la page, seul un rechargement le perdrait.
-    }
+    garderJeton(chemin, dansAdresse);
     return { jeton: dansAdresse, retirer: true };
   }
   try {

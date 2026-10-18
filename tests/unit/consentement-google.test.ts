@@ -4,9 +4,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Script = { id?: string; async?: boolean; src?: string };
 
-function navigateur(pathname: string) {
+function navigateur(pathname: string, stockage = new Map<string, string>()) {
   const ajoutes: Script[] = [];
-  vi.stubGlobal('window', { location: { pathname, hostname: 'olympiadedesmanades.fr' }, dataLayer: [] });
+  vi.stubGlobal('window', {
+    location: { pathname, hostname: 'olympiadedesmanades.fr' },
+    dataLayer: [],
+    sessionStorage: {
+      getItem: (cle: string) => stockage.get(cle) ?? null,
+      setItem: (cle: string, valeur: string) => { stockage.set(cle, valeur); },
+      removeItem: (cle: string) => { stockage.delete(cle); },
+    },
+  });
   vi.stubGlobal('document', {
     getElementById: () => null,
     createElement: (): Script => ({}),
@@ -31,6 +39,15 @@ describe('chargerGoogleTagManager', () => {
     chargerGoogleTagManager(true, false);
     expect(ajoutes).toHaveLength(1);
     expect(ajoutes[0].src).toBe('https://www.googletagmanager.com/gtm.js?id=GTM-TEST');
+  });
+
+  it('retire de l’onglet un jeton de lien d’email resté là avant de charger GTM (mineur n° 8)', async () => {
+    const stockage = new Map([['olympiade-lien-email', JSON.stringify({ chemin: '/emails/confirmation', jeton: 'secret' })]]);
+    const ajoutes = navigateur('/dates', stockage);
+    const { chargerGoogleTagManager } = await import('../../app/lib/consentement-google');
+    chargerGoogleTagManager(true, false);
+    expect(ajoutes).toHaveLength(1);
+    expect(stockage.has('olympiade-lien-email')).toBe(false);
   });
 
   it.each(['/emails/confirmation', '/emails/desinscription', '/emails/je-viens'])('ne charge jamais GTM sur %s, même après accord', async (chemin) => {
