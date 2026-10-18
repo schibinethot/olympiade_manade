@@ -487,7 +487,7 @@ Toutes les heures sont celles de Paris. Les jours et heures ci-dessous sont des 
 
 **Procédure de mise en production** (revue de code du 18/10/2026)
 1. migration appliquée, puis code déployé avec `EMAILS_MODE=log` : un passage sans erreur, pages de lien et POST en un clic vérifiés
-2. avant `smtp`, compter les dépôts en prod par version du consentement : `select consentement_version, count(*) from public.abonnements_actualites group by 1;`. Un dépôt à l’ancien texte (`2026-10-17`, sans « les dates ») est confirmé par le clic, mais sans les annonces des prochaines dates
+2. avant `smtp`, compter les dépôts en prod par version du consentement : `select consentement_version, count(*) from public.abonnements_actualites group by 1;`. Un dépôt à l’ancien texte (`2026-10-17`, sans « les dates ») est confirmé par le clic, mais sans les annonces des prochaines dates. Un nouveau dépôt de la même adresse ne met pas sa version à jour : s’il reste des dépôts `2026-10-17` sans clic, décider avec la juriste de les supprimer, pour que ces personnes se réinscrivent avec le texte courant
 3. passage en `EMAILS_MODE=smtp` **avec la barrière d’accès encore active** : le planificateur reste inactif (raison « barrière »), rien ne part aux destinataires
 4. « M’envoyer un test » depuis `/admin/emails` : le mail de test arrive en smtp, ce qui valide la configuration (SMTP, expéditeur, liens, identité) avant tout envoi réel
 5. vérifier le plafond horaire du plan Brevo face à la taille de la base reprise : le premier passage réel envoie une confirmation à chaque abonné repris, au débit de `EMAILS_DEBIT_PAR_SECONDE` (5 par seconde par défaut)
