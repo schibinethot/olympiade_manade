@@ -231,8 +231,9 @@ test.describe('admin des e-mails', () => {
     await expect(etapes).toHaveCount(9);
     await expect(etapes.nth(2)).toContainText('7 jours avant, à 10 h');
     await expect(etapes.nth(3)).toContainText('La veille, à 18 h');
-    // Date proche à J+4 avec 3 inscrits : la veille tombe dans les 7 prochains jours, et la date est nommée.
-    await expect(etapes.nth(3)).toContainText(/environ 3 inscrits de Lunel \(\S+ \d{2}\/\d{2}\), \S+ \d{2}\/\d{2} à 18 h/);
+    // Date proche à J+4 avec 3 inscrits : la veille tombe dans les 7 prochains jours, et la date est nommée
+    // (sa date courte porte une espace insécable : formaterDate, revue design n° 4).
+    await expect(etapes.nth(3)).toContainText(/environ 3 inscrits de Lunel \(\S+\s\d{2}\/\d{2}\), \S+ \d{2}\/\d{2} à 18 h/);
     // Bandeaux persistants : visibles, sans rôle d'alerte (rien n'est annoncé à chaque affichage).
     await expect(page.getByText('Aucun email ne part réellement.')).toBeVisible();
     await expect(page.getByText(/Soirée reportée à Sommières/)).toBeVisible();
