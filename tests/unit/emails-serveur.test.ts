@@ -1750,6 +1750,42 @@ describe('correctifs n° 1 : planificateur', () => {
     expect(enAttente('en_cours')).toBe(0);
   });
 
+  it('SIGTERM pendant une réclamation : les groupes réclamés sont rendus avant toute relecture (fix 2, mineur n° 7)', async () => {
+    const { base, emails, courriel } = preparer({ mode: 'smtp' });
+    base.tables.modeles_emails = modeles();
+    base.tables.calendrier = [date(ID.aujourdhui, '2027-07-29')];
+    for (let i = 0; i < 3; i++) {
+      const id = `77777777-7777-4777-8777-0000000000${String(i).padStart(2, '0')}`;
+      base.tables.destinataires_emails.push(destinataire(id, `p${i}@exemple.fr`));
+      base.tables.envois_emails.push(envoi(id, 'jour_j', ID.aujourdhui, {
+        reel: true, statut: 'en_attente', envoye_le: null, prevu_le: '2027-07-29T08:00:00Z', cree_le: '2027-07-29T08:00:00Z',
+      }));
+    }
+    // L'arrêt arrive pendant la réclamation du deuxième groupe : arreter() ne voit encore que le premier.
+    let reclamations = 0;
+    let arret: Promise<void> | null = null;
+    let appelsAvantArret = 0;
+    base.intercepter = (appel) => {
+      if (appel.methode === 'PATCH' && (appel.corps as Ligne | undefined)?.raison === 'en_cours') {
+        reclamations += 1;
+        if (reclamations === 2) {
+          appelsAvantArret = base.appels.length;
+          arret = emails.arreter();
+        }
+      }
+      return null;
+    };
+    await emails.passer();
+    await arret;
+    expect(reclamations).toBe(2);
+    expect(courriel.envoyer).not.toHaveBeenCalled();
+    // Aucune relecture (destinataires, dates) après l'arrêt : les deux groupes réclamés sont rendus aussitôt.
+    const apres = base.appels.slice(appelsAvantArret);
+    expect(apres.filter((a) => a.methode === 'GET' && ['/rest/v1/destinataires_emails', '/rest/v1/calendrier'].includes(a.chemin))).toEqual([]);
+    expect(base.tables.envois_emails.filter((e) => e.statut === 'en_attente' && e.raison === null)).toHaveLength(3);
+    expect(base.tables.envois_emails.some((e) => e.raison === 'en_cours')).toBe(false);
+  });
+
   it('{{prochaines_dates}} : les prochaines dates du calcul sont relues après la réclamation (mineur n° 4)', async () => {
     const { base, emails, courriel } = preparer({ mode: 'smtp' });
     scenarioDeBase(base);

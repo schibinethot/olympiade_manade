@@ -435,6 +435,12 @@ export function creerPlanificateur(ctx, acces) {
           signaler('réclamation d’un e-mail impossible', erreur, { etape: groupe[0].etape });
         }
       }
+      // SIGTERM pendant une réclamation : arreter() n'a pas vu le groupe qu'elle retenait. Tout ce qui reste à commencer
+      // est rendu tout de suite, avant la relecture (qui pourrait dépasser le délai de sortie).
+      if (arretDemande) {
+        for (const groupe of reclames) if (nonCommences.delete(groupe)) await rendre(groupe);
+        break;
+      }
       if (!reclames.length) continue;
       // Relecture après la réclamation : une désinscription, un retrait de consentement ou une date changée
       // depuis la lecture l'emporte. Impossible : les lignes réclamées sont rendues, rien ne part.
