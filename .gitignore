@@ -11,3 +11,5 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 docs/maquette/dist/
+# Worktrees des agents Claude Code (dépôts git à part, jamais suivis ici)
+/.claude/worktrees/
