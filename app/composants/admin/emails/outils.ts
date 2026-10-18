@@ -4,6 +4,8 @@
  */
 
 import { echeance, type EnvoiEstime } from '../../../../serveur/echeances-emails.mjs';
+// Source unique des jours et heures de Paris, partagée avec le serveur (module isomorphe, sans import node:*).
+import { decalerJour as decalerJourParis, FUSEAU, jourCalendaireParis } from '../../../../serveur/fuseau-paris.mjs';
 import {
   ETAPES,
   formaterDate,
@@ -16,27 +18,25 @@ import {
 } from '../../../../serveur/gabarits-emails.mjs';
 import type { DateCalendrier, EtatEmails, LigneBilan, ModeleEmailLigne, StatutEnvoi } from './donnees';
 
-const FUSEAU = 'Europe/Paris';
 const NB = '\u00a0';
 
 // ---------------------------------------------------------------------------
 // Jours et heures de Paris
 // ---------------------------------------------------------------------------
 
-const JOUR_PARIS = new Intl.DateTimeFormat('en-CA', { timeZone: FUSEAU, year: 'numeric', month: '2-digit', day: '2-digit' });
+/** Affichage seulement (jour de semaine en français) : le calcul des jours passe par fuseau-paris.mjs. */
 const INSTANT_PARIS = new Intl.DateTimeFormat('fr-FR', {
   timeZone: FUSEAU, weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
 });
 
 /** Jour civil de Paris d'un instant : « AAAA-MM-JJ ». */
 export function jourParisDe(instant: Date): string {
-  return JOUR_PARIS.format(instant);
+  return jourCalendaireParis(instant.getTime());
 }
 
-/** « AAAA-MM-JJ » décalé de `jours`. */
+/** « AAAA-MM-JJ » décalé de `jours` (un jour invalide lève une RangeError). */
 export function decalerJour(jour: string, jours: number): string {
-  const [annee, mois, quantieme] = jour.split('-').map(Number);
-  return new Date(Date.UTC(annee, mois - 1, quantieme + jours)).toISOString().slice(0, 10);
+  return decalerJourParis(jour, jours);
 }
 
 /** « 10:00:00 » → « 10 h », « 07:05 » → « 7 h 05 ». */

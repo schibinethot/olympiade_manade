@@ -5,7 +5,9 @@ import { OUTILS } from '../../app/composants/admin/emails/Insertion';
 import { nouvelleCle } from '../../app/composants/admin/emails/MessageInscrits';
 import {
   bandeauxEnvoi,
+  decalerJour,
   heureSaisie,
+  jourParisDe,
   heureValide,
   insererBouton,
   insererGras,
@@ -91,6 +93,16 @@ describe('quand en clair', () => {
 });
 
 describe('estimations et dates', () => {
+  it('lit le jour de Paris et décale les jours avec le module partagé du serveur (fuseau-paris.mjs)', () => {
+    // 22 h 30 UTC le 31/07 : déjà le 01/08 à Paris (été, UTC+2) ; 23 h 30 UTC le 31/12 : 01/01 (hiver, UTC+1).
+    expect(jourParisDe(new Date('2027-07-31T22:30:00Z'))).toBe('2027-08-01');
+    expect(jourParisDe(new Date('2027-12-31T23:30:00Z'))).toBe('2028-01-01');
+    expect(jourParisDe(new Date('2027-12-31T22:30:00Z'))).toBe('2027-12-31');
+    expect(decalerJour('2027-03-31', -8)).toBe('2027-03-23');
+    expect(decalerJour('2027-12-28', 7)).toBe('2028-01-04');
+    expect(() => decalerJour('2027-02-31', 1)).toThrow(RangeError);
+  });
+
   it('écrit un instant à l’heure de Paris, été comme hiver', () => {
     expect(instantEnClair('2027-07-24T08:00:00Z')).toBe('sam. 24/07 à 10 h');
     expect(instantEnClair('2027-11-06T16:30:00Z')).toBe('sam. 06/11 à 17 h 30');
