@@ -411,7 +411,14 @@ describe('envoyerSmtp : fin de dialogue et refus (F1)', () => {
   it('corps reçu sans réponse (délai) ou connexion coupée après le corps : incertain et définitif, jamais réessayé (Important n° 2)', async () => {
     for (const corps of ['muet', 'coupe'] as const) {
       const faux = await fauxSmtp({ quit: 'repond', corps });
-      const erreur = await envoyerSmtp({ ...faux.smtp, timeoutMs: 2_000, timeoutCorpsMs: 300 }, MESSAGE).then(() => null, (e: unknown) => e);
+      const debut = Date.now();
+      // Une coupure se voit tout de suite, sans attendre le délai du 250 (ici 5 s).
+      const timeoutCorpsMs = corps === 'coupe' ? 5_000 : 300;
+      const erreur = await envoyerSmtp({ ...faux.smtp, timeoutMs: 2_000, timeoutCorpsMs }, MESSAGE).then(() => null, (e: unknown) => e);
+      if (corps === 'coupe') {
+        expect(Date.now() - debut).toBeLessThan(2_000);
+        expect(String(erreur)).toMatch(/Connexion SMTP fermée/);
+      }
       // Le relais a bien reçu le corps : il a pu l'accepter.
       expect(faux.recu.filter((l) => l.startsWith('corps:')).length, corps).toBeGreaterThan(0);
       expect(erreur, corps).toMatchObject({ incertain: true, definitif: true });

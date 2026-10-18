@@ -278,6 +278,7 @@ export function envoyerSmtp(smtp, message) {
         });
         courant.on('data', (morceau) => lire(morceau.toString('utf8')));
         courant.on('error', (erreur) => echec(erreur));
+        courant.on('close', () => echec(new Error('Connexion SMTP fermée.')));
         courant.once('secure', () => envoyer('EHLO olympiade-manade'));
         return;
       }
@@ -337,6 +338,8 @@ export function envoyerSmtp(smtp, message) {
 
     socket.on('data', (morceau) => lire(morceau.toString('utf8')));
     socket.on('error', (erreur) => echec(erreur));
+    // Une coupure se voit tout de suite, sans attendre le délai (60 s après le corps) ; sans effet une fois le 250 reçu.
+    socket.on('close', () => echec(new Error('Connexion SMTP fermée.')));
   });
 }
 
