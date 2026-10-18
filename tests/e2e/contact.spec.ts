@@ -149,7 +149,9 @@ test('l’accueil renvoie vers les crédits photos', async ({ page }) => {
 
 test('la confidentialité mentionne les transferts, la CNIL et la session', async ({ page }) => {
   await page.goto('/confidentialite');
-  await expect(page.getByText(/clauses contractuelles types/)).toBeVisible();
+  // Deux paragraphes : les prestataires (Railway, Cloudflare, Anthropic, Supabase), puis Google et Meta (R1, R2).
+  await expect(page.getByText(/clauses contractuelles types/)).toHaveCount(2);
+  await expect(page.getByText(/clauses contractuelles types/).first()).toBeVisible();
   await expect(page.getByText(/3 place de Fontenoy/)).toBeVisible();
   await expect(page.getByText(/donnée de session/)).toBeVisible();
   await expect(page.getByText(/Data Privacy Framework/)).toHaveCount(0);
