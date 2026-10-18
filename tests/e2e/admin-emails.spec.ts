@@ -596,6 +596,14 @@ test.describe('admin des e-mails', () => {
     await carte.getByRole('button', { name: 'Vérifier et envoyer' }).click();
     await carte.getByRole('button', { name: 'Oui, envoyer' }).click();
     await expect(carte.getByRole('button', { name: 'Réessayer' })).toBeVisible();
+    // Le premier essai est en base : seule une relecture de l'historique le montre.
+    await page.route('**/rest/v1/messages_inscrits*', (route) => route.fulfill({
+      json: [
+        { id: 'message-2', calendrier_id: 'date-proche', sujet: 'Premier essai enregistré', cree_le: '2026-10-17T16:00:00Z', destinataires: 3 },
+        { id: 'message-1', calendrier_id: 'date-proche', sujet: 'Le parking change de place', cree_le: '2026-10-15T16:00:00Z', destinataires: 3 },
+      ],
+    }));
+    await expect(carte.getByText('Premier essai enregistré')).toHaveCount(0);
     // L'admin corrige une faute puis renvoie : même clé, autre texte.
     await carte.getByRole('button', { name: 'Modifier' }).click();
     await corps.fill('Bonjour,\n\nLes portes ouvrent à 20 h 30.');
@@ -604,6 +612,9 @@ test.describe('admin des e-mails', () => {
     await expect(carte.getByRole('alert').filter({ hasText: 'Ce message est déjà parti.' })).toBeVisible();
     await expect(carte.getByRole('button', { name: 'Fermer le formulaire' })).toBeFocused();
     await expect(carte.getByRole('button', { name: /Réessayer|Oui, envoyer|Vérifier et envoyer/ })).toHaveCount(0);
+    // L'historique est relu sans quitter l'écran : le message déjà parti y figure, l'alerte reste.
+    await expect(carte.getByText('Premier essai enregistré')).toBeVisible();
+    await expect(carte.getByRole('alert').filter({ hasText: 'Ce message est déjà parti.' })).toBeVisible();
     expect(envois).toHaveLength(2);
     expect(envois[1].cle).toBe(envois[0].cle);
     await carte.getByRole('button', { name: 'Fermer le formulaire' }).click();

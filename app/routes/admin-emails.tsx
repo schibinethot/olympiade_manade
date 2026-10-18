@@ -212,7 +212,8 @@ function Contenu() {
     const { modeles, dates, bilan, rattaches, messages } = donnees.valeur;
     if (onglet === 'dates') {
       return <Dates dates={dates} rattaches={rattaches} modeles={modeles} messages={messages} client={client} jeton={jeton} etat={etat}
-        ecrireA={ecrireA} onInfos={remplacerInfos} onMessage={ajouterMessage} onModifie={signalerBrouillon} />;
+        ecrireA={ecrireA} onInfos={remplacerInfos} onMessage={ajouterMessage} onActualiser={() => recharger(true)}
+        onModifie={signalerBrouillon} />;
     }
     if (onglet === 'envois') {
       return <Envois bilan={bilan} modeles={modeles} dates={dates} etat={etat} client={client}

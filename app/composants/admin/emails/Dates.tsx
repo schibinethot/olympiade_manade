@@ -97,7 +97,7 @@ function HistoriqueMessages({ idTitre, messages }: { idTitre: string; messages: 
   );
 }
 
-function CarteDate({ date, dates, inscrits, modeleMessage, messages, utilisateurs, client, jeton, simulation, ouvrirMessage, onInfos, onMessage, onModifie }: {
+function CarteDate({ date, dates, inscrits, modeleMessage, messages, utilisateurs, client, jeton, simulation, ouvrirMessage, onInfos, onMessage, onActualiser, onModifie }: {
   date: DateCalendrier;
   dates: readonly DateCalendrier[];
   inscrits: number | null;
@@ -105,6 +105,7 @@ function CarteDate({ date, dates, inscrits, modeleMessage, messages, utilisateur
   /** Messages déjà envoyés pour cette date, du plus récent au plus ancien ; null si illisibles. */
   messages: readonly MessageEnvoye[] | null;
   onMessage: (message: MessageEnvoye) => void;
+  onActualiser: () => void;
   utilisateurs: readonly string[];
   client: SupabaseClient;
   jeton: string | null;
@@ -160,6 +161,7 @@ function CarteDate({ date, dates, inscrits, modeleMessage, messages, utilisateur
       {ecrire && jeton && inscrits ? (
         <MessageInscrits date={date} dates={dates} inscrits={inscrits} modeleMessage={modeleMessage} jeton={jeton} onModifie={signaler}
           onFermer={() => fermer()}
+          onDejaParti={onActualiser}
           onEnvoye={(message) => {
             onMessage(message);
             fermer(`Message enregistré pour ${personnes(message.destinataires)}${NB}: il part au prochain passage du planificateur, dans la minute.${
@@ -181,13 +183,15 @@ function CarteDate({ date, dates, inscrits, modeleMessage, messages, utilisateur
   );
 }
 
-export function Dates({ dates, rattaches, modeles, messages, client, jeton, etat, ecrireA, onInfos, onMessage, onModifie }: {
+export function Dates({ dates, rattaches, modeles, messages, client, jeton, etat, ecrireA, onInfos, onMessage, onActualiser, onModifie }: {
   dates: readonly DateCalendrier[];
   rattaches: Record<string, number> | null;
   modeles: readonly ModeleEmailLigne[];
   /** Historique des messages aux inscrits, toutes dates ; null s'il est illisible. */
   messages: readonly MessageEnvoye[] | null;
   onMessage: (message: MessageEnvoye) => void;
+  /** Relit les données sans quitter l'écran (message déjà parti). */
+  onActualiser: () => void;
   client: SupabaseClient;
   jeton: string | null;
   etat: EtatChargement<EtatEmails>;
@@ -212,7 +216,8 @@ export function Dates({ dates, rattaches, modeles, messages, client, jeton, etat
         <CarteDate key={date.id} date={date} dates={dates} inscrits={rattaches ? rattaches[date.id] ?? 0 : null}
           modeleMessage={modeleMessage} messages={messages ? messages.filter((message) => message.calendrier_id === date.id) : null}
           utilisateurs={utilisateurs} client={client} jeton={jeton} simulation={simulation}
-          ouvrirMessage={ecrireA === date.id} onInfos={(infos) => onInfos(date.id, infos)} onMessage={onMessage} onModifie={onModifie} />
+          ouvrirMessage={ecrireA === date.id} onInfos={(infos) => onInfos(date.id, infos)} onMessage={onMessage}
+          onActualiser={onActualiser} onModifie={onModifie} />
       ))}
     </div>
   );

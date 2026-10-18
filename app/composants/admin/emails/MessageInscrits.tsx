@@ -38,7 +38,7 @@ type Champ = 'sujet' | 'corps';
  */
 type Envoi = { etat: 'repos' } | { etat: 'encours' } | { etat: 'erreur'; message: string } | { etat: 'deja_parti' };
 
-export function MessageInscrits({ date, dates, inscrits, modeleMessage, jeton, onModifie, onEnvoye, onFermer }: {
+export function MessageInscrits({ date, dates, inscrits, modeleMessage, jeton, onModifie, onEnvoye, onDejaParti, onFermer }: {
   date: DateCalendrier;
   dates: readonly DateCalendrier[];
   inscrits: number;
@@ -48,6 +48,8 @@ export function MessageInscrits({ date, dates, inscrits, modeleMessage, jeton, o
   onModifie: (modifie: boolean) => void;
   /** Le message est parti : il rejoint l'historique de la date. */
   onEnvoye: (message: MessageEnvoye) => void;
+  /** Le serveur a déjà le message (409) : l'historique est relu, le texte enregistré n'étant connu que de lui. */
+  onDejaParti: () => void;
   onFermer: () => void;
 }) {
   // Tirée une fois à l'ouverture, gardée pour tous les essais de ce formulaire.
@@ -110,7 +112,10 @@ export function MessageInscrits({ date, dates, inscrits, modeleMessage, jeton, o
     });
     // Clé déjà enregistrée avec un autre texte (premier essai parti, réponse perdue, puis texte corrigé) :
     // le message est parti, jamais de nouvelle clé.
-    if (!reponse.ok && reponse.statut === 409 && reponse.code === 'cle_deja_utilisee') return setEnvoi({ etat: 'deja_parti' });
+    if (!reponse.ok && reponse.statut === 409 && reponse.code === 'cle_deja_utilisee') {
+      setEnvoi({ etat: 'deja_parti' });
+      return onDejaParti();
+    }
     // En cas d'échec, le formulaire reste ouvert : le même texte peut être renvoyé (« Réessayer »), avec la même clé.
     if (!reponse.ok) return setEnvoi({ etat: 'erreur', message: reponse.message });
     const { destinataires, id } = reponse.donnees;
