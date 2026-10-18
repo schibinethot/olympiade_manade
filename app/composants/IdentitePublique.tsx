@@ -35,6 +35,8 @@ function lignesResponsable(identite: IdentiteLegale): (string | null)[] {
 /**
  * Identité de l'organisateur lue dans identite_legale. Tant qu'elle n'est pas connue, ou si elle est
  * vide, l'encadré « À compléter par l'organisateur » affiche le repli : aucune valeur inventée.
+ * Variante « responsable » : sans nom ni raison sociale, le repli aussi (revue juridique R4), comme le
+ * serveur, qui n'envoie rien tant que le nom manque.
  */
 export function IdentitePublique({ repli, variante = 'editeur', avant }: {
   repli: ReactNode;
@@ -44,7 +46,7 @@ export function IdentitePublique({ repli, variante = 'editeur', avant }: {
 }) {
   const { connue, identite } = useIdentiteLegale();
 
-  if (!connue || !identite || !identiteRemplie(identite)) {
+  if (!connue || !identite || !identiteRemplie(identite) || (variante === 'responsable' && !identite.raison_sociale?.trim())) {
     return <EncadreOrganisateur>{repli}</EncadreOrganisateur>;
   }
   const lignes = (variante === 'responsable' ? lignesResponsable(identite) : lignesEditeur(identite))

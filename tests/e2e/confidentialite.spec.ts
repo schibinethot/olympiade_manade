@@ -35,6 +35,30 @@ test('avec l’identité, le responsable et ses coordonnées sont affichés', as
   await expect(responsable).not.toContainText('Camille Martin');
 });
 
+test('sans nom ni raison sociale, le responsable reste à compléter même si un email est renseigné (R4)', async ({ page }) => {
+  await ouvrir(page, [{ ...IDENTITE, raison_sociale: '  ' }]);
+  const responsable = section(page, 'Responsable du traitement');
+  await expect(responsable.getByRole('group', { name: 'À compléter par l’organisateur' })).toBeVisible();
+  await expect(responsable).not.toContainText('contact@exemple.fr');
+  // Les mentions légales gardent leur règle : l'email suffit à afficher l'éditeur.
+  await page.goto('/mentions-legales');
+  await expect(page.getByRole('region', { name: 'Éditeur du site' })).toContainText('contact@exemple.fr');
+});
+
+test('les transferts hors UE nomment leurs garanties, sans citer de mécanisme non vérifié (R1, R2)', async ({ page }) => {
+  await ouvrir(page, []);
+  const transferts = section(page, 'Sous-traitants et transferts');
+  await expect(transferts).toContainText(
+    'Railway Corp., Cloudflare, Inc. (Turnstile) et, si une clé est configurée, Anthropic sont établies aux États-Unis.',
+  );
+  await expect(transferts).toContainText(
+    'Ces transferts reposent sur la décision d’adéquation de la Commission européenne du 10 juillet 2023, pour les entreprises '
+    + 'américaines qui y adhèrent, ou à défaut sur les clauses contractuelles types de la Commission (art. 45 et 46 RGPD). '
+    + 'Une copie des garanties peut être demandée via le formulaire de contact.',
+  );
+  await expect(page.getByText(/Data Privacy Framework/)).toHaveCount(0);
+});
+
 test('les bases légales des emails, la désinscription et les sous-traitants suivent la revue juridique', async ({ page }) => {
   await ouvrir(page, []);
   const finalites = section(page, 'Finalités et bases légales');

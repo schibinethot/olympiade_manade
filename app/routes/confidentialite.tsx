@@ -259,7 +259,8 @@ export default function Confidentialite() {
             </li>
           </ul>
           <p>
-            Railway Corp. est établie aux États-Unis. Supabase est exploitée par Supabase Pte. Ltd. (Singapour) et
+            Railway Corp., Cloudflare, Inc. (Turnstile) et, si une clé est configurée, Anthropic sont établies aux
+            États-Unis. Supabase est exploitée par Supabase Pte. Ltd. (Singapour) et
             Supabase, Inc. (États-Unis). La base de données est hébergée dans l’Union européenne (Paris) et le site est servi
             depuis l’Europe. Tout accès depuis un pays hors de l’Union européenne est encadré par les clauses contractuelles
             types de la Commission européenne, prévues dans l’accord de traitement des données de chaque prestataire (art. 28
@@ -267,8 +268,10 @@ export default function Confidentialite() {
           </p>
           <p>
             Google et Meta, lorsqu’ils reçoivent des données (voir «&nbsp;Destinataires&nbsp;»), peuvent les transférer hors
-            de l’Union européenne, notamment aux États-Unis. Une copie des garanties applicables peut être demandée via le{' '}
-            {LIEN_CONTACT}.
+            de l’Union européenne, notamment aux États-Unis. Ces transferts reposent sur la décision d’adéquation de la
+            Commission européenne du 10&nbsp;juillet 2023, pour les entreprises américaines qui y adhèrent, ou à défaut sur les
+            clauses contractuelles types de la Commission (art. 45 et 46 RGPD). Une copie des garanties peut être demandée via
+            le {LIEN_CONTACT}.
           </p>
         </SectionLegale>
 
