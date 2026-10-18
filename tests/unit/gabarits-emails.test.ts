@@ -722,10 +722,11 @@ describe('textes de consentement : source unique (C-0.1)', () => {
     expect(CONSENTEMENT_ANNONCES_VERSION).toBe(consentements.CONSENTEMENT_ANNONCES_VERSION);
     expect(actualites.CONSENTEMENT_ACTUALITES_TEXTE).toBe(consentements.CONSENTEMENT_ACTUALITES_TEXTE);
     expect(actualites.CONSENTEMENT_ACTUALITES_VERSION).toBe(consentements.CONSENTEMENT_ACTUALITES_VERSION);
+    // Texte exact de la revue juridique (R3) : les abonnés reçoivent aussi l'annonce des dates.
     expect(consentements.CONSENTEMENT_ACTUALITES_TEXTE).toBe(
-      'J’accepte de recevoir par email les actualités, informations pratiques, résultats et notations de l’Olympiade des Manades.',
+      'J’accepte de recevoir par email les actualités, les dates, les informations pratiques, les résultats et les notations de l’Olympiade des Manades.',
     );
-    expect(consentements.CONSENTEMENT_ACTUALITES_VERSION).toBe('2026-10-17');
+    expect(consentements.CONSENTEMENT_ACTUALITES_VERSION).toBe('2026-10-18');
     // La migration copie le texte des annonces à l'identique (déclencheur des spectateurs).
     const migration = readFileSync(new URL('../../supabase/migrations/20261017160000_sequence_emails.sql', import.meta.url), 'utf8');
     expect(migration).toContain(`'${consentements.CONSENTEMENT_ANNONCES_TEXTE}'`);
