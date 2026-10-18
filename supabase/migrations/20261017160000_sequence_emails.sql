@@ -952,10 +952,12 @@ as $$
 $$;
 
 -- Purge quotidienne des demandes jamais confirmées (revue juridique C5, sécurité M7), en mode réel seulement :
--- 30 jours après l'envoi réel de la confirmation, ou 30 jours après la demande (dépôt du formulaire) si aucune
--- confirmation réelle n'est partie (échouée, sautée, interrompue, ou aucun envoi). Une confirmation en attente
--- (nouvel essai compris) protège la demande. Chaque retrait passe par retirer_abonnement_destinataire. Par lots
--- de p_limite ; rend le nombre de demandes retirées.
+--   A. 30 jours après l'envoi réel de la confirmation, ou après sa réclamation si elle a été interrompue (peut-être
+--      partie) : c'est le délai annoncé par l'e-mail ;
+--   B. si rien n'est parti (échec, saut, aucun envoi), 30 jours sans dépôt NI tentative de confirmation. Une panne
+--      SMTP au premier passage en smtp (abonnés repris, dépôt ancien) ne vide donc pas la liste la nuit suivante.
+-- Une confirmation en attente (nouvel essai compris) protège la demande. Chaque retrait passe par
+-- retirer_abonnement_destinataire. Par lots de p_limite ; rend le nombre de demandes retirées.
 create function public.purger_demandes_non_confirmees(p_maintenant timestamptz, p_limite integer) returns integer
 language plpgsql security definer set search_path = ''
 as $$
@@ -969,17 +971,23 @@ begin
     join public.abonnements_actualites a on a.email = d.email
     where d.abonnement_a_confirmer
       and (
+        -- A. Confirmation partie, ou peut-être partie (interrompue), il y a plus de 30 jours.
         exists (
           select 1 from public.envois_emails e
           where e.destinataire_id = d.id and e.etape = 'confirmation' and e.reel
-            and e.statut = 'envoye' and e.envoye_le < p_maintenant - interval '30 days'
+            and (e.statut = 'envoye' or (e.statut = 'echec' and e.raison = 'interrompu'))
+            and coalesce(e.envoye_le, e.cree_le) < p_maintenant - interval '30 days'
         )
+        -- B. Rien n'est parti : ni dépôt ni tentative de confirmation depuis 30 jours.
         or (
           a.cree_le < p_maintenant - interval '30 days'
           and not exists (
             select 1 from public.envois_emails e
             where e.destinataire_id = d.id and e.etape = 'confirmation' and e.reel
-              and e.statut in ('envoye', 'en_attente')
+              and (e.statut in ('envoye', 'en_attente')
+                   or (e.statut = 'echec' and e.raison = 'interrompu')
+                   or e.cree_le >= p_maintenant - interval '30 days'
+                   or e.envoye_le >= p_maintenant - interval '30 days')
           )
         )
       )

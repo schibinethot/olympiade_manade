@@ -62,6 +62,12 @@ async function marquer(db: pg.Client, id: string, statut: string, ilYaHeures = 0
   );
 }
 
+/** Confirmation réclamée il y a `ilYaHeures`, puis soldée « interrompu » (bail dépassé, ou corps sans réponse). */
+async function interrompre(db: pg.Client, id: string, ilYaHeures: number): Promise<void> {
+  await marquer(db, id, 'echec', ilYaHeures);
+  await modifier(db, `update public.envois_emails set raison = 'interrompu' where destinataire_id = $1 and etape = 'confirmation'`, [id]);
+}
+
 async function renvoyer(db: pg.Client, email: string): Promise<void> {
   await commeService(db);
   await db.query('select public.renvoyer_confirmation_email($1, now())', [email]);
@@ -175,7 +181,7 @@ describe('séquence d’e-mails : retrait et purge', () => {
       expect(await doitEtreRefuse(db, 'select public.retirer_abonnement_destinataire($1)', [oppose])).toBe('42501');
     }));
 
-  it('purge des demandes jamais confirmées : 30 jours après l’envoi réel, ou après la demande si rien n’est parti', () =>
+  it('purge des demandes jamais confirmées : 30 jours après l’envoi réel, ou après la dernière tentative si rien n’est parti', () =>
     dansUneTransaction(async (db) => {
       // A. Confirmation partie il y a 31 jours, jamais cliquée : purgée. Partie il y a 29 jours : gardée.
       const partie = await abonner(db, 'partie@exemple.fr', 40);
@@ -184,13 +190,24 @@ describe('séquence d’e-mails : retrait et purge', () => {
       const recente = await abonner(db, 'recente@exemple.fr', 40);
       await reserverConfirmation(db, recente);
       await marquer(db, recente, 'envoye', 29 * 24);
-      // B. Demande de plus de 30 jours dont la confirmation a échoué, a été sautée, interrompue, ou n'existe pas.
-      const echec = await abonner(db, 'echec@exemple.fr', 31);
-      await reserverConfirmation(db, echec);
-      await marquer(db, echec, 'echec', 1);
-      const interrompue = await abonner(db, 'interrompue@exemple.fr', 31);
-      await reserverConfirmation(db, interrompue);
-      await modifier(db, `update public.envois_emails set statut = 'echec', raison = 'interrompu' where destinataire_id = $1`, [interrompue]);
+      // A. Interrompue (peut-être partie) : comme une confirmation partie, 30 jours après sa réclamation (envoye_le).
+      const interrompueVieille = await abonner(db, 'interrompue-vieille@exemple.fr', 40);
+      await reserverConfirmation(db, interrompueVieille);
+      await interrompre(db, interrompueVieille, 31 * 24);
+      const interrompueRecente = await abonner(db, 'interrompue-recente@exemple.fr', 40);
+      await reserverConfirmation(db, interrompueRecente);
+      await interrompre(db, interrompueRecente, 29 * 24);
+      // B. Rien n'est parti : purgée 30 jours après la dernière tentative (échec, saut) ou le dépôt (aucun envoi,
+      //    envoi simulé seulement). Un échec d'il y a une heure, sur un dépôt de 31 jours, est gardé.
+      const echecVieux = await abonner(db, 'echec-vieux@exemple.fr', 40);
+      await reserverConfirmation(db, echecVieux);
+      await marquer(db, echecVieux, 'echec', 31 * 24);
+      const echecRecent = await abonner(db, 'echec-recent@exemple.fr', 31);
+      await reserverConfirmation(db, echecRecent);
+      await marquer(db, echecRecent, 'echec', 1);
+      const sauteVieille = await abonner(db, 'saute-vieille@exemple.fr', 40);
+      await reserverConfirmation(db, sauteVieille);
+      await marquer(db, sauteVieille, 'saute', 31 * 24);
       const sansEnvoi = await abonner(db, 'sans-envoi@exemple.fr', 31);
       const simulee = await abonner(db, 'simulee@exemple.fr', 31);
       await reserverConfirmation(db, simulee, false);
@@ -204,15 +221,18 @@ describe('séquence d’e-mails : retrait et purge', () => {
 
       await commeService(db);
       const { rows: [{ n }] } = await db.query('select public.purger_demandes_non_confirmees(now(), 1000) as n');
-      expect(n).toBe(6);
+      expect(n).toBe(7);
       await commeSuperutilisateur(db);
       const { rows: abonnes } = await db.query('select email from public.abonnements_actualites order by 1');
-      expect(abonnes.map((r: { email: string }) => r.email)).toEqual(['en-cours@exemple.fr', 'jeune@exemple.fr', 'recente@exemple.fr']);
+      expect(abonnes.map((r: { email: string }) => r.email)).toEqual([
+        'echec-recent@exemple.fr', 'en-cours@exemple.fr', 'interrompue-recente@exemple.fr', 'jeune@exemple.fr', 'recente@exemple.fr',
+      ]);
       const { rows: restants } = await db.query('select email from public.destinataires_emails order by 1');
       expect(restants.map((r: { email: string }) => r.email)).toEqual([
-        'en-cours@exemple.fr', 'jeune@exemple.fr', 'opposee@exemple.fr', 'recente@exemple.fr',
+        'echec-recent@exemple.fr', 'en-cours@exemple.fr', 'interrompue-recente@exemple.fr', 'jeune@exemple.fr', 'opposee@exemple.fr',
+        'recente@exemple.fr',
       ]);
-      expect([partie, echec, interrompue, sansEnvoi, simulee, jeune].length).toBe(6);
+      expect([partie, interrompueVieille, echecVieux, sauteVieille, sansEnvoi, simulee, jeune].length).toBe(7);
 
       // Par lots : la limite borne le nombre de retraits d'un appel.
       await abonner(db, 'lot1@exemple.fr', 31);
@@ -221,6 +241,37 @@ describe('séquence d’e-mails : retrait et purge', () => {
       expect((await db.query('select public.purger_demandes_non_confirmees(now(), 1) as n')).rows[0].n).toBe(1);
       expect((await db.query('select public.purger_demandes_non_confirmees(now(), 1) as n')).rows[0].n).toBe(1);
       expect((await db.query('select public.purger_demandes_non_confirmees(now(), 1) as n')).rows[0].n).toBe(0);
+    }));
+
+  it('reprise + panne SMTP au premier passage : aucun abonné repris n’est purgé la nuit suivante (Important n° 1)', () =>
+    dansUneTransaction(async (db) => {
+      // Abonnés repris par la migration : dépôt de 200 jours, inscrits à la même date, en attente de leur clic.
+      // Premier passage en smtp avec un relais mal réglé : 4 essais en échec, un refus 5xx, un corps sans réponse.
+      const issues = [
+        { email: 'repris-essais@exemple.fr', raison: 'envoi_impossible', tentatives: 4 },
+        { email: 'repris-refus@exemple.fr', raison: 'refus_definitif', tentatives: 1 },
+        { email: 'repris-incertain@exemple.fr', raison: 'interrompu', tentatives: 1 },
+      ];
+      for (const { email, raison, tentatives } of issues) {
+        const id = await abonner(db, email, 200);
+        await modifier(db, `update public.destinataires_emails set inscrit_le = now() - interval '200 days' where id = $1`, [id]);
+        await reserverConfirmation(db, id);
+        await marquer(db, id, 'echec', 3);
+        await modifier(db, `update public.envois_emails set raison = $2, tentatives = $3 where destinataire_id = $1`, [id, raison, tentatives]);
+      }
+      await commeService(db);
+      const purger = async (dans: string) => (await db.query(
+        `select public.purger_demandes_non_confirmees(now() + $1::interval, 1000) as n`, [dans],
+      )).rows[0].n;
+      // La nuit suivante (03:00) : personne n'est purgé, la liste survit au réglage corrigé dans la journée.
+      expect(await purger('18 hours')).toBe(0);
+      expect(await purger('29 days')).toBe(0);
+      // 30 jours après la tentative, la règle ordinaire s'applique : rien n'est parti, ou l'envoi interrompu
+      // n'a jamais été cliqué.
+      expect(await purger('31 days')).toBe(3);
+      await commeSuperutilisateur(db);
+      const { rows } = await db.query(`select email from public.abonnements_actualites where email like 'repris-%'`);
+      expect(rows).toEqual([]);
     }));
 });
 

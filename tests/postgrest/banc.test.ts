@@ -195,15 +195,17 @@ describe('banc PostgREST réel', () => {
     await db.query(`update public.abonnements_actualites set cree_le = now() - interval '40 days' where email = 'ancien@exemple.fr'`);
 
     // 8. Passage en smtp, demain à 04:00 (Paris) : envois simulés en attente sautés, confirmations réelles (celle de
-    //    l'ancien refusée en 5xx), puis purge des demandes jamais confirmées par la RPC.
+    //    l'ancien refusée en 5xx), puis purge par la RPC. Le refus vient d'avoir lieu : la demande de l'ancien, malgré
+    //    son dépôt de 40 jours, n'est pas purgée (Important n° 1 : 30 jours depuis la dernière tentative).
     const demain = instantParis(jourCalendaireParis(Date.now() + 86_400_000), '04:00');
     const smtp = emails('smtp', { t: demain }, (email) => email.to === 'ancien@exemple.fr');
     const bilan = await smtp.instance.passer();
     expect(bilan).toMatchObject({ envoyes: 1, echecs: 1 });
     expect(smtp.envoyes.map((e) => `${e.etape}:${e.to}`).sort()).toEqual(['confirmation:ancien@exemple.fr', 'confirmation:lea@exemple.fr']);
-    expect(smtp.journal.find((l) => l.message === 'purge des e-mails')).toMatchObject({ nonConfirmes: 1 });
-    expect((await db.query(`select email from public.destinataires_emails order by email`)).rows.map((r: { email: string }) => r.email))
-      .toEqual(['lea@exemple.fr']);
+    expect(smtp.journal.find((l) => l.message === 'purge des e-mails')).toMatchObject({ nonConfirmes: 0 });
+    const adresses = async () => (await db.query(`select email from public.destinataires_emails order by email`)).rows
+      .map((r: { email: string }) => r.email);
+    expect(await adresses()).toEqual(['ancien@exemple.fr', 'lea@exemple.fr']);
     expect(smtp.instance.etat()).toMatchObject({ mode: 'smtp', pret: true, raisonsInactif: [], derniereErreur: null });
 
     // 9. Les liens de la confirmation réelle : la nouvelle demande de Léa est valable, l'ancienne (log) est morte.
@@ -215,10 +217,18 @@ describe('banc PostgREST réel', () => {
     expect((await decrire(nouveau)).status).toBe(200);
     expect((await decrire(jeton)).status).toBe(410);
 
+    // 10. 31 jours plus tard, à 04:00 : les deux demandes jamais confirmées partent, celle de l'ancien (rien n'est
+    //     parti depuis le refus) et celle de Léa (confirmation partie, jamais cliquée), qui reste en liste d'opposition.
+    const plusTard = emails('smtp', { t: instantParis(jourCalendaireParis(demain + 31 * 86_400_000), '04:00') });
+    await plusTard.instance.passer();
+    expect(plusTard.journal.find((l) => l.message === 'purge des e-mails')).toMatchObject({ nonConfirmes: 2 });
+    expect(await adresses()).toEqual(['lea@exemple.fr']);
+    expect((await db.query(`select count(*)::int as n from public.abonnements_actualites`)).rows[0].n).toBe(0);
+
     // Jamais d'adresse e-mail dans une URL de l'API (sécurité I2).
     expect(appels.filter((a) => /@|%40/.test(a.requete) || /@/.test(a.chemin))).toEqual([]);
     // Toutes les requêtes PostgREST ont abouti (aucune erreur de syntaxe ni de droit journalisée).
-    for (const journal of [log.journal, smtp.journal]) {
+    for (const journal of [log.journal, smtp.journal, plusTard.journal]) {
       expect(journal.filter((l) => l.level === 'error'), JSON.stringify(journal.filter((l) => l.level === 'error'))).toEqual([]);
     }
   });

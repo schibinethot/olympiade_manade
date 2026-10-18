@@ -171,16 +171,22 @@ class FauxSupabase {
     if (this.tables.abonnements_actualites.length < avant) this.retirerAbonne(email);
   }
 
-  /** public.purger_demandes_non_confirmees : 30 jours après l'envoi réel, ou après le dépôt si rien n'est parti. */
+  /**
+   * public.purger_demandes_non_confirmees : 30 jours après l'envoi réel (ou la réclamation d'un envoi interrompu),
+   * ou, si rien n'est parti, 30 jours sans dépôt ni tentative.
+   */
   private purger({ p_maintenant, p_limite }: { p_maintenant: string; p_limite: number }) {
     const limite = Date.parse(p_maintenant) - 30 * 86_400_000;
+    const instant = (valeur: unknown) => (valeur === null || valeur === undefined ? NaN : Date.parse(String(valeur)));
     const cibles = this.tables.destinataires_emails.filter((d) => {
       const abonnement = this.tables.abonnements_actualites.find((a) => a.email === d.email);
       if (!d.abonnement_a_confirmer || !abonnement) return false;
       const confirmations = this.tables.envois_emails.filter((e) => e.destinataire_id === d.id && e.etape === 'confirmation' && e.reel);
-      const partie = confirmations.some((e) => e.statut === 'envoye' && Date.parse(String(e.envoye_le)) < limite);
-      const enCours = confirmations.some((e) => e.statut === 'envoye' || e.statut === 'en_attente');
-      return partie || (Date.parse(String(abonnement.cree_le ?? d.inscrit_le)) < limite && !enCours);
+      const peutEtrePartie = (e: Ligne) => e.statut === 'envoye' || (e.statut === 'echec' && e.raison === 'interrompu');
+      const partie = confirmations.some((e) => peutEtrePartie(e) && (instant(e.envoye_le) || instant(e.cree_le)) < limite);
+      const protege = confirmations.some((e) => peutEtrePartie(e) || e.statut === 'en_attente'
+        || instant(e.cree_le) >= limite || instant(e.envoye_le) >= limite);
+      return partie || (Date.parse(String(abonnement.cree_le ?? d.inscrit_le)) < limite && !protege);
     }).slice(0, p_limite);
     for (const d of cibles) this.supprimerAbonnement(String(d.email));
     return cibles.length;
