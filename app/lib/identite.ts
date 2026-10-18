@@ -46,6 +46,7 @@ export function nomOrganisateur(identite: IdentiteLegale | null): string | null 
 export function ligneOrganisateur(identite: IdentiteLegale | null): string | null {
   const nom = nomOrganisateur(identite);
   if (!nom) return null;
-  const parties = [nom, propre(identite?.forme_juridique), propre(identite?.adresse)].filter(Boolean);
-  return `L’Olympiade des Manades est organisée par ${parties.join(', ')}.`;
+  const parties = [nom, propre(identite?.forme_juridique), propre(identite?.adresse)].filter(Boolean).join(', ');
+  // Comme le serveur (serveur/emails-rest.mjs, lireOrganisateur) : pas de double point final.
+  return `L’Olympiade des Manades est organisée par ${parties}${parties.endsWith('.') ? '' : '.'}`;
 }

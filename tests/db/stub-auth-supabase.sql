@@ -13,6 +13,11 @@ begin
   if not exists (select 1 from pg_roles where rolname = 'service_role') then
     create role service_role nologin bypassrls;
   end if;
+  -- Un service_role préexistant du cluster local peut ne pas avoir BYPASSRLS : Supabase le lui donne,
+  -- sinon les tests verraient la RLS là où la prod ne la voit pas.
+  if not (select rolbypassrls from pg_roles where rolname = 'service_role') then
+    alter role service_role bypassrls;
+  end if;
 end
 $$;
 

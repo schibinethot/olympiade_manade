@@ -16,6 +16,8 @@ describe('identité de l’organisateur', () => {
       .toBe('L’Olympiade des Manades est organisée par Association des Manades, association loi 1901, 1 place des Arènes, 30250 Sommières.');
     expect(ligneOrganisateur({ ...VIDE, raison_sociale: '  Comité des fêtes  ', email: 'contact@exemple.fr' }))
       .toBe('L’Olympiade des Manades est organisée par Comité des fêtes.');
+    expect(ligneOrganisateur({ ...VIDE, raison_sociale: 'Manades réunies S.A.R.L.' }))
+      .toBe('L’Olympiade des Manades est organisée par Manades réunies S.A.R.L.');
   });
 
   it('ne fabrique aucune ligne sans nom : l’identité est alors manquante', () => {
