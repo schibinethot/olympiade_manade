@@ -168,12 +168,16 @@ export function masquerEmail(email) {
   return `${String(email)[0]}***${String(email).slice(arobase)}`;
 }
 
-/** Étapes du dialogue SMTP propres à ce message : un refus 5xx y est définitif pour lui (adresse, contenu). */
-const ETAPES_DU_MESSAGE = new Set(['from', 'to', 'data', 'corps']);
+/**
+ * Étapes du dialogue SMTP propres à ce message : un refus 5xx y est définitif pour lui (adresse, contenu). MAIL FROM
+ * n'en est pas : l'expéditeur est le même pour toute la file (réglage, domaine pas encore authentifié).
+ */
+const ETAPES_DU_MESSAGE = new Set(['to', 'data', 'corps']);
 
 /**
- * Le message ne passera jamais tel quel : refus 5xx du serveur pour ce message, adresse ou en-tête invalides.
- * Un 4xx, un délai dépassé ou une erreur réseau se réessaient ; un 5xx à l'authentification (réglage) aussi.
+ * Le message ne passera jamais tel quel (refus 5xx du serveur pour ce message, adresse ou en-tête invalides), ou il
+ * est peut-être déjà parti (corps envoyé sans réponse : `incertain`). Un 4xx, un délai dépassé ou une erreur réseau
+ * avant le corps se réessaient ; un 5xx à l'authentification ou à MAIL FROM (réglage) aussi.
  * @param {unknown} erreur
  */
 export function echecDefinitif(erreur) {
@@ -183,9 +187,10 @@ export function echecDefinitif(erreur) {
 }
 
 /**
- * Envoi d'un message. La promesse se résout dès que le serveur accepte le corps (250 après DATA) : QUIT part
- * ensuite sans attendre sa réponse, et un délai ou une erreur qui suivent sont ignorés. Un message accepté n'est
- * donc jamais compté comme un échec (pas de nouvel essai, pas de doublon).
+ * Envoi d'un message, au plus une fois. La promesse se résout dès que le serveur accepte le corps (250 après DATA) :
+ * QUIT part ensuite sans attendre sa réponse, et un délai ou une erreur qui suivent sont ignorés. Un message accepté
+ * n'est donc jamais compté comme un échec. Corps envoyé mais ni 250 ni refus (délai dépassé, coupure) : le relais a pu
+ * l'accepter, l'erreur porte `incertain` et `definitif` (aucun nouvel essai, donc aucun doublon).
  * @param {{ host: string, port: number, user: string, pass: string, timeoutMs?: number, ca?: string | Buffer }} smtp
  *   `ca` : autorité de certification supplémentaire (relais interne, tests)
  * @param {{ from: string, to: string, subject: string, text: string, html?: string, replyTo?: string, headers?: Record<string, string> }} message
@@ -214,7 +219,10 @@ export function envoyerSmtp(smtp, message) {
       clearTimeout(delai);
       courant.destroy();
       socket.destroy();
-      if (!accepte) reject(erreur);
+      if (accepte) return;
+      // Corps envoyé sans réponse (délai, coupure, réponse illisible) : le relais a pu l'accepter. Pas de nouvel essai.
+      if (etape === 'corps' && !('codeSmtp' in erreur)) Object.assign(erreur, { definitif: true, incertain: true });
+      reject(erreur);
     };
     const socket = net.connect(smtp.port, smtp.host);
     const delai = setTimeout(() => echec(new Error('Délai SMTP dépassé.')), timeoutMs);
@@ -400,35 +408,37 @@ export function emailsDepuisEnvironnement(env, deps = {}) {
     pret,
     manques,
     /**
+     * `incertain` : le corps est parti sans réponse du relais, l'e-mail a peut-être été remis (jamais réessayé).
      * @param {{ to: string, subject: string, text: string, html?: string, headers?: Record<string, string>, etape?: string }} email
-     * @returns {Promise<{ mode: 'off' | 'log' | 'smtp', envoye: boolean, echec: boolean, definitif: boolean }>}
+     * @returns {Promise<{ mode: 'off' | 'log' | 'smtp', envoye: boolean, echec: boolean, definitif: boolean, incertain: boolean }>}
      */
     async envoyer(email) {
-      if (mode === 'off') return { mode, envoye: false, echec: false, definitif: false };
+      if (mode === 'off') return { mode, envoye: false, echec: false, definitif: false, incertain: false };
       if (mode === 'log') {
         journal({ level: 'info', message: 'email journalisé', to: masquerEmail(email.to), etape: email.etape ?? null });
-        return { mode, envoye: false, echec: false, definitif: false };
+        return { mode, envoye: false, echec: false, definitif: false, incertain: false };
       }
       if (!pret) {
         journal({ level: 'error', message: 'smtp non configuré' });
-        return { mode, envoye: false, echec: true, definitif: false };
+        return { mode, envoye: false, echec: true, definitif: false, incertain: false };
       }
       if (typeof email.to !== 'string' || !DESTINATAIRE_VALIDE.test(email.to)) {
         journal({ level: 'error', message: 'destinataire invalide', to: masquerEmail(String(email.to).split(/[\r\n]/)[0]) });
-        return { mode, envoye: false, echec: true, definitif: true };
+        return { mode, envoye: false, echec: true, definitif: true, incertain: false };
       }
       try {
         await transport({ host, port, user, pass }, {
           from, to: email.to, subject: email.subject, text: email.text, html: email.html, headers: email.headers ?? {},
         });
-        return { mode, envoye: true, echec: false, definitif: false };
+        return { mode, envoye: true, echec: false, definitif: false, incertain: false };
       } catch (erreur) {
         const definitif = echecDefinitif(erreur);
+        const incertain = /** @type {{ incertain?: unknown }} */ (erreur ?? {}).incertain === true;
         journal({
-          level: 'error', message: 'échec d’envoi email', to: masquerEmail(email.to), etape: email.etape ?? null, definitif,
+          level: 'error', message: 'échec d’envoi email', to: masquerEmail(email.to), etape: email.etape ?? null, definitif, incertain,
           erreur: erreur instanceof Error ? erreur.message : 'inconnue',
         });
-        return { mode, envoye: false, echec: true, definitif };
+        return { mode, envoye: false, echec: true, definitif, incertain };
       }
     },
   };

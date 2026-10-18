@@ -15,12 +15,13 @@ export { heureParis };
 /**
  * Transport : l'objet de emailsDepuisEnvironnement (courriel.mjs). `manques` : ce qui manque en mode smtp
  * (« smtp_incomplet », « expediteur »). `definitif` : refus permanent du serveur SMTP (5xx), sans nouvel essai.
+ * `incertain` : corps parti sans réponse du relais, peut-être remis ; jamais réessayé (au plus une fois).
  * @typedef {{
  *   mode: string,
  *   pret: boolean,
  *   manques?: string[],
  *   envoyer: (email: { to: string, subject: string, text: string, html?: string, headers?: Record<string, string>, etape?: string }) =>
- *     Promise<{ mode: string, envoye: boolean, echec: boolean, definitif?: boolean }>,
+ *     Promise<{ mode: string, envoye: boolean, echec: boolean, definitif?: boolean, incertain?: boolean }>,
  * }} Poste
  */
 

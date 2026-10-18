@@ -1672,3 +1672,32 @@ describe('vague finale : endpoints admin', () => {
     expect(confirmation.text).not.toContain(`Ville ${ID.aout}`);
   });
 });
+
+describe('correctifs n° 1 : planificateur', () => {
+  it('corps parti sans réponse (incertain) : echec « interrompu » avec envoye_le, jamais réessayé (Important n° 2)', async () => {
+    const horloge = { t: MAINTENANT };
+    const { base, emails, courriel } = preparer({ mode: 'smtp', horloge });
+    scenarioDeBase(base);
+    base.tables.destinataires_emails = base.tables.destinataires_emails.filter((d) => d.id === ID.alice);
+    courriel.envoyer.mockImplementation(async () => ({ mode: 'smtp', envoye: false, echec: true, definitif: true, incertain: true }));
+    expect(await emails.passer()).toMatchObject({ reserves: 1, envoyes: 0, echecs: 1 });
+    const bienvenue = () => base.tables.envois_emails.find((e) => e.etape === 'bienvenue' && e.destinataire_id === ID.alice);
+    expect(bienvenue()).toMatchObject({ statut: 'echec', raison: 'interrompu', tentatives: 1, envoye_le: new Date(MAINTENANT).toISOString() });
+    // Ni au délai du premier nouvel essai, ni au calcul suivant : il compte comme peut-être parti.
+    for (const minutes of [5, 30, 120]) {
+      horloge.t = MAINTENANT + minutes * MINUTE;
+      await emails.passer();
+    }
+    expect(courriel.envoyer).toHaveBeenCalledTimes(1);
+    expect(base.tables.envois_emails.filter((e) => e.destinataire_id === ID.alice && e.statut !== 'saute')).toEqual([bienvenue()]);
+    expect(bienvenue()).toMatchObject({ statut: 'echec', raison: 'interrompu' });
+    // Un refus définitif certain (5xx) garde sa raison.
+    const refus = preparer({ mode: 'smtp' });
+    scenarioDeBase(refus.base);
+    refus.base.tables.destinataires_emails = refus.base.tables.destinataires_emails.filter((d) => d.id === ID.alice);
+    refus.courriel.envoyer.mockImplementation(async () => ({ mode: 'smtp', envoye: false, echec: true, definitif: true, incertain: false }));
+    await refus.emails.passer();
+    expect(refus.base.tables.envois_emails.find((e) => e.etape === 'bienvenue' && e.destinataire_id === ID.alice))
+      .toMatchObject({ statut: 'echec', raison: 'refus_definitif' });
+  });
+});

@@ -3,9 +3,11 @@
 // juste avant son envoi, relecture du destinataire, des dates du lot et des modèles, examen (examen-envois.mjs),
 // rendu, envoi au débit borné, statut. Toutes les 5 minutes : RPC emails_a_traiter, calculerEnvois, réservation
 // (unicité en base). Chaque jour après 03:00 : purges.
-// Livraison AU PLUS UNE FOIS : une ligne réclamée dont l'envoi a pu commencer n'est jamais renvoyée. Une ligne
-// réclamée avant toute tentative (relecture impossible, arrêt) est rendue. prevu_le n'est jamais modifié après
-// la réservation : le plafond journalier se compte dessus.
+// Livraison AU PLUS UNE FOIS : une ligne réclamée dont l'envoi a pu commencer n'est jamais renvoyée. Un nouvel essai
+// ne suit qu'un échec certain, avant le corps ou refusé par le relais ; un corps parti sans réponse (délai, coupure)
+// devient echec « interrompu », comme une ligne réclamée dont le statut n'a pas pu s'écrire. Une ligne réclamée avant
+// toute tentative (relecture impossible, arrêt) est rendue. prevu_le n'est jamais modifié après la réservation : le
+// plafond journalier se compte dessus.
 
 import { calculerEnvois, lireEmailsATraiter } from './echeances-emails.mjs';
 import {
@@ -347,7 +349,7 @@ export function creerPlanificateur(ctx, acces) {
       }
       await patienter(departs);
       tente = true;
-      /** @type {{ envoye: boolean, echec: boolean, definitif?: boolean }} */
+      /** @type {{ envoye: boolean, echec: boolean, definitif?: boolean, incertain?: boolean }} */
       let resultat;
       try {
         resultat = await poste.envoyer({
@@ -365,9 +367,12 @@ export function creerPlanificateur(ctx, acces) {
         return;
       }
       bilan.echecs += 1;
-      // Refus définitif (5xx pour ce message, adresse invalide) : echec, sans nouvel essai. Sinon (4xx, réseau),
-      // un nouvel essai après 5, 30 puis 120 min ; la raison réécrite n'est pas prise pour une interruption.
-      if (resultat.definitif) await marquer(ids, { statut: 'echec', tentatives, raison: 'refus_definitif', envoye_le: fin });
+      // Corps parti sans réponse du relais (incertain) : peut-être remis, compté comme un envoi interrompu, jamais
+      // réessayé (au plus une fois). Refus définitif (5xx pour ce message, adresse invalide) : echec, sans nouvel
+      // essai. Sinon (4xx, réseau, réglage), un nouvel essai après 5, 30 puis 120 min ; la raison réécrite n'est pas
+      // prise pour une interruption.
+      if (resultat.incertain) await marquer(ids, { statut: 'echec', tentatives, raison: 'interrompu', envoye_le: fin });
+      else if (resultat.definitif) await marquer(ids, { statut: 'echec', tentatives, raison: 'refus_definitif', envoye_le: fin });
       else if (tentatives >= TENTATIVES_MAX) await marquer(ids, { statut: 'echec', tentatives, raison: 'envoi_impossible', envoye_le: fin });
       else await marquer(ids, { tentatives, raison: 'envoi_impossible', envoye_le: fin });
     } catch (erreur) {
