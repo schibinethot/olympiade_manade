@@ -28,7 +28,10 @@ const MIGRATION = join(
 const CONSENTEMENT_ANNONCES_TEXTE =
   'J’accepte de recevoir par email l’annonce des prochaines dates de l’Olympiade des Manades.';
 const TEXTE_ABONNEMENT = 'J’accepte de recevoir les actualités de l’Olympiade des Manades par email.';
-const VERSION_ABONNEMENT = '2026-10-17';
+// Version courante du consentement aux actualités (texte qui cite les dates, R3) : le clic active les annonces.
+const VERSION_ABONNEMENT = '2026-10-18';
+// Ancien texte, sans « les dates » : le clic confirme l'adresse sans activer les annonces.
+const VERSION_SANS_DATES = '2026-10-17';
 
 const TABLES_ET_VUE = [
   'modeles_emails',
@@ -107,12 +110,12 @@ async function commeService(db: pg.Client): Promise<void> {
 }
 
 /** Dépôt du formulaire de l'accueil, tel que le serveur le fait en service_role (adresse non vérifiée). */
-async function abonner(db: pg.Client, email: string): Promise<void> {
+async function abonner(db: pg.Client, email: string, version = VERSION_ABONNEMENT): Promise<void> {
   await commeService(db);
   await db.query(
     `insert into public.abonnements_actualites (email, consentement_texte, consentement_version, source)
      values ($1, $2, $3, 'accueil')`,
-    [email, TEXTE_ABONNEMENT, VERSION_ABONNEMENT],
+    [email, TEXTE_ABONNEMENT, version],
   );
   await commeSuperutilisateur(db);
 }
@@ -727,6 +730,51 @@ describe('séquence d’e-mails : abonnés aux actualités', () => {
       expect(lou).toMatchObject({ annonces: true, annonces_texte: TEXTE_ABONNEMENT, abonnement_a_confirmer: false });
       expect(lou.confirme_le?.toISOString()).toBe(confirmation);
       expect(await rattachementsDe(db, lou.id)).toEqual([{ calendrier_id: date, origine: 'inscription' }]);
+    }));
+
+  it('dépôt à l’ancien texte (sans « les dates ») : le clic confirme l’adresse sans activer les annonces (mineur n° 2)', () =>
+    dansUneTransaction(async (db) => {
+      await viderCalendrier(db);
+      const date = await ajouterDate(db, 10, 'confirmee');
+      // Ancien texte : adresse confirmée, rattachée à sa date, mais sans annonces ni preuve d'un accord aux dates.
+      await abonner(db, 'ancien@exemple.fr', VERSION_SANS_DATES);
+      expect(await cliquer(db, 'ancien@exemple.fr')).toBe(1);
+      const [ancien] = await destinataires(db, 'ancien@exemple.fr');
+      expect(ancien).toMatchObject({
+        abonne: true, abonnement_a_confirmer: false, desinscrit_le: null,
+        annonces: false, annonces_le: null, annonces_texte: null, annonces_version: null,
+      });
+      expect(ancien.confirme_le).not.toBeNull();
+      expect(await rattachementsDe(db, ancien.id)).toEqual([{ calendrier_id: date, origine: 'inscription' }]);
+      // Même ancien texte, champs d'annonces envoyés avec le clic : ignorés.
+      await abonner(db, 'force@exemple.fr', VERSION_SANS_DATES);
+      await commeService(db);
+      await db.query(
+        `update public.destinataires_emails set abonnement_confirme_le = clock_timestamp(), annonces = true,
+                annonces_texte = 'forgé', annonces_version = '2099-01-01'
+         where email = 'force@exemple.fr' and abonnement_a_confirmer`,
+      );
+      expect((await destinataires(db, 'force@exemple.fr'))[0]).toMatchObject({
+        abonnement_a_confirmer: false, annonces: false, annonces_texte: null, annonces_version: null,
+      });
+
+      // Un spectateur qui avait accepté les annonces à l'inscription les garde, avec leur preuve d'origine.
+      const id = '00000000-0000-4000-8000-0000000000d7';
+      await creerCompte(db, id, 'max@exemple.fr', '2026-10-12T18:30:00.000Z', { prenom: 'Max', consentement: true, annonces: true });
+      const [avant] = await destinataires(db, 'max@exemple.fr');
+      expect(avant).toMatchObject({ annonces: true, annonces_texte: CONSENTEMENT_ANNONCES_TEXTE, annonces_version: '2026-10-17' });
+      await abonner(db, 'max@exemple.fr', VERSION_SANS_DATES);
+      expect(await cliquer(db, 'max@exemple.fr')).toBe(1);
+      expect((await destinataires(db, 'max@exemple.fr'))[0]).toMatchObject({
+        abonnement_a_confirmer: false, annonces: true, annonces_texte: CONSENTEMENT_ANNONCES_TEXTE, annonces_version: '2026-10-17',
+      });
+
+      // Texte courant (2026-10-18) : le clic active les annonces, avec le texte et la version du dépôt.
+      await abonner(db, 'nouveau@exemple.fr', VERSION_ABONNEMENT);
+      expect(await cliquer(db, 'nouveau@exemple.fr')).toBe(1);
+      const [nouveau] = await destinataires(db, 'nouveau@exemple.fr');
+      expect(nouveau).toMatchObject({ annonces: true, annonces_texte: TEXTE_ABONNEMENT, annonces_version: '2026-10-18' });
+      expect(nouveau.annonces_le).not.toBeNull();
     }));
 
   it('l’admin efface un abonné : sans profil la ligne disparaît, un spectateur perd les annonces de l’abonnement, un clic tardif n’a plus d’effet', () =>

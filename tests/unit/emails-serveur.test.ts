@@ -273,12 +273,16 @@ class FauxSupabase {
 
   private mettreAJour(table: string, ligne: Ligne, champs: Ligne) {
     if (table === 'destinataires_emails' && 'abonnement_confirme_le' in champs) {
-      // prive.confirmer_abonnement_email : seul un clic sur une demande en attente, abonnement présent, compte.
+      // prive.confirmer_abonnement_email : seul un clic sur une demande en attente, abonnement présent, compte. Les
+      // annonces ne s'activent que pour un dépôt au texte qui cite les dates (version 2026-10-18 ou suivante ; une
+      // ligne de test sans version suit la version courante).
       const maintenant = new Date(this.horloge()).toISOString();
-      if (ligne.abonnement_a_confirmer && this.tables.abonnements_actualites.some((a) => a.email === ligne.email)) {
+      const abonnement = this.tables.abonnements_actualites.find((a) => a.email === ligne.email);
+      if (ligne.abonnement_a_confirmer && abonnement) {
+        const avecDates = String(abonnement.consentement_version ?? '2026-10-18') >= '2026-10-18';
         Object.assign(ligne, {
           abonnement_a_confirmer: false, abonnement_confirme_le: maintenant, confirme_le: ligne.confirme_le ?? maintenant,
-          desinscrit_le: null, annonces: true,
+          desinscrit_le: null, annonces: avecDates ? true : ligne.annonces,
         });
       }
       return;

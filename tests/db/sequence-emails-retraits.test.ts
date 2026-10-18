@@ -161,6 +161,28 @@ describe('séquence d’e-mails : plafond des confirmations (C6)', () => {
     }));
 });
 
+describe('séquence d’e-mails : renvoi d’une confirmation peut-être partie', () => {
+  it('une confirmation interrompue attend 24 h avant qu’un nouveau dépôt la remplace (mineur n° 5)', () =>
+    dansUneTransaction(async (db) => {
+      const id = await abonner(db, 'lente@exemple.fr');
+      await reserverConfirmation(db, id);
+      // Relais muet après le corps, il y a une heure : peut-être remise, elle n'est pas remplacée.
+      await interrompre(db, id, 1);
+      await renvoyer(db, 'lente@exemple.fr');
+      expect(await confirmations(db, id)).toEqual(['echec']);
+      // Après 25 h, comme une confirmation partie : supprimée, une nouvelle peut partir.
+      await interrompre(db, id, 25);
+      await renvoyer(db, 'lente@exemple.fr');
+      expect(await confirmations(db, id)).toEqual([]);
+      // Un échec certain (refus, essais épuisés) se remplace tout de suite, comme avant.
+      expect(await reserverConfirmation(db, id)).toBe(true);
+      await marquer(db, id, 'echec', 1);
+      await modifier(db, `update public.envois_emails set raison = 'envoi_impossible' where destinataire_id = $1`, [id]);
+      await renvoyer(db, 'lente@exemple.fr');
+      expect(await confirmations(db, id)).toEqual([]);
+    }));
+});
+
 describe('séquence d’e-mails : retrait et purge', () => {
   it('retirer_abonnement_destinataire : par identifiant, les déclencheurs gardent opposition et spectateur', () =>
     dansUneTransaction(async (db) => {

@@ -283,6 +283,10 @@ create trigger destinataires_emails_horodater
 -- tous les effets, avec le texte et la version acceptés au dépôt, horodatés au clic par la base :
 --   abonnement_a_confirmer = false, confirme_le = coalesce(confirme_le, maintenant), desinscrit_le = null,
 --   annonces = true.
+-- Les annonces (texte, version, horodatage) ne s'activent que pour un dépôt au texte qui cite les dates, version
+-- 2026-10-18 ou suivante (revue juridique R3, CONSENTEMENT_ACTUALITES_VERSION de serveur/consentements.mjs ; les
+-- versions sont des dates AAAA-MM-JJ, comparées comme textes). Un dépôt à l'ancien texte (2026-10-17) confirme
+-- l'adresse, mais laisse les annonces comme elles étaient.
 -- Sans demande en attente, avec une valeur nulle, ou si l'abonnement a été retiré entre-temps, l'écriture est
 -- sans effet : les champs de consentement envoyés avec elle reprennent leurs valeurs d'avant.
 create function prive.confirmer_abonnement_email() returns trigger
@@ -304,10 +308,17 @@ begin
       new.abonnement_confirme_le := now();
       new.confirme_le := coalesce(old.confirme_le, now());
       new.desinscrit_le := null;
-      new.annonces := true;
-      new.annonces_le := now();
-      new.annonces_texte := v_texte;
-      new.annonces_version := v_version;
+      if v_version >= '2026-10-18' then
+        new.annonces := true;
+        new.annonces_le := now();
+        new.annonces_texte := v_texte;
+        new.annonces_version := v_version;
+      else
+        new.annonces := old.annonces;
+        new.annonces_le := old.annonces_le;
+        new.annonces_texte := old.annonces_texte;
+        new.annonces_version := old.annonces_version;
+      end if;
       return new;
     end if;
   end if;
@@ -962,10 +973,11 @@ as $$
 $$;
 
 -- Nouveau dépôt d'une adresse déjà abonnée (409 du formulaire) dont la demande attend encore son clic : la
--- confirmation réelle échouée, sautée, ou partie depuis plus de 24 h est supprimée pour qu'une nouvelle parte
--- au passage suivant, dans la limite du plafond (C6). Jamais pour une adresse désinscrite par ce chemin (I3) :
--- elle ne reçoit une nouvelle demande que par un nouveau dépôt, après la fin de l'abonnement. Aucun résultat :
--- la réponse au formulaire ne dit pas si l'adresse existait.
+-- confirmation réelle échouée ou sautée, ou partie depuis plus de 24 h, est supprimée pour qu'une nouvelle parte
+-- au passage suivant, dans la limite du plafond (C6). Une confirmation interrompue est peut-être partie : elle
+-- attend 24 h, comme une confirmation partie (sinon un second envoi suivrait de près une remise réelle). Jamais
+-- pour une adresse désinscrite par ce chemin (I3) : elle ne reçoit une nouvelle demande que par un nouveau dépôt,
+-- après la fin de l'abonnement. Aucun résultat : la réponse au formulaire ne dit pas si l'adresse existait.
 create function public.renvoyer_confirmation_email(p_email text, p_maintenant timestamptz) returns void
 language sql security definer set search_path = ''
 as $$
@@ -973,8 +985,10 @@ as $$
   where d.email = lower(btrim(p_email, E' \t\r\n')) and d.abonnement_a_confirmer and d.desinscrit_le is null
     and prive.confirmation_permise(d.demandes_confirmation, d.premiere_demande_le, d.desinscrit_le, p_maintenant)
     and e.destinataire_id = d.id and e.etape = 'confirmation' and e.reel
-    and (e.statut in ('echec', 'saute')
-         or (e.statut <> 'en_attente' and coalesce(e.envoye_le, e.cree_le) < p_maintenant - interval '24 hours'));
+    and (
+      (e.statut in ('echec', 'saute') and e.raison is distinct from 'interrompu')
+      or (e.statut <> 'en_attente' and coalesce(e.envoye_le, e.cree_le) < p_maintenant - interval '24 hours')
+    );
 $$;
 
 -- Purge quotidienne des demandes jamais confirmées (revue juridique C5, sécurité M7), en mode réel seulement :
