@@ -32,7 +32,11 @@ export function nouvelleCle(): string {
 }
 
 type Champ = 'sujet' | 'corps';
-type Envoi = { etat: 'repos' } | { etat: 'encours' } | { etat: 'erreur'; message: string };
+/**
+ * `deja_parti` : le serveur refuse la clé (409 `cle_deja_utilisee`), un premier essai a donc été
+ * enregistré. Une nouvelle clé risquerait un doublon : le formulaire ne propose plus que de se fermer.
+ */
+type Envoi = { etat: 'repos' } | { etat: 'encours' } | { etat: 'erreur'; message: string } | { etat: 'deja_parti' };
 
 export function MessageInscrits({ date, dates, inscrits, modeleMessage, jeton, onModifie, onEnvoye, onFermer }: {
   date: DateCalendrier;
@@ -60,13 +64,17 @@ export function MessageInscrits({ date, dates, inscrits, modeleMessage, jeton, o
   const question = useRef<HTMLParagraphElement>(null);
   const boutonVerifier = useRef<HTMLButtonElement>(null);
   const boutonAnnuler = useRef<HTMLButtonElement>(null);
+  const boutonFermer = useRef<HTMLButtonElement>(null);
   const modifie = textes.sujet !== depart.sujet || textes.corps !== depart.corps;
   const prefixe = `message-${date.id}`;
+  const dejaParti = envoi.etat === 'deja_parti';
 
   useEffect(() => { titre.current?.focus(); }, []);
   useEffect(() => { onModifie(modifie); }, [modifie, onModifie]);
   useEffect(() => () => onModifie(false), [onModifie]);
   useEffect(() => { if (etape !== 'saisie') question.current?.focus(); }, [etape]);
+  // Le bouton d'envoi disparaît : le focus passe à la seule action restante.
+  useEffect(() => { if (dejaParti) boutonFermer.current?.focus(); }, [dejaParti]);
 
   const changer = (champ: Champ, valeur: string) => {
     setTextes((avant) => ({ ...avant, [champ]: valeur }));
@@ -84,6 +92,7 @@ export function MessageInscrits({ date, dates, inscrits, modeleMessage, jeton, o
   }
 
   function verifier() {
+    if (dejaParti) return;
     if (!textes.sujet.trim()) return setRefus('Écrivez l’objet du message.');
     if (messageAEcrire(textes.corps)) return setRefus(`Écrivez votre message avant d’envoyer${NB}: remplacez la phrase «${NB}Écrivez ici votre message…${NB}».`);
     if (!textes.corps.trim()) return setRefus('Écrivez votre message avant d’envoyer.');
@@ -94,11 +103,14 @@ export function MessageInscrits({ date, dates, inscrits, modeleMessage, jeton, o
   }
 
   async function envoyer() {
-    if (envoi.etat === 'encours') return;
+    if (envoi.etat === 'encours' || dejaParti) return;
     setEnvoi({ etat: 'encours' });
     const reponse = await appelerApiAdmin<{ ok: boolean; destinataires?: unknown; id?: unknown }>('/api/admin/emails/message', jeton, {
       calendrierId: date.id, sujet: textes.sujet, corps: textes.corps, cle,
     });
+    // Clé déjà enregistrée avec un autre texte (premier essai parti, réponse perdue, puis texte corrigé) :
+    // le message est parti, jamais de nouvelle clé.
+    if (!reponse.ok && reponse.statut === 409 && reponse.code === 'cle_deja_utilisee') return setEnvoi({ etat: 'deja_parti' });
     // En cas d'échec, le formulaire reste ouvert : le même texte peut être renvoyé (« Réessayer »), avec la même clé.
     if (!reponse.ok) return setEnvoi({ etat: 'erreur', message: reponse.message });
     const { destinataires, id } = reponse.donnees;
@@ -139,7 +151,14 @@ export function MessageInscrits({ date, dates, inscrits, modeleMessage, jeton, o
       </div>
 
       {refus ? <p role="alert" className="text-rouge-alerte">{refus}</p> : null}
-      {etape === 'saisie' ? (
+      {dejaParti ? (
+        <div className={`${ALERTE} grid gap-3`}>
+          <p role="alert" className="font-semibold">Ce message est déjà parti.</p>
+          <div className="flex flex-wrap gap-3">
+            <button ref={boutonFermer} type="button" className={BOUTON_PLEIN} onClick={onFermer}>Fermer le formulaire</button>
+          </div>
+        </div>
+      ) : etape === 'saisie' ? (
         <div className="flex flex-wrap gap-3">
           <button ref={boutonVerifier} type="button" className={BOUTON_PLEIN} onClick={verifier}>Vérifier et envoyer</button>
           <button ref={boutonAnnuler} type="button" className={BOUTON} onClick={() => (modifie ? setEtape('abandon') : onFermer())}>Annuler</button>

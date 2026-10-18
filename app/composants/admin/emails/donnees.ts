@@ -133,11 +133,15 @@ const COLONNES_MESSAGES = 'id, calendrier_id, sujet, cree_le, destinataires';
 // Appels aux endpoints admin du serveur
 // ---------------------------------------------------------------------------
 
-export type ReponseApi<T> = { ok: true; donnees: T } | { ok: false; statut: number; message: string };
+/** Échec : statut HTTP (0 sans réponse), code `error` du serveur s'il en donne un, message pour l'organisateur. */
+export type ReponseApi<T> = { ok: true; donnees: T } | { ok: false; statut: number; code: string | null; message: string };
 
 /** Codes `error` des endpoints admin (serveur/emails.mjs), dits à l'organisateur. */
 const MESSAGES_ERREUR: Readonly<Record<string, string>> = {
-  planificateur_inactif: `L’envoi est arrêté sur le serveur (mode off ou configuration incomplète)${NB}: rien ne peut partir.`,  service_indisponible: `Le service d’envoi est indisponible${NB}: sa configuration sur le serveur est incomplète.`,
+  planificateur_inactif: `L’envoi est arrêté sur le serveur (mode off ou configuration incomplète)${NB}: rien ne peut partir.`,
+  service_indisponible: `Le service d’envoi est indisponible${NB}: sa configuration sur le serveur est incomplète.`,
+  // Message n° 8 : la clé du formulaire a déjà servi à un message enregistré (premier essai parti, réponse perdue).
+  cle_deja_utilisee: 'Ce message est déjà parti.',
   adresse_admin_absente: `Votre compte n’a pas d’adresse email${NB}: le test ne peut pas partir.`,
   brouillon_invalide: `Le serveur n’a pas pu rendre ce texte${NB}: vérifiez les liens et la mise en forme.`,
   format_invalide: `Le serveur a refusé ce texte${NB}: vérifiez l’objet (200 caractères au plus) et le corps.`,
@@ -168,12 +172,13 @@ export async function appelerApiAdmin<T>(chemin: string, jeton: string, corps?: 
     });
     const donnees: unknown = await reponse.json().catch(() => null);
     if (!reponse.ok || donnees === null || typeof donnees !== 'object') {
-      const code = donnees && typeof donnees === 'object' && 'error' in donnees ? donnees.error : null;
-      return { ok: false, statut: reponse.status, message: messageErreur(reponse.status, code) };
+      const erreur = donnees && typeof donnees === 'object' && 'error' in donnees ? donnees.error : null;
+      const code = typeof erreur === 'string' ? erreur : null;
+      return { ok: false, statut: reponse.status, code, message: messageErreur(reponse.status, code) };
     }
     return { ok: true, donnees: donnees as T };
   } catch {
-    return { ok: false, statut: 0, message: 'Le serveur est injoignable. Vérifiez la connexion et réessayez.' };
+    return { ok: false, statut: 0, code: null, message: 'Le serveur est injoignable. Vérifiez la connexion et réessayez.' };
   }
 }
 

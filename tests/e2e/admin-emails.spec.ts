@@ -578,6 +578,40 @@ test.describe('admin des e-mails', () => {
     expect(cles[2]).not.toBe(cles[0]);
   });
 
+  test('un message déjà parti (409 cle_deja_utilisee) ne se renvoie pas : le formulaire propose de se fermer', async ({ page }) => {
+    await ouvrirAdmin(page);
+    const envois: { cle?: unknown; corps?: unknown }[] = [];
+    await page.route('**/api/admin/emails/message', (route) => {
+      envois.push(route.request().postDataJSON() as { cle?: unknown; corps?: unknown });
+      // Premier essai enregistré mais réponse perdue, puis la même clé avec un texte corrigé.
+      return envois.length === 1
+        ? route.fulfill({ status: 503, json: { error: 'service_indisponible' } })
+        : route.fulfill({ status: 409, json: { error: 'cle_deja_utilisee' } });
+    });
+    await page.goto('/admin/emails?onglet=dates');
+    const carte = page.getByRole('article', { name: /Lunel/ });
+    await carte.getByRole('button', { name: 'Écrire aux inscrits' }).click();
+    const corps = carte.getByRole('textbox', { name: 'Corps du message', exact: true });
+    await corps.fill('Bonjour,\n\nLes portes ouvrent à 20 h.');
+    await carte.getByRole('button', { name: 'Vérifier et envoyer' }).click();
+    await carte.getByRole('button', { name: 'Oui, envoyer' }).click();
+    await expect(carte.getByRole('button', { name: 'Réessayer' })).toBeVisible();
+    // L'admin corrige une faute puis renvoie : même clé, autre texte.
+    await carte.getByRole('button', { name: 'Modifier' }).click();
+    await corps.fill('Bonjour,\n\nLes portes ouvrent à 20 h 30.');
+    await carte.getByRole('button', { name: 'Vérifier et envoyer' }).click();
+    await carte.getByRole('button', { name: 'Oui, envoyer' }).click();
+    await expect(carte.getByRole('alert').filter({ hasText: 'Ce message est déjà parti.' })).toBeVisible();
+    await expect(carte.getByRole('button', { name: 'Fermer le formulaire' })).toBeFocused();
+    await expect(carte.getByRole('button', { name: /Réessayer|Oui, envoyer|Vérifier et envoyer/ })).toHaveCount(0);
+    expect(envois).toHaveLength(2);
+    expect(envois[1].cle).toBe(envois[0].cle);
+    await carte.getByRole('button', { name: 'Fermer le formulaire' }).click();
+    await expect(corps).toHaveCount(0);
+    await expect(carte.getByRole('button', { name: 'Écrire aux inscrits' })).toBeFocused();
+    expect(envois).toHaveLength(2);
+  });
+
   test('« Annuler » un message commencé demande confirmation', async ({ page }) => {
     await ouvrirAdmin(page);
     await page.goto('/admin/emails?onglet=dates');
