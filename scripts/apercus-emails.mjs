@@ -23,7 +23,9 @@ import { ETAPES, MODELES_DEFAUT, rendreEmail } from '../serveur/gabarits-emails.
 const ORIGINE = 'https://olympiadedesmanades.fr';
 const LARGEURS = [375, 600];
 const LOGO = readFileSync(fileURLToPath(new URL('../public/email/logo.png', import.meta.url)));
-const DESINSCRIPTION = `${ORIGINE}/emails/desinscription?d=exemple&t=exemple`;
+const DESINSCRIPTION = `${ORIGINE}/emails/desinscription#j=exemple.signature`;
+/** Identité d'exemple (identite_legale) : la ligne du pied (revue juridique B4). */
+const ORGANISATEUR = 'L’Olympiade des Manades est organisée par Association des Manades de Camargue, association loi 1901, 1 place des Arènes, 30250 Sommières.';
 
 const dossier = argv[2] ? resolve(argv[2]) : null;
 if (!dossier) {
@@ -62,7 +64,7 @@ const NIMES = dateSoiree({
 });
 
 /** @param {DateEnrichie} d @returns {DateAnnoncee} */
-const annoncee = (d) => ({ ...d, lienJeViens: `${ORIGINE}/emails/je-viens?j=${d.id}&t=exemple` });
+const annoncee = (d) => ({ ...d, lienJeViens: `${ORIGINE}/emails/je-viens#j=${d.id}.signature` });
 
 /** Instant d'envoi : jour et heure de Paris en été (UTC+2). @param {string} jour @param {string} heure */
 const instant = (jour, heure) => new Date(`${jour}T${heure}:00+02:00`);
@@ -77,6 +79,9 @@ const contexte = (jour, heure, surcharge = {}) => ({
   prenom: 'Camille',
   maintenant: instant(jour, heure),
   origine: ORIGINE,
+  // Une personne qui a consenti aux annonces ({{lien_dates}} et listes fournis), identité renseignée.
+  annonces: true,
+  organisateur: ORGANISATEUR,
   date: SOMMIERES,
   prochaines: [MARSILLARGUES, BEAUCAIRE, NIMES].map(annoncee),
   annoncees: [],
@@ -88,8 +93,8 @@ const contexte = (jour, heure, surcharge = {}) => ({
 /** Un e-mail par entrée ; la bienvenue en a deux (avec et sans encart de date proche). */
 const APERCUS = [
   { fichier: 'confirmation', etape: 'confirmation', ctx: contexte('2027-07-01', '14:00', {
-    date: null, prochaines: [],
-    liens: { desinscription: DESINSCRIPTION, confirmation: `${ORIGINE}/emails/confirmation?j=exemple&t=exemple`, jeViens: null },
+    date: null, prochaines: [], annonces: false,
+    liens: { desinscription: DESINSCRIPTION, confirmation: `${ORIGINE}/emails/confirmation#j=exemple.signature`, jeViens: null },
   }) },
   { fichier: 'bienvenue-date-proche', etape: 'bienvenue', ctx: contexte('2027-07-27', '15:00', { encartDateProche: true }) },
   { fichier: 'bienvenue-sans-encart', etape: 'bienvenue', ctx: contexte('2027-06-01', '15:00') },
@@ -97,6 +102,11 @@ const APERCUS = [
   { fichier: 'veille', etape: 'veille', ctx: contexte('2027-07-30', '18:00') },
   { fichier: 'jour_j', etape: 'jour_j', ctx: contexte('2027-07-31', '10:00') },
   { fichier: 'lendemain', etape: 'lendemain', ctx: contexte('2027-08-01', '10:00', {
+    date: { ...SOMMIERES, vainqueur: 'Manade Vinuesa', soiree: { slug: 'sommieres-2027', statut: 'terminee' } },
+  }) },
+  // Revue juridique B3 : sans consentement aux annonces, la ligne vers les prochaines dates disparaît.
+  { fichier: 'lendemain-sans-annonces', etape: 'lendemain', ctx: contexte('2027-08-01', '10:00', {
+    annonces: false, prochaines: [],
     date: { ...SOMMIERES, vainqueur: 'Manade Vinuesa', soiree: { slug: 'sommieres-2027', statut: 'terminee' } },
   }) },
   { fichier: 'prochaines_dates', etape: 'prochaines_dates', ctx: contexte('2027-08-07', '10:00') },
@@ -123,7 +133,8 @@ try {
 
   for (const [i, { fichier, etape, ctx }] of APERCUS.entries()) {
     const base = `${String(i + 1).padStart(2, '0')}-${fichier}`;
-    const rendu = rendreEmail(MODELES_DEFAUT[etape], ctx, { cible: 'email' });
+    // L'étape fixe la raison du pied (revue juridique C1), comme le planificateur la passe.
+    const rendu = rendreEmail(MODELES_DEFAUT[etape], { ...ctx, etape }, { cible: 'email' });
     writeFileSync(join(dossier, `${base}.html`), rendu.html);
     writeFileSync(join(dossier, `${base}.txt`), `Sujet : ${rendu.sujet}\n\n${rendu.texte}`);
     produits.push(`${base}.html`, `${base}.txt`);
