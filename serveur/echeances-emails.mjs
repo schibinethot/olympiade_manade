@@ -116,8 +116,15 @@ import {
 /** @typedef {{ id: string, date_soiree: string, statut: string }} DateEstimee */
 /** @typedef {{ etape: Etape, calendrierId: string, prevuLe: string, destinataires: number }} EnvoiEstime */
 
+const MINUTE_MS = 60_000;
 const HEURE_MS = 3_600_000;
 const JOUR_MS = 24 * HEURE_MS;
+/**
+ * Délai avant chaque nouvel essai après un échec réessayable : 5, 30 puis 120 min, donc 4 essais au plus. Utilisés par
+ * l'envoi (examen-envois.mjs, qui les réexporte) et par les libellés de l'admin : ici, dans un module isomorphe.
+ */
+export const DELAIS_NOUVEL_ESSAI_MS = Object.freeze([5 * MINUTE_MS, 30 * MINUTE_MS, 120 * MINUTE_MS]);
+export const TENTATIVES_MAX = DELAIS_NOUVEL_ESSAI_MS.length + 1;
 /** Une étape due part dans les 12 h qui suivent son échéance ; au-delà, elle est sautée (aussi à l'envoi). */
 export const FENETRE_ENVOI_MS = 12 * HEURE_MS;
 /** Au plus une annonce, et un e-mail « prochaines dates », par personne tous les 7 jours glissants. */

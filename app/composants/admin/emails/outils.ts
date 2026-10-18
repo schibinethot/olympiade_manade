@@ -3,7 +3,7 @@
  * modèles, regroupement du bilan et contexte de l'aperçu. Sans React ni réseau (tests unitaires).
  */
 
-import { echeance, type EnvoiEstime } from '../../../../serveur/echeances-emails.mjs';
+import { echeance, TENTATIVES_MAX, type EnvoiEstime } from '../../../../serveur/echeances-emails.mjs';
 // Source unique des jours et heures de Paris, partagée avec le serveur (module isomorphe, sans import node:*).
 import { decalerJour as decalerJourParis, FUSEAU, jourCalendaireParis } from '../../../../serveur/fuseau-paris.mjs';
 import {
@@ -249,8 +249,9 @@ export const LIBELLES_RAISONS: Readonly<Record<string, string>> = {
   destinataire_absent: 'Destinataire effacé entre-temps',
   modele_inactif: 'Email désactivé entre-temps',
   message_absent: 'Message introuvable',
-  envoi_impossible: 'Refus du serveur d’envoi après trois essais',
-  interrompu: 'Envoi interrompu (serveur arrêté pendant l’envoi)',
+  // Nombre d'essais de l'envoi réel (serveur/echeances-emails.mjs), jamais recopié en dur.
+  envoi_impossible: `Refus du serveur d’envoi après ${TENTATIVES_MAX} essais`,
+  interrompu: 'Envoi interrompu, peut-être parti (serveur arrêté, ou relais muet après le message)',
   // Vague finale (serveur) : date déplacée après réservation, simulations closes au passage en smtp.
   date_deplacee: 'Date déplacée après la réservation (l’étape est recalculée)',
   mode_change: 'Simulation close au passage en envoi réel',
@@ -279,7 +280,7 @@ export function raisonsDuBilan(bilan: readonly LigneBilan[]): RaisonComptee[] {
     .map(([raison, nombre]) => ({
       raison,
       nombre,
-      libelle: raison === null ? 'Autre raison (échec du serveur d’envoi après 3 essais…)'
+      libelle: raison === null ? `Autre raison (échec du serveur d’envoi après ${TENTATIVES_MAX} essais…)`
         : LIBELLES_RAISONS[raison] ?? `Raison non libellée (${raison})`,
     }));
 }

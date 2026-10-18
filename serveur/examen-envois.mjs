@@ -5,14 +5,16 @@
 // supprimée, soirée suspendue, modèle désactivé ou réglé autrement, fenêtre dépassée).
 
 import {
+  DELAIS_NOUVEL_ESSAI_MS,
   ETAPES_DE_DATE,
   FENETRE_ENVOI_MS,
+  TENTATIVES_MAX,
   comparerDates,
   dateDeBienvenue,
   echeance,
   soireeSuspendue,
 } from './echeances-emails.mjs';
-import { HEURE_MS, MINUTE_MS, heureParis } from './emails-rest.mjs';
+import { HEURE_MS, heureParis } from './emails-rest.mjs';
 import { liensPour } from './liens-emails.mjs';
 
 /** @typedef {import('./emails-rest.mjs').LigneEnvoi} LigneEnvoi */
@@ -26,9 +28,8 @@ import { liensPour } from './liens-emails.mjs';
 
 /** Le message n° 8 ne part plus 24 h après sa création : l'information serait périmée. */
 const FENETRE_MESSAGE_MS = 24 * HEURE_MS;
-/** Délai avant chaque nouvel essai après un échec réessayable : 5, 30 puis 120 min (4 essais au plus). */
-export const DELAIS_NOUVEL_ESSAI_MS = Object.freeze([5 * MINUTE_MS, 30 * MINUTE_MS, 120 * MINUTE_MS]);
-export const TENTATIVES_MAX = DELAIS_NOUVEL_ESSAI_MS.length + 1;
+// Délais des nouveaux essais et nombre d'essais : définis dans le module isomorphe (libellés de l'admin).
+export { DELAIS_NOUVEL_ESSAI_MS, TENTATIVES_MAX };
 
 /** Étapes 2 à 5 (rappels d'une date suivie) : leur date est relue au moment de l'envoi. */
 const ETAPES_RAPPEL = new Set(['j_moins_7', 'veille', 'jour_j', 'lendemain']);

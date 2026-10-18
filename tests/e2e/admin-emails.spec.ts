@@ -531,7 +531,7 @@ test.describe('admin des e-mails', () => {
     await expect(tableau.getByRole('row', { name: /Confirmation de l’adresse/ })).not.toContainText('Dernière tentative');
     await expect(page.getByText('Fenêtre d’envoi dépassée')).toBeVisible();
     await expect(page.getByText('Rendu impossible')).toBeVisible();
-    await expect(page.getByText('Autre raison (échec du serveur d’envoi après 3 essais…)')).toBeVisible();
+    await expect(page.getByText('Autre raison (échec du serveur d’envoi après 4 essais…)')).toBeVisible();
     await expect(page.getByRole('group', { name: 'Désinscrits' })).toContainText('4');
     // Raisons lues dans la vue du bilan : plus aucune requête sur envois_emails.
     expect(simulation.lecturesEnvois).toEqual([]);

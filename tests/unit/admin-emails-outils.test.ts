@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { MODELES_DEFAUT, rendreEmail } from '../../serveur/gabarits-emails.mjs';
+import { TENTATIVES_MAX } from '../../serveur/examen-envois.mjs';
 import { lireEtatEmails, type DateCalendrier, type EtatEmails, type LigneBilan } from '../../app/composants/admin/emails/donnees';
 import { OUTILS } from '../../app/composants/admin/emails/Insertion';
 import { nouvelleCle } from '../../app/composants/admin/emails/MessageInscrits';
@@ -229,9 +230,22 @@ describe('bilan et état du serveur', () => {
       { raison: 'date_annulee', libelle: 'Date annulée', nombre: 5 },
       { raison: 'plafond_jour', libelle: 'Plafond d’un email automatique par jour atteint', nombre: 3 },
       { raison: 'code_futur', libelle: 'Raison non libellée (code_futur)', nombre: 3 },
-      { raison: null, libelle: 'Autre raison (échec du serveur d’envoi après 3 essais…)', nombre: 1 },
+      { raison: null, libelle: 'Autre raison (échec du serveur d’envoi après 4 essais…)', nombre: 1 },
     ]);
     expect(raisonsDuBilan([])).toEqual([]);
+  });
+
+  it('libellés des échecs : interrompu « peut-être parti », nombre d’essais de l’envoi réel (fix 2, mineur n° 4)', () => {
+    const ligne = (raison: string): LigneBilan => (
+      { etape: 'veille', calendrier_id: 'a', reel: true, statut: 'echec', raison, nombre: 1, dernier_envoi: null }
+    );
+    expect(raisonsDuBilan([ligne('interrompu'), ligne('envoi_impossible')]).map((r) => r.libelle)).toEqual([
+      'Refus du serveur d’envoi après 4 essais',
+      'Envoi interrompu, peut-être parti (serveur arrêté, ou relais muet après le message)',
+    ]);
+    // Le nombre suit l'envoi réel, sans copie en dur.
+    expect(TENTATIVES_MAX).toBe(4);
+    expect(raisonsDuBilan([ligne('envoi_impossible')])[0].libelle).toContain(`après ${TENTATIVES_MAX} essais`);
   });
 
   it('regroupe le bilan par étape et par date quelle que soit la raison', () => {
