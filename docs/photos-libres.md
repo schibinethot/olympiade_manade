@@ -4,7 +4,7 @@ Fiches Wikimedia Commons lues et vérifiées le 10/10/2026 (auteur, licence, adr
 
 ## Photos des quatre épreuves
 
-Les quatre fichiers JPEG sont servis depuis `public/photos/epreuves/`, à l'identique des sources, sans retouche ni suppression des signatures. Leur affichage conserve le cadre entier ; les numéros des épreuves ne recouvrent pas les photos. Le total des quatre fichiers est de 296 623 octets, chargé à l'approche de la section.
+Les quatre fichiers JPEG sont servis depuis `public/photos/epreuves/`, à l'identique des sources, sans retouche ni suppression des signatures. Leur affichage applique le duotone et le gris en CSS, conserve le cadre entier sans rognage, et les numéros des épreuves ne recouvrent pas les photos. Le total des quatre fichiers est de 296 623 octets, chargé à l'approche de la section.
 
 | Épreuve | Fichier local | Dimensions | Crédit affiché | Source du fichier |
 |---|---|---|---|---|

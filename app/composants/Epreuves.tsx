@@ -6,7 +6,7 @@ import { Icone } from './Icone';
 
 const LIEN = 'underline underline-offset-2 hover:text-encre';
 
-/** Photo originale d'une carte, maintenue entière pour conserver l'action et les filigranes. */
+/** Photo originale d'une carte, maintenue entière ; les traitements duotone et gris sont appliqués en CSS. */
 function PhotoCarte({ photo }: { photo: PhotoEpreuve }) {
   return (
     <img src={photo.fichier} alt={photo.alt} width={photo.largeur} height={photo.hauteur} decoding="async" className="size-full object-contain" />
@@ -58,7 +58,7 @@ export function Epreuves() {
               key={epreuve.numero}
               className="relative flex snap-start flex-col overflow-hidden rounded-[22px] border border-trait bg-creme"
             >
-              <div className="aspect-[16/11] overflow-hidden bg-nuit">
+              <div className="duo-calques duo-calques--epreuve aspect-[16/11] overflow-hidden">
                 {photosProches ? (
                   <PhotoCarte photo={photo} />
                 ) : (

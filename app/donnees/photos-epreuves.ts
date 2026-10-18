@@ -1,4 +1,4 @@
-/** Photographies originales des quatre épreuves, servies localement sans recadrage ni retouche. */
+/** Photographies originales des quatre épreuves, servies localement sans recadrage ni retouche ; le duotone et le gris sont appliqués en CSS. */
 export type PhotoEpreuve = {
   id: 'ferrade-en-piste' | 'saut-cheval-a-cheval' | 'saut-cheval-a-taureau' | 'attente-au-fer';
   fichier: string;

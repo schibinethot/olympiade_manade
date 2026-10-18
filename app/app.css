@@ -227,6 +227,10 @@
   height: 100%;
   object-fit: cover;
 }
+.duo-calques--epreuve img {
+  object-fit: contain;
+  filter: grayscale(1);
+}
 .duo-calques::before,
 .duo-calques::after {
   content: "";
