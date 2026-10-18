@@ -1,25 +1,13 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { identiteRemplie, type IdentiteLegale } from '../lib/identite';
-import { supabase } from '../lib/supabase';
+import { useIdentiteLegale } from '../lib/useIdentiteLegale';
 import { EncadreOrganisateur } from './TexteLegal';
 
-export function IdentitePublique({ repli }: { repli: ReactNode }) {
-  const [identite, setIdentite] = useState<IdentiteLegale | null>(null);
-  const [connue, setConnue] = useState(false);
+const NB = '\u00a0';
 
-  useEffect(() => {
-    let actif = true;
-    supabase().then((client) => client.from('identite_legale').select('raison_sociale, forme_juridique, adresse, telephone, email, immatriculation, capital, tva, directeur_publication').limit(1).maybeSingle())
-      .then(({ data }) => { if (actif) setIdentite((data ?? null) as IdentiteLegale | null); })
-      .catch(() => undefined)
-      .finally(() => { if (actif) setConnue(true); });
-    return () => { actif = false; };
-  }, []);
-
-  if (!connue || !identiteRemplie(identite) || !identite) {
-    return <EncadreOrganisateur>{repli}</EncadreOrganisateur>;
-  }
-  const lignes = [
+/** Lignes de l'éditeur du site (mentions légales). */
+function lignesEditeur(identite: IdentiteLegale): (string | null)[] {
+  return [
     identite.raison_sociale,
     identite.forme_juridique,
     identite.adresse,
@@ -28,11 +16,45 @@ export function IdentitePublique({ repli }: { repli: ReactNode }) {
     identite.immatriculation,
     identite.capital,
     identite.tva,
-    identite.directeur_publication ? `Directeur de la publication : ${identite.directeur_publication}` : null,
-  ].filter((ligne): ligne is string => Boolean(ligne?.trim()));
+    identite.directeur_publication ? `Directeur de la publication${NB}: ${identite.directeur_publication}` : null,
+  ];
+}
+
+/** Identité et coordonnées du responsable du traitement (page Confidentialité, art. 13(1)(a) RGPD). */
+function lignesResponsable(identite: IdentiteLegale): (string | null)[] {
+  return [
+    identite.raison_sociale,
+    identite.forme_juridique,
+    identite.adresse,
+    identite.telephone ? `Téléphone${NB}: ${identite.telephone}` : null,
+    identite.email ? `Email${NB}: ${identite.email}` : null,
+    identite.immatriculation,
+  ];
+}
+
+/**
+ * Identité de l'organisateur lue dans identite_legale. Tant qu'elle n'est pas connue, ou si elle est
+ * vide, l'encadré « À compléter par l'organisateur » affiche le repli : aucune valeur inventée.
+ */
+export function IdentitePublique({ repli, variante = 'editeur', avant }: {
+  repli: ReactNode;
+  variante?: 'editeur' | 'responsable';
+  /** Phrase d'introduction, affichée seulement avec l'identité. */
+  avant?: ReactNode;
+}) {
+  const { connue, identite } = useIdentiteLegale();
+
+  if (!connue || !identite || !identiteRemplie(identite)) {
+    return <EncadreOrganisateur>{repli}</EncadreOrganisateur>;
+  }
+  const lignes = (variante === 'responsable' ? lignesResponsable(identite) : lignesEditeur(identite))
+    .filter((ligne): ligne is string => Boolean(ligne?.trim()));
   return (
-    <ul>
-      {lignes.map((ligne) => <li key={ligne}>{ligne}</li>)}
-    </ul>
+    <>
+      {avant}
+      <ul>
+        {lignes.map((ligne) => <li key={ligne}>{ligne}</li>)}
+      </ul>
+    </>
   );
 }

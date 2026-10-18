@@ -9,7 +9,8 @@ import {
   type ChampsInscription,
   type ErreursInscription,
 } from '../lib/auth';
-import { CONSENTEMENT_ANNONCES_TEXTE } from '../../serveur/gabarits-emails.mjs';
+// Module sans effet de bord : le formulaire public n'embarque pas le rendu des emails.
+import { CONSENTEMENT_ANNONCES_TEXTE } from '../../serveur/consentements.mjs';
 import { Icone } from './Icone';
 import { VerificationHumaine } from './VerificationHumaine';
 
@@ -166,7 +167,7 @@ export function FormulaireInscription({ initial }: Props) {
             checked={champs.consentement}
             onChange={(e) => modifier('consentement', e.target.checked)}
             aria-invalid={erreurs.consentement ? true : undefined}
-            aria-describedby={description('consentement', `${id}-usage`)}
+            aria-describedby={description('consentement', `${id}-usage`, `${id}-age`)}
             className="peer size-[22px] cursor-pointer appearance-none rounded-[7px] border-[1.5px] border-[#958a77] bg-creme checked:border-encre checked:bg-encre aria-invalid:border-rouge"
           />
           <Icone nom="valide" className="pointer-events-none absolute size-[15px] text-sable opacity-0 peer-checked:opacity-100" />
@@ -183,8 +184,14 @@ export function FormulaireInscription({ initial }: Props) {
             <span className="sr-only"> (nouvel onglet)</span>
           </Link>
         </label>
+        {/* Texte d'usage de la revue juridique (B1) : rappels en intérêt légitime, opposables à tout moment. */}
         <p id={`${id}-usage`} className="col-start-2">
-          Votre prénom et votre email servent à l’inscription, au vote du public et aux rappels de votre date. Chaque email contient un lien de désinscription.
+          Votre prénom et votre email servent à l’inscription et au vote du public. Vous recevrez aussi un email de
+          bienvenue et les rappels pratiques de la prochaine date confirmée (une semaine avant, la veille, le jour même et
+          le lendemain). Vous pouvez les refuser à tout moment&nbsp;: chaque email contient un lien de désinscription.
+        </p>
+        <p id={`${id}-age`} className="col-start-2">
+          Vous devez avoir au moins 15&nbsp;ans, ou l’accord d’un titulaire de l’autorité parentale.
         </p>
         <div className="col-start-2">{erreur('consentement')}</div>
       </div>

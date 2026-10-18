@@ -53,11 +53,15 @@ async function creer(): Promise<SupabaseClient> {
 
 /**
  * Appelle `rappel` avec le client dès qu'il existe : tout de suite s'il est déjà créé, sinon à sa
- * création, quel que soit l'appel qui le crée (lecture, inscription, session).
+ * création, quel que soit l'appel qui le crée (lecture, inscription, session). Rend la fonction
+ * qui retire le rappel (démontage d'un composant).
  */
-export function quandClientCree(rappel: (client: SupabaseClient) => void): void {
+export function quandClientCree(rappel: (client: SupabaseClient) => void): () => void {
   rappels.add(rappel);
   if (cree) rappel(cree);
+  return () => {
+    rappels.delete(rappel);
+  };
 }
 
 /** Paramètres d'adresse posés par Supabase Auth au retour du lien de l'email (PKCE, erreur, jeton). */

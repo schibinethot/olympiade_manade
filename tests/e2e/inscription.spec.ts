@@ -1,4 +1,4 @@
-import { CONSENTEMENT_ANNONCES_TEXTE } from '../../serveur/gabarits-emails.mjs';
+import { CONSENTEMENT_ANNONCES_TEXTE } from '../../serveur/consentements.mjs';
 import { expect, test, type Page } from '../outils/test-e2e';
 import { simulerTurnstile } from '../outils/turnstile';
 
@@ -95,7 +95,17 @@ test('la case annonces est décochée et facultative, et son état part avec la 
   await expect(page.getByRole('checkbox', { name: LIBELLE_ANNONCES, exact: true })).toBeVisible();
   await expect(page.getByLabel(LIBELLE_ANNONCES)).toHaveAccessibleDescription('Facultatif');
   await expect(page.getByLabel(LIBELLE_ANNONCES)).not.toBeChecked();
-  await expect(page.getByText('Votre prénom et votre email servent à l’inscription, au vote du public et aux rappels de votre date. Chaque email contient un lien de désinscription.')).toBeVisible();
+  // Texte d'usage de la revue juridique (B1) et âge minimum (S5), lus avec la case de consentement.
+  const usage = 'Votre prénom et votre email servent à l’inscription et au vote du public. Vous recevrez aussi un email de '
+    + 'bienvenue et les rappels pratiques de la prochaine date confirmée (une semaine avant, la veille, le jour même et '
+    + 'le lendemain). Vous pouvez les refuser à tout moment : chaque email contient un lien de désinscription.';
+  const age = 'Vous devez avoir au moins 15 ans, ou l’accord d’un titulaire de l’autorité parentale.';
+  await expect(page.getByText(usage)).toBeVisible();
+  await expect(page.getByText(age)).toBeVisible();
+  await expect(page.getByLabel(/J’accepte la politique de confidentialité/)).toHaveAccessibleDescription(`${usage} ${age}`);
+  // Insécables avant le deux-points et dans « 15 ans » (vérifiés à l'octet).
+  expect(await page.getByText(usage).textContent()).toContain('moment\u00a0: chaque');
+  expect(await page.getByText(age).textContent()).toContain('15\u00a0ans');
 
   await page.getByLabel('Prénom').fill('Léa');
   await page.getByLabel('Email', { exact: true }).fill('lea@exemple.fr');

@@ -1,10 +1,19 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
+import { CONSENTEMENT_ACTUALITES_TEXTE } from '../../serveur/consentements.mjs';
+import { nomOrganisateur } from '../lib/identite';
+import { useIdentiteLegale } from '../lib/useIdentiteLegale';
 import { Icone } from './Icone';
 import { VerificationHumaine } from './VerificationHumaine';
 
+/** Désignation neutre tant que l'identité de l'organisateur n'est pas connue (rien d'inventé). */
+const ORGANISATEUR_PAR_DEFAUT = 'l’organisateur de l’Olympiade des Manades';
+
 export function InscriptionActualites() {
   const id = useId();
+  // Lecture différée : l'accueil ne charge pas supabase-js pour cette seule ligne.
+  const { identite } = useIdentiteLegale('differe');
+  const organisateur = nomOrganisateur(identite) ?? ORGANISATEUR_PAR_DEFAUT;
   const [email, setEmail] = useState('');
   const [consentement, setConsentement] = useState(false);
   const [pret, setPret] = useState(false);
@@ -107,7 +116,8 @@ export function InscriptionActualites() {
               onChange={(e) => { setConsentement(e.target.checked); setErreur(''); setChampInvalide(null); }}
               aria-invalid={champInvalide === 'consentement' || undefined} aria-describedby={champInvalide === 'consentement' ? `${id}-erreur` : undefined}
               className="mt-1 size-4 shrink-0 accent-encre" />
-            J’accepte de recevoir par email les actualités, informations pratiques, résultats et notations de l’Olympiade des Manades.
+            {/* Texte enregistré comme preuve du consentement (art. 7(1) RGPD) : la constante, jamais une copie. */}
+            {CONSENTEMENT_ACTUALITES_TEXTE}
           </label>
           <div aria-hidden="true" className="absolute -left-[9999px] size-px overflow-hidden">
             <label htmlFor={`${id}-site`}>Site web, à laisser vide</label>
@@ -117,7 +127,10 @@ export function InscriptionActualites() {
           <div id={`${id}-erreur`} role="alert">{erreur ? <p className="mt-2 text-[13px] font-semibold text-rouge-alerte">{erreur}</p> : null}</div>
           <noscript><p className="mt-2 text-[13px] text-rouge-alerte">Activez JavaScript pour vous inscrire.</p></noscript>
         </form> : null}
-        <p className="mt-2 text-[11px] leading-relaxed text-encre-2">Retrait à tout moment via le <Link to="/contact" className="underline underline-offset-2">contact</Link>. <Link to="/confidentialite" className="underline underline-offset-2">Confidentialité</Link></p>
+        <p className="mt-2 text-[11px] leading-relaxed text-encre-2">
+          Désinscription à tout moment par le lien présent dans chaque email. Données traitées par {organisateur}&nbsp;: voir
+          la page <Link to="/confidentialite" className="underline underline-offset-2">Confidentialité</Link>.
+        </p>
       </div>
     </section>
   );

@@ -1,6 +1,37 @@
+import { CONSENTEMENT_ACTUALITES_TEXTE } from '../../serveur/consentements.mjs';
 import { expect, test } from '../outils/test-e2e';
 
 const TITRE = 'Toute l’Olympiade, dans votre boîte mail.';
+
+test('le libellé de la case est le texte de consentement enregistré, et la désinscription passe par chaque email', async ({ page }) => {
+  // Identité absente : la désignation neutre, rien d'inventé.
+  await page.route('**/rest/v1/identite_legale*', (route) => route.fulfill({ json: [] }));
+  await page.goto('/');
+  const carte = page.getByRole('region', { name: TITRE });
+  await expect(carte.getByRole('checkbox', { name: CONSENTEMENT_ACTUALITES_TEXTE, exact: true })).toBeVisible();
+  await expect(carte.getByText(
+    'Désinscription à tout moment par le lien présent dans chaque email. Données traitées par l’organisateur de l’Olympiade des Manades : voir la page Confidentialité.',
+  )).toBeVisible();
+  await expect(carte.getByRole('link', { name: 'contact' })).toHaveCount(0);
+});
+
+test('le nom de l’organisateur apparaît dès que le client Supabase existe', async ({ page }) => {
+  let lectures = 0;
+  await page.route('**/rest/v1/identite_legale*', (route) => {
+    lectures++;
+    return route.fulfill({ json: [{ raison_sociale: 'Association des Manades', forme_juridique: 'Association loi 1901', adresse: null, telephone: null, email: null, immatriculation: null, capital: null, tva: null, directeur_publication: null }] });
+  });
+  // Relecture de la vitrine à la première interaction : elle crée le client (données simulées).
+  await page.route('**/rest/v1/calendrier*', (route) => route.fulfill({ json: [] }));
+  await page.route('**/rest/v1/palmares*', (route) => route.fulfill({ json: [] }));
+  await page.goto('/', { waitUntil: 'networkidle' });
+  await page.keyboard.press('Tab');
+  const carte = page.getByRole('region', { name: TITRE });
+  // \s : l'espace avant le deux-points est insécable.
+  await expect(carte.getByText(/Données traitées par Association des Manades\s:\svoir la page/)).toBeVisible();
+  // Une seule lecture : le formulaire ne relit pas l'identité à chaque rendu.
+  expect(lectures).toBe(1);
+});
 
 test('l’inscription aux actualités est dans le premier écran, avec un consentement décoché', async ({ page }) => {
   await page.goto('/');
