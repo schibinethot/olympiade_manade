@@ -38,18 +38,17 @@ function AperçuVote() {
       aria-label="Exemple de vote : cet aperçu n'envoie rien"
       className="relative rounded-[22px] border border-white/20 bg-nuit-2 p-4 tablette:p-5"
     >
-      {/* La légende doit être le premier enfant direct du fieldset. */}
-      <legend className="w-full">
-        <div className="mb-4 flex items-center justify-between">
-          <span className="font-semibold text-[11px] tracking-[0.16em] text-or-clair uppercase">
-            Exemple
-          </span>
-          <span className="text-[11px] text-nuit-mute">Aucun envoi réel</span>
-        </div>
+      {/* La légende doit être le premier enfant direct du fieldset. Flottante, elle reste dans la
+          carte au lieu de se poser sur la bordure (rendu natif d'une légende). */}
+      <legend className="float-left mb-4 flex w-full items-center justify-between">
+        <span className="font-semibold text-[11px] tracking-[0.16em] text-or-clair uppercase">
+          Exemple
+        </span>
+        <span className="text-[11px] text-nuit-mute">Aucun envoi réel</span>
       </legend>
 
       {/* En-tête épreuve */}
-      <div className="mb-4">
+      <div className="clear-both mb-4">
         <p className="text-[10.5px] font-bold tracking-[0.2em] text-or-clair uppercase">
           Épreuve 1 · Ferrade en piste
         </p>
