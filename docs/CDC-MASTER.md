@@ -407,7 +407,7 @@ La base ouvre les avis d’une soirée `publiee` ou `en_cours` après `vote_fin`
 
 **Rattachement à une date**
 - à l'inscription, la personne est rattachée à la **prochaine date confirmée** du calendrier. Le formulaire ne gagne aucun champ pour cela
-- sans date confirmée, la personne est rattachée à la première date qui passe au statut `confirmee`
+- sans date confirmée à l’inscription, la personne est rattachée à la première date qui passe au statut `confirmee`, seulement si elle n’a encore suivi aucune date. Ensuite, une nouvelle date n’est suivie que par « Je viens » ou avec le consentement aux annonces. Les rattachements passés ne sont pas purgés : ils servent à ce contrôle
 - le lien « Je viens » d'une annonce **ajoute** un rattachement sans retirer les autres. La personne reçoit alors les rappels de cette date
 - une personne peut suivre plusieurs dates. Le rattachement s'arrête à J+7
 
@@ -431,9 +431,19 @@ Toutes les heures sont celles de Paris. Les jours et heures ci-dessous sont des 
 - les annonces (emails 6 et 7) ne partent qu'avec un consentement explicite. Spectateurs : case dédiée, **décochée par défaut**, dont le libellé est exactement le texte de consentement conservé en preuve. Abonnés : couverts par le texte qu'ils ont accepté
 - un abonné aux actualités reçoit d'abord l'email 0. Tant qu'il n'a pas cliqué, **rien d'autre ne part**. Au clic : rattachement à la prochaine date, puis bienvenue
 - le clic du titulaire est exigé pour tout abonnement aux annonces, y compris pour un spectateur déjà vérifié. Le dépôt du formulaire ne change rien avant ce clic
-- les abonnés déjà inscrits reçoivent une seule demande de confirmation, au premier passage en `SMTP_MODE=smtp`
-- un dépôt répété pour une demande en attente renvoie la confirmation au plus une fois par 24 h
-- chaque email porte un lien de désinscription en un clic (en-têtes `List-Unsubscribe` et `List-Unsubscribe-Post`). La page propose « arrêter les annonces » ou « tout arrêter »
+- les abonnés déjà inscrits reçoivent une seule demande de confirmation, au premier passage en `EMAILS_MODE=smtp` (repli : `SMTP_MODE`)
+- un dépôt répété pour une demande en attente renvoie la confirmation au plus une fois par 24 h, et au plus **1 confirmation par 30 jours pour une adresse désinscrite, 3 pour les autres**
+- chaque email contient un lien de désinscription. Il ouvre, sans connexion, une page où un seul bouton arrête les annonces ou tous les emails. Les en-têtes `List-Unsubscribe` et `List-Unsubscribe-Post` permettent à la messagerie d’afficher un bouton « Se désabonner », qui arrête tous les emails en un clic
+- **aucune promotion sans consentement aux annonces** : les autres dates (`{{prochaines_dates}}`, `{{lien_dates}}`) ne sont fournies qu’aux personnes qui ont accepté les annonces. L’email de confirmation ne contient aucune promotion, et le message n° 8 est réservé aux informations pratiques (horaire, report, annulation). Restent admis : la billetterie et les manades de **la date suivie**, dans le J-7 et la veille
+- le pied de chaque email dit pourquoi la personne le reçoit (confirmation, rappels et messages, annonces) et porte l’identité de l’organisateur (« L’Olympiade des Manades est organisée par … », lue dans `identite_legale`)
+
+**Bases légales** (revue juridique du 18/10/2026)
+- **rappels de la date suivie** (bienvenue, étapes 2 à 5, message n° 8) : pour les spectateurs inscrits au vote, intérêt légitime de l’organisateur (art. 6(1)(f) RGPD), avec un droit d’opposition sans motif par le lien de chaque email (art. 21) ; pour les abonnés aux actualités, leur consentement (art. 6(1)(a))
+- **annonces des prochaines dates** (emails 6 et 7) : consentement (art. 6(1)(a) RGPD et art. L34-5 CPCE)
+- **email de confirmation** : intérêt légitime (art. 6(1)(f) et 7(1) RGPD), sans publicité
+- **journal des envois** : intérêt légitime (doublons, plafond, preuve des envois), 12 mois
+- **liste d’opposition** : obligation légale (art. 6(1)(c) et 21(3) RGPD, art. L34-5 CPCE), tant que des emails sont envoyés
+- à confirmer selon la nature juridique de l’organisateur (section 10) : une personne publique ne peut pas invoquer l’intérêt légitime
 
 **Règles d'envoi**
 - **pas de rattrapage** : une étape dont l'heure est déjà passée à l'inscription est sautée
@@ -459,16 +469,19 @@ Toutes les heures sont celles de Paris. Les jours et heures ci-dessous sont des 
 **Admin `/admin/emails`** (AAL2)
 - **Séquence** : frise des emails avec quand, pour qui, interrupteur actif / inactif, dernier envoi et envois prévus dans les 7 jours
 - **Éditeur** : objet, pré-en-tête, corps, barre de variables, encart « date proche » (bienvenue), réglage du jour et de l'heure borné de J-14 à J+7, aperçu en direct mobile / ordinateur, « M'envoyer un test », « Revenir au texte d'origine ». Un corps identique au texte par défaut est refusé à l'envoi du message n° 8
-- **Dates** : nombre de rattachés par date, champ « Infos pratiques », bouton « Écrire aux inscrits de cette date »
-- **Envois** : journal par étape et par date (envoyés, échecs, sautés), mode d'envoi courant, désinscriptions. Journal conservé 12 mois
+- **Dates** : nombre de rattachés par date, champ « Infos pratiques » (public : rien de privé), bouton « Écrire aux inscrits de cette date », historique des messages envoyés (objet, date, destinataires). L’envoi porte une clé d’idempotence : un nouvel essai ne double pas le message
+- **Envois** : journal par étape et par date (envoyés, échecs, sautés) et raisons des sauts, lus dans une seule vue, mode d'envoi courant, raisons d’inactivité du planificateur dites en clair (« les emails partent pour de vrai » seulement s’il est prêt en smtp), barrière d’accès, dernière erreur et alerte sans passage réussi depuis plus de 10 minutes, désinscriptions. Journal conservé 12 mois
+- **Abonnés** (`/admin/abonnes`) : état de chaque abonné (confirmé, en attente de confirmation)
 
 **Prérequis d'envoi**
-- aucun envoi réel tant que `SMTP_MODE` n'est pas `smtp`. En mode `log`, l'envoi est journalisé avec l'adresse masquée
+- aucun envoi réel tant que `EMAILS_MODE` (repli : `SMTP_MODE`) n'est pas `smtp`. En mode `log`, l'envoi est journalisé avec l'adresse masquée
 - aucun envoi réel tant que la barrière d'accès (`ACCES_TOKEN`) est active : les liens des emails seraient inaccessibles aux destinataires
+- aucun envoi réel tant que l’identité de l’organisateur (`identite_legale`) est vide : elle figure dans le pied de chaque email et sur la page Confidentialité
+- DPA de Brevo et contrat art. 28 RGPD entre l’organisateur et TPMGE (sous-traitants ultérieurs : Supabase, Railway, Brevo, Cloudflare) signés avant le passage en smtp
 - offre Brevo payante avant l'ouverture au public : l'offre gratuite plafonne à 300 emails par jour, pour environ 5 000 destinataires par date
 - domaine expéditeur authentifié (SPF, DKIM, DMARC)
-- variables Railway : `SMTP_MODE=smtp`, `SMTP_*`, `EMAILS_FROM`, `EMAILS_CLE_LIENS` (clé de 64 caractères hexadécimaux, `openssl rand -hex 32`), `CONTACT_ORIGIN`. Facultatives : `EMAILS_DEBIT_PAR_SECONDE` (1 à 20, 5 par défaut), `EMAILS_TRUST_RAILWAY_PROXY`. Sans clé valide, le planificateur reste inactif
-- relecture juridique de la nouvelle finalité et des textes de consentement, et mise à jour de la page Confidentialité
+- variables Railway : `EMAILS_MODE=smtp`, `SMTP_*`, `EMAILS_FROM`, `EMAILS_CLE_LIENS` (clé de 64 caractères hexadécimaux, `openssl rand -hex 32`), `CONTACT_ORIGIN`. Facultatives : `EMAILS_DEBIT_PAR_SECONDE` (1 à 20, 5 par défaut), `EMAILS_TRUST_RAILWAY_PROXY`. Sans clé valide, le planificateur reste inactif
+- relecture juridique de la nouvelle finalité et des textes de consentement, et mise à jour de la page Confidentialité : faites le 18/10/2026 (bases légales ci-dessus, page Confidentialité réécrite)
 
 ---
 
@@ -616,7 +629,7 @@ Une file absorbe les pics et permet les reprises ; elle ajoute des écritures et
 | Disponibilité | Aucune mise en production pendant une soirée |
 | Accessibilité | Contrastes AA, boutons de 48 px minimum, lisible de nuit sous l'éclairage des arènes |
 | Langue | Français uniquement en V1 |
-| RGPD | Données du public : prénom et email, utilisés pour l'accès au vote, les notifications et les emails de la section 4.11 : rappels liés à la date suivie, et annonces des autres dates avec consentement explicite. Consentement à l'inscription, politique de confidentialité, suppression du compte depuis l'app, suppression automatique des comptes spectateurs inactifs depuis 24 mois. Aucun traceur tiers. Annonces des autres dates : case dédiée, décochée par défaut, libellé identique au texte de consentement conservé. Double confirmation des abonnés par un clic sur un lien reçu par email, désinscription en un clic dans chaque email, liste d'opposition respectée. Journal des envois conservé 12 mois. Abonnements non confirmés supprimés 30 jours après l'envoi de la confirmation. Consentement aux notifications distinct et horodaté (section 4.10). Sous-traitants : Supabase, Brevo, Railway, Cloudflare (Turnstile, avant l'ouverture des inscriptions), Anthropic (import du planning, lot 3), Google Firebase Cloud Messaging et services push des navigateurs (Apple, Google, Mozilla, Microsoft ; lots 8 et 9). DPA signé avec chacun, transferts hors UE documentés pays par pays (clauses contractuelles types ou Data Privacy Framework) dans la page Confidentialité. Encadrés « éditeur » et « responsable du traitement » remplis avant toute communication publique |
+| RGPD | Données du public : prénom et email, utilisés pour l'accès au vote, les notifications et les emails de la section 4.11 : rappels liés à la date suivie, et annonces des autres dates avec consentement explicite. Bases légales : vote = exécution du service (art. 6(1)(b)) ; notifications push = consentement sur écran dédié ; rappels de la date suivie = intérêt légitime (art. 6(1)(f)) avec opposition par le lien de chaque email pour les spectateurs, consentement pour les abonnés ; annonces = consentement (art. 6(1)(a), L34-5 CPCE) ; liste d'opposition = obligation légale (art. 6(1)(c) et 21(3)). Âge minimum : 15 ans, ou accord d'un titulaire de l'autorité parentale. Consentement à l'inscription, politique de confidentialité, suppression du compte depuis l'app, suppression automatique des comptes spectateurs inactifs depuis 24 mois. Traceurs tiers (Google Analytics, Google Ads, Meta Pixel) seulement après acceptation des cookies et si ces outils sont activés ; aucun pixel de suivi dans les emails. Annonces des autres dates : case dédiée, décochée par défaut, libellé identique au texte de consentement conservé. Double confirmation des abonnés par un clic sur un lien reçu par email. Lien de désinscription dans chaque email, désabonnement en un clic par la messagerie (`List-Unsubscribe-Post`). Liste d'opposition respectée, conservée tant que des emails sont envoyés, réduite à l'adresse, aux dates et à la preuve de l'ancien accord. Journal des envois conservé 12 mois. Abonnements non confirmés supprimés 30 jours après l'envoi de la confirmation, ou 30 jours après la demande si elle n'a pas pu partir. Abonnés : au plus 3 ans après la dernière action, avec un email de rappel avant l'échéance (purge à coder avant octobre 2029). Consentement aux notifications distinct et horodaté (section 4.10). Sous-traitants : TPMGE (développement, hébergement et maintenance pour l'organisateur), Supabase, Brevo, Railway, Cloudflare (Turnstile : connexion, contact et abonnement aux actualités), Anthropic (import du planning, lot 3), Google Firebase Cloud Messaging et services push des navigateurs (Apple, Google, Mozilla, Microsoft ; lots 8 et 9). Google et Meta destinataires seulement après acceptation des cookies. DPA signé avec chacun, transferts hors UE documentés pays par pays (clauses contractuelles types ou Data Privacy Framework) dans la page Confidentialité. Encadrés « éditeur » et « responsable du traitement » remplis avant toute communication publique |
 | Référencement | Pages vitrine pré-rendues, titre et description par page, données structurées `Event` pour les dates |
 | Sécurité | Clé API Anthropic et clé `service_role` Supabase uniquement côté serveur. Règles RLS couvertes par des tests automatisés |
 | Signature | Pied de page « Signé TPMGE » selon la spec de l'agence, et mention « Conçue en collaboration avec Atch Élevage et TPMGE » avec le bloc « Partenaire officiel : Atch Élevage » (charte graphique, section 8) |
@@ -691,7 +704,7 @@ Une file absorbe les pics et permet les reprises ; elle ajoute des écritures et
 | 6 | **Partiel.** Tests unitaires, SQL et E2E de la vitrine/file/supervision présents. PWA, parcours complet de soirée, recette terrain et charge hébergée 5 000/7 500 restent à faire. |
 | 7 | **Vitrine présente.** Accueil, palmarès éditorial, dates et pages légales. Contact enregistré en base via une API protégée, sans email organisateur. Configuration Turnstile requise ; les coordonnées légales et les données structurées `Event` restent à compléter. Déploiement Railway à aligner sur `main` pour exposer supervision et file des notes. |
 | 8, 9 | **Non commencés.** Notifications et application Android absentes. |
-| Emails | **Construit, non déployé.** Séquence de 9 emails, admin `/admin/emails`, double confirmation, désinscription, planificateur (section 4.11), sur la branche `feat/sequence-emails`. Reste : fusion, migrations, offre Brevo, SPF/DKIM/DMARC, variables Railway, relecture juridique, page Confidentialité. |
+| Emails | **Construit, non déployé.** Séquence de 9 emails, admin `/admin/emails`, double confirmation, désinscription, planificateur (section 4.11), sur la branche `feat/sequence-emails`. Relecture juridique faite et page Confidentialité réécrite le 18/10/2026. Reste : fusion, migrations, offre Brevo, SPF/DKIM/DMARC, variables Railway, identité et nature juridique de l'organisateur (section 10, questions 14 et 16), DPA Brevo et contrat art. 28 avec TPMGE. |
 | Supervision | **Code présent.** `/admin` et `/admin/statistiques`, présence et historique. AAL2 exigé pour les accès administratifs. L’état du déploiement est à vérifier séparément du dépôt. |
 
 Les audits du 12/10/2026 dans `documentation/` sont des constats antérieurs aux corrections ; leurs résultats de tests ne remplacent pas une recette du nouveau build. La production Railway observée dans l’audit servait encore un ancien build sans `/admin` ; les onze migrations antérieures aux correctifs du 12/10 sont présentes dans le projet Supabase lié, vérifié par `supabase migration list --linked`.
@@ -726,3 +739,4 @@ Ces travaux ne sont pas réputés livrés par le durcissement de la vitrine.
 13. **Palmarès** : l'organisateur peut-il confirmer les vainqueurs trouvés dans la presse et sur les réseaux (section 2.3 bis), dont Nîmes 2025 et Bezouce 2026, « à confirmer », et Aimargues, Eyguières, Mouriès 2026, sourcés par des publications lues en partie ?
 14. **Éditeur et responsable du traitement** : identité de l'organisateur (raison sociale, adresse, directeur de publication) pour les mentions légales et la page Confidentialité
 15. **Accords écrits** : photo de l'affiche, affiche officielle, charte d'Atch Élevage, photos des manades (section 4.0)
+16. **Nature juridique de l’organisateur** (association, société, personne publique) : conditionne la base légale des rappels par email (section 4.11). Une personne publique ne peut pas invoquer l’intérêt légitime : il faudrait alors un consentement aux rappels
