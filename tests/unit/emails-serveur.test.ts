@@ -1644,20 +1644,24 @@ describe('vague finale : endpoints admin', () => {
       method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${jeton}` },
       body: JSON.stringify({ cle, brouillon: { sujet: 'Essai', preheader: '', corps, encart: null }, calendrierId: ID.demain }),
     });
-    const corps = 'Rappel.\n\n[[Je viens|{{lien_je_viens}}]]\n\n{{dates_annoncees}}\n\n{{prochaines_dates}}';
+    const corps = 'Rappel.\n\n[[Je viens|{{lien_je_viens}}]]\n\n{{dates_annoncees}}';
     expect((await tester('veille', corps)).status).toBe(200);
     expect((await tester('annonce', corps)).status).toBe(200);
-    const [veille, annonce] = courriel.envoyer.mock.calls.map((c) => c[0] as { html: string; text: string; etape: string });
-    expect(veille.html).not.toContain('/emails/je-viens">Je viens');
+    expect((await tester('lendemain', 'Merci.\n\n{{prochaines_dates}}')).status).toBe(200);
+    const [veille, annonce, lendemain] = courriel.envoyer.mock.calls.map((c) => c[0] as { html: string; text: string; etape: string });
+    // Hors de l'annonce, ni bouton « Je viens » ni lien vers la page (le bouton sans URL disparaît), ni dates annoncées.
+    expect(veille.html).not.toContain('/emails/je-viens');
+    expect(veille.text).not.toContain('Je viens');
     expect(veille.text).not.toContain(`Ville ${ID.demain}, Arènes`);
-    expect(veille.text).toContain(`Ville ${ID.aout}`); // prochaines dates : la personne de test a consenti
+    // Prochaines dates : la personne de test a consenti aux annonces.
+    expect(lendemain.text).toContain(`Ville ${ID.aout}`);
     expect(annonce.text).toContain(`Je viens : ${ORIGINE}/emails/je-viens`);
     expect(annonce.text).toContain(`Ville ${ID.demain}, Arènes`);
     expect(veille.html).toContain(LIGNE_IDENTITE);
     expect(veille.etape).toBe('test:veille');
     // Pied de la confirmation : sa propre raison, et aucune liste d'autres dates.
     expect((await tester('confirmation', 'Confirmez.\n\n{{prochaines_dates}}')).status).toBe(200);
-    const confirmation = courriel.envoyer.mock.calls[2][0] as { text: string };
+    const confirmation = courriel.envoyer.mock.calls[3][0] as { text: string };
     expect(confirmation.text).toContain('formulaire d’actualités');
     expect(confirmation.text).not.toContain(`Ville ${ID.aout}`);
   });

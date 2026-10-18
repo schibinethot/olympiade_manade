@@ -36,6 +36,21 @@ test('le serveur de production sert les pages pré-rendues, le repli et les en-t
   expect(fichierInconnu.headers()['strict-transport-security']).toBe('max-age=31536000');
 });
 
+test('les liens d’e-mail : pages sans Referer, lien en un clic ouvert dans un navigateur redirigé sans écriture', async ({ request }) => {
+  // Sécurité M6 : le jeton (fragment, ou ?j= d'un ancien lien) ne part jamais dans un en-tête Referer.
+  for (const chemin of ['/emails/confirmation', '/emails/desinscription', '/emails/je-viens']) {
+    const page = await request.get(chemin);
+    expect(page.status(), chemin).toBe(200);
+    expect(page.headers()['referrer-policy'], chemin).toBe('no-referrer');
+  }
+  expect((await request.get('/')).headers()['referrer-policy']).toBe('strict-origin-when-cross-origin');
+  // Sécurité M2 : un GET du lien en un clic (navigateur, antivirus) mène à la page, jeton en fragment.
+  const unClic = await request.get('/api/emails/desinscription?j=abc.def', { maxRedirects: 0 });
+  expect(unClic.status()).toBe(303);
+  expect(unClic.headers().location).toBe('/emails/desinscription#j=abc.def');
+  expect(unClic.headers()['referrer-policy']).toBe('no-referrer');
+});
+
 test('une page non pré-rendue s’ouvre directement par son URL', async ({ page }) => {
   await page.goto('/noter');
   await expect(page.getByText('Les votes ouvriront le soir de l’Olympiade')).toBeVisible();
