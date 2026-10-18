@@ -88,7 +88,11 @@ export const JOUR_MS = 24 * HEURE_MS;
 export const LOT_LECTURE = 500;
 export const LOT_IDS = 50;
 const LOT_INSERTION = 500;
-/** Réponse de emails_a_traiter : 1,3 Mo mesurés pour 5 000 personnes suivant la même date (rapport de la vague finale). */
+/**
+ * Réponse de emails_a_traiter : au pire 1,8 Mo mesurés (1 821 199 octets) à J+7 pour 5 000 personnes suivant la même
+ * date, quand toutes ses étapes sont parties mais encore exposées (re-revue du fix n° 1). Cette limite dure de 16 Mio
+ * reste le garde-fou (plusieurs dates suivies par les mêmes personnes, base plus grande).
+ */
 export const LIMITE_RPC_OCTETS = 16 * 1024 * 1024;
 const LIMITE_REST_OCTETS = 8 * 1024 * 1024;
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
