@@ -121,11 +121,12 @@ export function VainqueurAlaUne({ resultat }: Props) {
                   {rang}
                   <sup className="text-[.42em]">{premier ? 'er' : 'e'}</sup>
                 </span>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2.5">
-                    <Fer manade={manade} clair taille={premier ? 'normal' : 'petit'} />
+                {/* Fer de même taille sur téléphone pour aligner les noms ; celui du 1er grandit sur bureau. */}
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <Fer manade={manade} clair taille="petit" className={premier ? 'paysage:size-14' : ''} />
+                  <div className="min-w-0">
                     <span
-                      className={`min-w-0 truncate font-semibold ${
+                      className={`block truncate font-semibold ${
                         premier ? 'text-[17px] text-or-clair tablette:text-[18px]' : 'text-[14.5px] text-nuit-txt/95'
                       }`}
                     >
@@ -137,10 +138,10 @@ export function VainqueurAlaUne({ resultat }: Props) {
                         manade
                       )}
                     </span>
+                    {precision ? (
+                      <span className="mt-0.5 block text-[12.5px] leading-snug text-nuit-mute">{precision}</span>
+                    ) : null}
                   </div>
-                  {precision ? (
-                    <span className="mt-1 block text-[12.5px] leading-snug text-nuit-mute">{precision}</span>
-                  ) : null}
                 </div>
               </li>
             );
