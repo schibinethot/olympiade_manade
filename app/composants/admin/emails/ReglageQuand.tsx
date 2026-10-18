@@ -4,7 +4,7 @@ import type { Etape } from '../../../../serveur/gabarits-emails.mjs';
 import { CARTE, CHAMP } from '../CadreAdmin';
 import { HEURE_MAX, HEURE_MIN, JOURS_MAX, JOURS_MIN, libelleChoixJours, quandEnClair } from './outils';
 
-const NB = ' ';
+const NB = '\u00a0';
 const CHOIX_JOURS = Array.from({ length: JOURS_MAX - JOURS_MIN + 1 }, (_, index) => JOURS_MIN + index);
 
 export function ReglageQuand({ cle, datee, jours, heure, erreurJours, erreurHeure, onJours, onHeure }: {

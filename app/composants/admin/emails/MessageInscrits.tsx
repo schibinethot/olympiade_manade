@@ -11,9 +11,9 @@ import { appelerApiAdmin, type DateCalendrier, type ModeleEmailLigne } from './d
 import { AlerteVariables, BarreInsertion, useInsertion } from './Insertion';
 import { messageAEcrire } from './outils';
 import { PanneauApercu } from './PanneauApercu';
-import { ALERTE } from './styles';
+import { ALERTE, INACTIF } from './styles';
 
-const NB = ' ';
+const NB = '\u00a0';
 const REGLAGE_VIDE = { jours_decalage: null, heure_envoi: null };
 
 export const personnes = (nombre: number) => `${nombre} personne${nombre > 1 ? 's' : ''}`;
@@ -132,7 +132,8 @@ export function MessageInscrits({ date, dates, inscrits, modeleMessage, jeton, o
           <p id={`${prefixe}-question`} ref={question} tabIndex={-1} className="font-semibold">Envoyer à {personnes(inscrits)}{NB}?</p>
           <p className="text-sm">Le message part aux inscrits confirmés de cette date, désinscrits exclus. Il ne peut pas être rappelé.</p>
           <div className="flex flex-wrap gap-3">
-            <button type="button" className={BOUTON_PLEIN} disabled={envoi.etat === 'encours'} onClick={() => void envoyer()}>
+            {/* aria-disabled pendant l'envoi : le bouton garde le focus ; envoyer() ignore le second clic. */}
+            <button type="button" className={`${BOUTON_PLEIN} ${INACTIF}`} aria-disabled={envoi.etat === 'encours' || undefined} onClick={() => void envoyer()}>
               {envoi.etat === 'encours' ? 'Envoi…' : envoi.etat === 'erreur' ? 'Réessayer' : 'Oui, envoyer'}
             </button>
             <button type="button" className={`${BOUTON} bg-creme`} disabled={envoi.etat === 'encours'} onClick={() => revenirSaisie('verifier')}>Modifier</button>

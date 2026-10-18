@@ -12,14 +12,14 @@ import { AlerteVariables, BarreInsertion, useInsertion } from './Insertion';
 import { dateParDefaut, POUR_QUI } from './outils';
 import { PanneauApercu } from './PanneauApercu';
 import { ReglageQuand } from './ReglageQuand';
-import { ALERTE } from './styles';
+import { ALERTE, INACTIF } from './styles';
 import { useBrouillonModele, type Brouillon, type ChampBrouillon } from './useBrouillonModele';
 
-const NB = ' ';
+const NB = '\u00a0';
 
 type NomChamp = 'sujet' | 'preheader' | 'corps' | 'encart';
-type Retour = { etat: 'repos' } | { etat: 'encours' } | { etat: 'ok' | 'erreur'; message: string };
-const REPOS: Retour = { etat: 'repos' };
+/** Dernier événement (enregistrement ou test), réussi ou non : c'est lui qu'affiche et annonce la barre. */
+type Resultat = { ton: 'ok' | 'erreur'; message: string } | null;
 
 const LIBELLES: Record<NomChamp, string> = {
   sujet: 'Objet', preheader: 'Texte d’aperçu', corps: 'Corps du message', encart: `Encart «${NB}date proche${NB}»`,
@@ -67,8 +67,9 @@ export function Editeur({ modele, dates, client, jeton, emailAdmin, focaliser, o
   const { cle } = modele;
   const b = useBrouillonModele(modele);
   const [dateId, setDateId] = useState(() => dateParDefaut(dates, new Date()));
-  const [enregistrement, setEnregistrement] = useState<Retour>(REPOS);
-  const [test, setTest] = useState<Retour>(REPOS);
+  const [enregistrementEnCours, setEnregistrementEnCours] = useState(false);
+  const [testEnCours, setTestEnCours] = useState(false);
+  const [resultat, setResultat] = useState<Resultat>(null);
   const [confirmerOrigine, setConfirmerOrigine] = useState(false);
   const titre = useRef<HTMLHeadingElement>(null);
   const question = useRef<HTMLParagraphElement>(null);
@@ -81,7 +82,7 @@ export function Editeur({ modele, dates, client, jeton, emailAdmin, focaliser, o
 
   const modifier = <K extends ChampBrouillon>(champ: K, valeur: Brouillon[K]) => {
     b.modifier(champ, valeur);
-    setEnregistrement(REPOS);
+    setResultat(null);
   };
   const insertion = useInsertion<NomChamp>(b.brouillon, (champ, valeur) => modifier(champ, valeur), 'corps');
   const reglage = useMemo(() => ({ jours_decalage: b.brouillon.jours, heure_envoi: b.brouillon.heure || null }), [b.brouillon.jours, b.brouillon.heure]);
@@ -92,24 +93,27 @@ export function Editeur({ modele, dates, client, jeton, emailAdmin, focaliser, o
     requestAnimationFrame(() => boutonOrigine.current?.focus());
   }
 
+  // aria-disabled plutôt que disabled pendant l'envoi : le bouton garde le focus ; la garde est ici.
   async function enregistrer() {
-    if (enregistrement.etat === 'encours') return;
-    if (!b.valide) return setEnregistrement({ etat: 'erreur', message: 'Corrigez les champs signalés avant d’enregistrer.' });
-    setEnregistrement({ etat: 'encours' });
-    const resultat = await enregistrerModele(client, cle, b.champs());
-    if (!resultat.ok) return setEnregistrement({ etat: 'erreur', message: resultat.message });
-    onEnregistre(resultat.valeur);
-    setEnregistrement({ etat: 'ok', message: 'Modèle enregistré. Les prochains envois utilisent ce texte.' });
+    if (enregistrementEnCours) return;
+    if (!b.valide) return setResultat({ ton: 'erreur', message: 'Corrigez les champs signalés avant d’enregistrer.' });
+    setEnregistrementEnCours(true);
+    const reponse = await enregistrerModele(client, cle, b.champs());
+    setEnregistrementEnCours(false);
+    if (!reponse.ok) return setResultat({ ton: 'erreur', message: reponse.message });
+    onEnregistre(reponse.valeur);
+    setResultat({ ton: 'ok', message: 'Modèle enregistré. Les prochains envois utilisent ce texte.' });
   }
 
   async function envoyerTest() {
-    if (!jeton || test.etat === 'encours') return;
-    setTest({ etat: 'encours' });
+    if (!jeton || testEnCours) return;
+    setTestEnCours(true);
     const reponse = await appelerApiAdmin<{ ok: boolean; mode: ModeEnvoi }>('/api/admin/emails/test', jeton, {
       cle, brouillon: { ...b.textes, preheader: b.textes.preheader ?? '', encart: b.textes.encart ?? null }, calendrierId: dateId || null,
     });
-    if (!reponse.ok) setTest({ etat: 'erreur', message: reponse.message });
-    else setTest({ etat: 'ok', message: (MESSAGES_TEST[reponse.donnees.mode] ?? MESSAGES_TEST.log)(emailAdmin ?? 'votre adresse') });
+    setTestEnCours(false);
+    if (!reponse.ok) setResultat({ ton: 'erreur', message: reponse.message });
+    else setResultat({ ton: 'ok', message: (MESSAGES_TEST[reponse.donnees.mode] ?? MESSAGES_TEST.log)(emailAdmin ?? 'votre adresse') });
   }
 
   const champ = (nom: NomChamp, maxLength: number, aide: string, avant?: ReactNode) => (
@@ -118,7 +122,8 @@ export function Editeur({ modele, dates, client, jeton, emailAdmin, focaliser, o
       erreur={nom === 'sujet' || nom === 'corps' ? b.erreurs[nom] : null}
       onChange={(evenement) => modifier(nom, evenement.target.value)} {...insertion.brancher(nom)} />
   );
-  const statut = enregistrement.etat === 'ok' ? enregistrement.message : test.etat === 'ok' ? test.message : '';
+  // Collante pendant la saisie, et tant qu'un résultat reste à lire (enregistrement ou test).
+  const collant = b.modifie || enregistrementEnCours || testEnCours || resultat !== null;
 
   return (
     <div className="grid min-w-0 gap-5">
@@ -154,9 +159,10 @@ export function Editeur({ modele, dates, client, jeton, emailAdmin, focaliser, o
             {champ('sujet', 200, 'Les infos (variables) marchent aussi dans l’objet.')}
             {champ('preheader', 200, 'Quelques mots affichés après l’objet dans la boîte de réception.')}
             {champ('corps', 8000, 'Une ligne vide sépare deux paragraphes. Une ligne dont l’info n’est pas encore connue (heure, billetterie…) n’apparaît pas.',
-              <BarreInsertion cle={cle} libelleCible={LIBELLES[insertion.cible]} riche={insertion.cible === 'corps' || insertion.cible === 'encart'} appliquer={insertion.appliquer} />)}
+              <BarreInsertion cle={cle} jours={b.brouillon.jours} libelleCible={LIBELLES[insertion.cible]}
+                riche={insertion.cible === 'corps' || insertion.cible === 'encart'} appliquer={insertion.appliquer} />)}
             {b.bienvenue ? champ('encart', 4000, 'Ajouté à la bienvenue quand la date tombe dans les 7 jours qui suivent l’inscription.') : null}
-            <AlerteVariables cle={cle} textes={[b.brouillon.sujet, b.brouillon.preheader, b.brouillon.corps, b.bienvenue ? b.brouillon.encart : '']} />
+            <AlerteVariables cle={cle} jours={b.brouillon.jours} textes={[b.brouillon.sujet, b.brouillon.preheader, b.brouillon.corps, b.bienvenue ? b.brouillon.encart : '']} />
           </section>
           <ReglageQuand cle={cle} datee={b.datee} jours={b.brouillon.jours} heure={b.brouillon.heure} erreurJours={b.erreurs.jours}
             erreurHeure={b.erreurs.heure} onJours={(jours) => modifier('jours', jours)} onHeure={(heure) => modifier('heure', heure)} />
@@ -168,22 +174,21 @@ export function Editeur({ modele, dates, client, jeton, emailAdmin, focaliser, o
         </div>
       </div>
 
-      {/* Collante tant que le texte est modifié : « Enregistrer » reste à portée pendant la saisie. */}
+      {/* Collante tant que le texte est modifié ou qu'un résultat reste à lire : « Enregistrer » reste à portée. */}
       <section aria-label="Actions sur le modèle"
-        className={`${CARTE} grid gap-2 py-3 tablette:py-4 ${b.modifie ? 'sticky bottom-0 z-10 shadow-[0_-10px_28px_rgba(28,25,18,0.14)]' : ''}`}>
+        className={`${CARTE} grid gap-2 py-3 tablette:py-4 ${collant ? 'sticky bottom-0 z-10 shadow-[0_-10px_28px_rgba(28,25,18,0.14)]' : ''}`}>
         <div className="flex flex-wrap items-center gap-3">
-          <button type="button" className={BOUTON_PLEIN} disabled={enregistrement.etat === 'encours'} onClick={() => void enregistrer()}>
-            {enregistrement.etat === 'encours' ? 'Enregistrement…' : 'Enregistrer'}
+          <button type="button" className={`${BOUTON_PLEIN} ${INACTIF}`} aria-disabled={enregistrementEnCours || undefined} onClick={() => void enregistrer()}>
+            {enregistrementEnCours ? 'Enregistrement…' : 'Enregistrer'}
           </button>
-          <button type="button" className={BOUTON} disabled={!jeton || test.etat === 'encours'} onClick={() => void envoyerTest()}>
-            {test.etat === 'encours' ? 'Envoi du test…' : 'M’envoyer un test'}
+          <button type="button" className={`${BOUTON} ${INACTIF}`} aria-disabled={!jeton || testEnCours || undefined} onClick={() => void envoyerTest()}>
+            {testEnCours ? 'Envoi du test…' : 'M’envoyer un test'}
           </button>
           {b.modifie ? <span className="text-sm font-semibold text-or-ink">Modifications non enregistrées</span> : null}
         </div>
-        {/* Région permanente : le résultat (enregistré, test parti) est annoncé sans déplacer le focus. */}
-        <p role="status" className="text-sm text-ok">{statut}</p>
-        {enregistrement.etat === 'erreur' ? <p role="alert" className="text-sm text-rouge-alerte">{enregistrement.message}</p> : null}
-        {test.etat === 'erreur' ? <p role="alert" className="text-sm text-rouge-alerte">{test.message}</p> : null}
+        {/* Région permanente : le dernier résultat réussi (enregistré, test parti) est annoncé sans déplacer le focus. */}
+        <p role="status" className="text-sm text-ok">{resultat?.ton === 'ok' ? resultat.message : ''}</p>
+        {resultat?.ton === 'erreur' ? <p role="alert" className="text-sm text-rouge-alerte">{resultat.message}</p> : null}
       </section>
       <p className="text-xs text-encre-2">
         Le test part tout de suite à {emailAdmin ?? 'votre adresse'}, avec le texte affiché (même non enregistré) et la date d’exemple. Il porte

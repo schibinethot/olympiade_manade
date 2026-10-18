@@ -161,13 +161,14 @@ const SANS_DATE = new Set(['prenom', 'lien_dates', 'lien_confirmation']);
  * - la confirmation n'a ni date ni prochaines dates ;
  * - le lien de confirmation n'existe que dans la confirmation ;
  * - « Je viens » et les dates annoncées n'existent que dans l'annonce ;
- * - le vainqueur (palmarès confirmé) n'est connu qu'après la soirée : lendemain, prochaines dates, message.
+ * - le vainqueur (palmarès confirmé) n'est connu qu'après la soirée : une étape réglée à J+1 ou après
+ *   (`jours`, son décalage en cours de saisie), ou le message. L'annonce porte sur une date à venir.
  */
-export function variableDisponible(cle: Etape, variable: string): boolean {
+export function variableDisponible(cle: Etape, variable: string, jours: number | null = null): boolean {
   if (variable === 'lien_confirmation') return cle === 'confirmation';
   if (variable === 'lien_je_viens' || variable === 'dates_annoncees') return cle === 'annonce';
   if (cle === 'confirmation') return SANS_DATE.has(variable);
-  if (variable === 'vainqueur') return cle === 'lendemain' || cle === 'prochaines_dates' || cle === 'message';
+  if (variable === 'vainqueur') return cle === 'message' || (aUneEcheance(cle) && cle !== 'annonce' && jours !== null && jours >= 1);
   return true;
 }
 
@@ -427,7 +428,7 @@ export function preparerApercu(options: OptionsApercu): { contexte: ContexteEmai
   // Comme à l'envoi : la confirmation ne porte sur aucune date, et le vainqueur n'existe qu'après la soirée.
   const source = cle === 'confirmation' ? null : options.date ?? (exemples ? dateExemple() : null);
   const enrichie = source ? enrichir(source, exemples) : null;
-  const date = enrichie && !variableDisponible(cle, 'vainqueur') ? { ...enrichie, vainqueur: null } : enrichie;
+  const date = enrichie && !variableDisponible(cle, 'vainqueur', options.reglage.jours_decalage) ? { ...enrichie, vainqueur: null } : enrichie;
   const encartDateProche = cle === 'bienvenue' && options.encart && date !== null;
 
   let instant = options.maintenant;

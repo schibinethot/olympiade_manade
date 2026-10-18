@@ -237,7 +237,8 @@ export function useDonneesEmails() {
       } catch (erreur) {
         // Le code PostgREST (42P01, 42501, PGRST200…) suffit au diagnostic : jamais le détail de la réponse.
         const code = erreur && typeof erreur === 'object' && 'code' in erreur && typeof erreur.code === 'string' ? erreur.code : null;
-        console.error('Admin des emails : lecture impossible', code ?? erreur);
+        // Jamais l'objet entier : il peut porter des détails de la base.
+        console.error('Admin des emails : lecture impossible', code ?? (erreur instanceof Error ? erreur.name : 'inconnue'));
         if (actif) setDonnees({ statut: 'erreur', code, message: 'Les données des emails sont illisibles. Vérifiez que la migration est appliquée, puis réessayez.' });
       } finally {
         if (actif) setActualisation(false);

@@ -11,28 +11,35 @@ import { BOUTON, CARTE, CHAMP } from '../CadreAdmin';
 import { enregistrerInfosPratiques, type DateCalendrier, type EtatChargement, type EtatEmails, type ModeleEmailLigne } from './donnees';
 import { MessageInscrits, personnes } from './MessageInscrits';
 import { jourParisDe, LIBELLES_STATUT_DATE, modelesUtilisant } from './outils';
-import { ALERTE } from './styles';
+import { ALERTE, INACTIF } from './styles';
 
-const NB = ' ';
+const NB = '\u00a0';
 const LIMITE_INFOS = 1000;
 
 type Retour = { etat: 'repos' } | { etat: 'encours' } | { etat: 'ok' | 'erreur'; message: string };
 
-function InfosPratiques({ date, client, utilisateurs, onEnregistre }: {
+function InfosPratiques({ date, client, utilisateurs, onEnregistre, onModifie }: {
   date: DateCalendrier;
   client: SupabaseClient;
   /** Emails actifs qui reprennent {{infos_pratiques}}. */
   utilisateurs: readonly string[];
   onEnregistre: (infos: string | null) => void;
+  /** Une saisie non enregistrée est protégée comme un brouillon (onglets, liens, retour, rechargement). */
+  onModifie: (modifie: boolean) => void;
 }) {
   const [valeur, setValeur] = useState(date.infos_pratiques ?? '');
   const [retour, setRetour] = useState<Retour>({ etat: 'repos' });
   const id = `infos-${date.id}`;
   const propre = valeur.trim() || null;
   const inchange = propre === (date.infos_pratiques?.trim() || null);
+  const inactif = inchange || retour.etat === 'encours';
 
+  useEffect(() => { onModifie(!inchange); }, [inchange, onModifie]);
+  useEffect(() => () => onModifie(false), [onModifie]);
+
+  // aria-disabled : après l'enregistrement, le bouton garde le focus ; la garde est ici.
   async function enregistrer() {
-    if (retour.etat === 'encours') return;
+    if (inactif) return;
     setRetour({ etat: 'encours' });
     const resultat = await enregistrerInfosPratiques(client, date.id, propre);
     if (!resultat.ok) return setRetour({ etat: 'erreur', message: resultat.message });
@@ -53,7 +60,7 @@ function InfosPratiques({ date, client, utilisateurs, onEnregistre }: {
         {' '}{valeur.length}{NB}/{NB}{LIMITE_INFOS}
       </p>
       <div className="flex flex-wrap items-center gap-3">
-        <button type="button" className={BOUTON} disabled={inchange || retour.etat === 'encours'} onClick={() => void enregistrer()}>
+        <button type="button" className={`${BOUTON} ${INACTIF}`} aria-disabled={inactif || undefined} onClick={() => void enregistrer()}>
           {retour.etat === 'encours' ? 'Enregistrement…' : 'Enregistrer les infos'}
         </button>
         <p role="status" className="text-sm text-ok">{retour.etat === 'ok' ? retour.message : ''}</p>
@@ -89,6 +96,7 @@ function CarteDate({ date, dates, inscrits, modeleMessage, utilisateurs, client,
     : date.statut === 'annulee' ? 'border-rouge-alerte/40 bg-rouge/10 text-rouge-alerte' : 'border-trait bg-lin text-encre-2';
   const point = date.statut === 'confirmee' ? 'bg-ok' : date.statut === 'annulee' ? 'bg-rouge-alerte' : 'bg-encre-3';
   const signaler = useCallback((modifie: boolean) => onModifie(`message-${date.id}`, modifie), [onModifie, date.id]);
+  const signalerInfos = useCallback((modifie: boolean) => onModifie(`infos-${date.id}`, modifie), [onModifie, date.id]);
 
   // Arrivée depuis l'alerte sans personne à prévenir : la carte vient à l'écran, titre focalisé.
   useEffect(() => { if (ouvrirMessage && !peutEcrire) titre.current?.focus(); }, [ouvrirMessage, peutEcrire]);
@@ -117,7 +125,7 @@ function CarteDate({ date, dates, inscrits, modeleMessage, utilisateurs, client,
         {date.statut === 'annulee' ? <p className={`${ALERTE} text-sm`}>Date annulée{NB}: les rappels sont arrêtés. Prévenez les inscrits, et proposez-leur les autres dates avec {'{{prochaines_dates}}'}.</p> : null}
       </div>
 
-      <InfosPratiques date={date} client={client} utilisateurs={utilisateurs} onEnregistre={onInfos} />
+      <InfosPratiques date={date} client={client} utilisateurs={utilisateurs} onEnregistre={onInfos} onModifie={signalerInfos} />
 
       {ecrire && jeton && inscrits ? (
         <MessageInscrits date={date} dates={dates} inscrits={inscrits} modeleMessage={modeleMessage} jeton={jeton} onModifie={signaler}

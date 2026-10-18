@@ -8,7 +8,7 @@ import { MODELES_DEFAUT, type ModeleEmail } from '../../../../serveur/gabarits-e
 import type { MajModele, ModeleEmailLigne } from './donnees';
 import { aUneEcheance, heureSaisie, heureValide, joursValides } from './outils';
 
-const NB = ' ';
+const NB = '\u00a0';
 
 export type Brouillon = { sujet: string; preheader: string; corps: string; encart: string; jours: number | null; heure: string };
 export type ChampBrouillon = keyof Brouillon;

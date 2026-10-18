@@ -21,7 +21,7 @@ import { Envois } from '../composants/admin/emails/Envois';
 import { Sequence } from '../composants/admin/emails/Sequence';
 import { ALERTE } from '../composants/admin/emails/styles';
 
-const NB = ' ';
+const NB = '\u00a0';
 
 export function meta() {
   return [{ title: 'E-mails · Administration' }, { name: 'robots', content: 'noindex' }];
@@ -46,8 +46,11 @@ const ONGLETS: ReadonlyArray<{ cle: Onglet; libelle: string }> = [
 const estOnglet = (valeur: string | null): valeur is Onglet => ONGLETS.some((onglet) => onglet.cle === valeur);
 const estEtape = (valeur: string | null): valeur is Etape => (ETAPES as readonly string[]).includes(valeur ?? '');
 
-/** Question focalisée à l'ouverture ; « Rester » rend le focus à l'élément qui l'avait. */
-function ConfirmationSortie({ onQuitter, onRester }: { onQuitter: () => void; onRester: () => void }) {
+/**
+ * Question focalisée à l'ouverture ; « Rester » rend le focus à l'élément qui l'avait. « Quitter »
+ * transmet cet élément, pour placer le focus sur l'onglet de destination si la sortie venait d'un onglet.
+ */
+function ConfirmationSortie({ onQuitter, onRester }: { onQuitter: (avant: Element | null) => void; onRester: () => void }) {
   const question = useRef<HTMLParagraphElement>(null);
   const avant = useRef<Element | null>(null);
   useEffect(() => {
@@ -66,7 +69,7 @@ function ConfirmationSortie({ onQuitter, onRester }: { onQuitter: () => void; on
       </p>
       <div className="flex flex-wrap gap-2">
         <button type="button" className={BOUTON_PLEIN} onClick={rester}>Rester</button>
-        <button type="button" className={`${BOUTON} bg-creme`} onClick={onQuitter}>Quitter sans enregistrer</button>
+        <button type="button" className={`${BOUTON} bg-creme`} onClick={() => onQuitter(avant.current)}>Quitter sans enregistrer</button>
       </div>
     </div>
   );
@@ -105,12 +108,28 @@ function Contenu() {
     return () => window.removeEventListener('beforeunload', avertir);
   }, [aProteger]);
 
-  // Éditeur refermé (lien, onglet, retour) : le focus revient sur « Modifier l'email » de l'étape.
+  // Sortie confirmée depuis un onglet : le focus ira sur l'onglet de destination.
+  const ongletApresSortie = useRef<Onglet | null>(null);
+  function quitter(avant: Element | null) {
+    if (blocker.state !== 'blocked') return;
+    if (avant instanceof HTMLElement && avant.getAttribute('role') === 'tab' && blocker.location.pathname === window.location.pathname) {
+      const destination = new URLSearchParams(blocker.location.search).get('onglet');
+      ongletApresSortie.current = estOnglet(destination) ? destination : 'sequence';
+    }
+    blocker.proceed();
+  }
+
+  // Éditeur refermé (lien, retour) : le focus revient sur « Modifier l'email » de l'étape ; après une
+  // sortie confirmée depuis un onglet, sur l'onglet de destination.
   const modelePrecedent = useRef<Etape | null>(cleModele);
   useEffect(() => {
     const precedent = modelePrecedent.current;
     modelePrecedent.current = cleModele;
-    if (precedent && !cleModele && onglet === 'sequence') {
+    const ongletVise = ongletApresSortie.current;
+    if (ongletVise) {
+      ongletApresSortie.current = null;
+      requestAnimationFrame(() => document.getElementById(`onglet-emails-${ongletVise}`)?.focus());
+    } else if (precedent && !cleModele && onglet === 'sequence') {
       requestAnimationFrame(() => document.getElementById(`modifier-${precedent}`)?.focus());
     }
   }, [cleModele, onglet]);
@@ -239,7 +258,7 @@ function Contenu() {
         })}
       </div>
 
-      {blocker.state === 'blocked' ? <ConfirmationSortie onQuitter={() => blocker.proceed()} onRester={() => blocker.reset()} /> : null}
+      {blocker.state === 'blocked' ? <ConfirmationSortie onQuitter={quitter} onRester={() => blocker.reset()} /> : null}
 
       <div role="tabpanel" id={`panneau-emails-${onglet}`} aria-labelledby={`onglet-emails-${onglet}`} className="min-w-0">
         {panneau()}

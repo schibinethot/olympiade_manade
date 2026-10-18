@@ -11,7 +11,7 @@ import type { DateCalendrier } from './donnees';
 import { aUneEcheance, instantEnClair, libelleOptionDate, preparerApercu } from './outils';
 import { CIBLE } from './styles';
 
-const NB = ' ';
+const NB = '\u00a0';
 const CASE = `flex ${CIBLE} items-center gap-2`;
 
 type Preparation = { ok: true; contexte: ContexteEmail; instant: Date } | { ok: false; message: string };

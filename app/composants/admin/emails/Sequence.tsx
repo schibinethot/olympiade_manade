@@ -15,7 +15,7 @@ import {
 } from './outils';
 import { ALERTE } from './styles';
 
-const NB = ' ';
+const NB = '\u00a0';
 
 /** Ce qui remplace l'estimation pour les e-mails qui ne dépendent pas d'une date. */
 const SANS_ESTIMATION: Partial<Record<Etape, string>> = {

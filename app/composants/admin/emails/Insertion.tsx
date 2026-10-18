@@ -19,7 +19,7 @@ import {
 } from './outils';
 import { CIBLE } from './styles';
 
-const NB = ' ';
+const NB = '\u00a0';
 
 type Champ = HTMLInputElement | HTMLTextAreaElement;
 export type Transformation = (valeur: string, debut: number, fin: number) => Insertion;
@@ -65,9 +65,11 @@ export const OUTILS: ReadonlyArray<{ libelle: string; aide: string; transformer:
 /** Un clic n'enlève pas le focus du champ : la sélection reste celle de l'admin. */
 const garderLeFocus = (evenement: { preventDefault: () => void }) => evenement.preventDefault();
 
-export function BarreInsertion({ cle, libelleCible, riche, appliquer }: {
+export function BarreInsertion({ cle, jours = null, libelleCible, riche, appliquer }: {
   /** L'email édité : les variables sans valeur pour lui sont grisées. */
   cle: Etape;
+  /** Décalage en cours de saisie (le vainqueur n'existe qu'après la soirée). */
+  jours?: number | null;
   libelleCible: string;
   riche: boolean;
   appliquer: (transformer: Transformation) => void;
@@ -102,7 +104,7 @@ export function BarreInsertion({ cle, libelleCible, riche, appliquer }: {
             <div key={groupe} role="group" aria-label={`Infos${NB}: ${groupe}`} className="flex flex-wrap items-center gap-1.5">
               <span aria-hidden="true" className="mr-1 text-xs font-bold tracking-[.14em] text-or-ink uppercase">{groupe}</span>
               {VARIABLES.filter((variable) => variable.groupe === groupe).map((variable) => {
-                const disponible = variableDisponible(cle, variable.cle);
+                const disponible = variableDisponible(cle, variable.cle, jours);
                 return (
                   <button
                     key={variable.cle}
@@ -129,9 +131,9 @@ export function BarreInsertion({ cle, libelleCible, riche, appliquer }: {
 }
 
 /** Variables absentes de VARIABLES (rendues vides), et variables connues sans valeur dans cet email. */
-export function AlerteVariables({ cle, textes }: { cle: Etape; textes: readonly string[] }) {
+export function AlerteVariables({ cle, jours = null, textes }: { cle: Etape; jours?: number | null; textes: readonly string[] }) {
   const inconnues = variablesInconnues(textes.join('\n'));
-  const sansValeur = variablesEmployees(textes).filter((variable) => !variableDisponible(cle, variable));
+  const sansValeur = variablesEmployees(textes).filter((variable) => !variableDisponible(cle, variable, jours));
   if (!inconnues.length && !sansValeur.length) return null;
   const liste = (noms: readonly string[]) => noms.map((nom) => `{{${nom}}}`).join(', ');
   return (

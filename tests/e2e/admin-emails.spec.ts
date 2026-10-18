@@ -290,6 +290,8 @@ test.describe('admin des e-mails', () => {
     await page.getByRole('tab', { name: 'Dates' }).click();
     await page.getByRole('button', { name: 'Quitter sans enregistrer' }).click();
     await expect(page.getByRole('tab', { name: 'Dates' })).toHaveAttribute('aria-selected', 'true');
+    // Sortie confirmée depuis un onglet : le focus est sur l'onglet de destination.
+    await expect(page.getByRole('tab', { name: 'Dates' })).toBeFocused();
     await page.getByRole('tab', { name: 'Séquence' }).click();
     await page.locator('#modifier-j_moins_7').click();
     await expect(corpsDuMessage(page)).toHaveValue(MODELES_DEFAUT.j_moins_7.corps);
@@ -391,6 +393,32 @@ test.describe('admin des e-mails', () => {
     await expect(corpsDuMessage(page)).toHaveValue(MODELES_DEFAUT.j_moins_7.corps);
   });
 
+  test('après un enregistrement, la barre reste visible et le résultat du test s’affiche', async ({ page }) => {
+    await ouvrirAdmin(page);
+    await page.goto('/admin/emails?modele=j_moins_7');
+    await corpsDuMessage(page).fill(`${MODELES_DEFAUT.j_moins_7.corps}\n\nUne ligne de plus.`);
+    const enregistrer = page.getByRole('button', { name: 'Enregistrer', exact: true });
+    await enregistrer.click();
+    await expect(page.getByRole('status').filter({ hasText: 'Modèle enregistré' })).toBeVisible();
+    // Le bouton garde le focus (aria-disabled pendant l'envoi), et la barre reste collée au bas de l'écran.
+    await expect(enregistrer).toBeFocused();
+    await expect(enregistrer).toBeInViewport();
+    await page.getByRole('button', { name: 'M’envoyer un test' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Test simulé (mode log)' })).toBeVisible();
+    await expect(page.getByRole('status').filter({ hasText: 'Modèle enregistré' })).toHaveCount(0);
+  });
+
+  test('le vainqueur n’est proposé qu’aux emails partis après la soirée', async ({ page }) => {
+    await ouvrirAdmin(page);
+    await page.goto('/admin/emails?modele=lendemain');
+    await page.getByRole('button', { name: 'Insérer une info' }).click();
+    const vainqueur = page.getByRole('button', { name: /\{\{vainqueur\}\}/ });
+    await expect(vainqueur).not.toHaveAttribute('aria-disabled', 'true');
+    // Le lendemain avancé au jour même : la soirée n'est pas finie, plus de vainqueur.
+    await page.getByLabel('Jour d’envoi').selectOption('0');
+    await expect(vainqueur).toHaveAttribute('aria-disabled', 'true');
+  });
+
   test('« M’envoyer un test » envoie le brouillon et affiche le mode', async ({ page }) => {
     const simulation = await ouvrirAdmin(page);
     await page.goto('/admin/emails?modele=bienvenue');
@@ -410,6 +438,22 @@ test.describe('admin des e-mails', () => {
       },
       calendrierId: 'date-sommieres',
     });
+  });
+
+  test('des infos pratiques non enregistrées sont protégées', async ({ page }) => {
+    await ouvrirAdmin(page);
+    await page.goto('/admin/emails?onglet=dates');
+    const carte = page.getByRole('article', { name: /Lunel/ });
+    await carte.getByLabel('Infos pratiques').fill('Parking derrière la mairie.');
+    await page.getByRole('tab', { name: 'Envois' }).click();
+    await expect(page.getByText('Vos modifications ne sont pas enregistrées. Quitter quand même ?')).toBeFocused();
+    await page.getByRole('button', { name: 'Rester' }).click();
+    await expect(carte.getByLabel('Infos pratiques')).toHaveValue('Parking derrière la mairie.');
+    // Une fois enregistrées, plus rien n'est retenu.
+    await carte.getByRole('button', { name: 'Enregistrer les infos' }).click();
+    await expect(carte.getByRole('status').filter({ hasText: 'Infos pratiques enregistrées' })).toBeVisible();
+    await page.getByRole('tab', { name: 'Envois' }).click();
+    await expect(page.getByRole('tab', { name: 'Envois' })).toHaveAttribute('aria-selected', 'true');
   });
 
   test('Dates : infos pratiques enregistrées et message aux inscrits confirmé', async ({ page }) => {

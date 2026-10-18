@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { MODELES_DEFAUT, type Etape } from '../../../../serveur/gabarits-emails.mjs';
 import { BOUTON, CARTE } from '../CadreAdmin';
+import { INACTIF } from './styles';
 import { RAISONS_CONNUES, useComptesEnvois, type DateCalendrier, type EtatChargement, type EtatEmails, type LigneBilan, type ModeEnvoi, type ModeleEmailLigne } from './donnees';
 import { instantEnClair, LIBELLES_RAISONS, regrouperBilan } from './outils';
 
@@ -89,7 +90,9 @@ export function Envois({ bilan, modeles, dates, etat, client, onActualiser, actu
   };
   const totalSautesEchecs = lignes.reduce((total, ligne) => total + ligne.saute + ligne.echec, 0);
 
+  // aria-disabled pendant la relecture : le bouton garde le focus ; la garde est ici.
   function actualiser() {
+    if (actualisation) return;
     setRevision((valeur) => valeur + 1);
     onActualiser();
   }
@@ -100,7 +103,7 @@ export function Envois({ bilan, modeles, dates, etat, client, onActualiser, actu
         <p className="text-sm text-encre-2">Aucune statistique d’ouverture ni de clic n’est mesurée.</p>
         <div className="flex items-center gap-3">
           <p role="status" className="text-sm text-encre-2">{actualisation ? 'Actualisation…' : ''}</p>
-          <button type="button" className={BOUTON} disabled={actualisation} onClick={actualiser}>Actualiser</button>
+          <button type="button" className={`${BOUTON} ${INACTIF}`} aria-disabled={actualisation || undefined} onClick={actualiser}>Actualiser</button>
         </div>
       </div>
 

@@ -68,7 +68,7 @@ export function ApercuEmail({ id, niveauTitre, modele, contexte, erreurContexte 
       {legende ? (
         <p className="text-sm text-encre-2">
           {legende}
-          {largeur === 'ordinateur' ? <span className="hidden paysage:inline"> Affiché à 60&nbsp;% pour tenir à côté du texte.</span> : null}
+          {largeur === 'ordinateur' ? <span className="hidden paysage:inline"> Affiché à 55&nbsp;% pour tenir à côté du texte.</span> : null}
         </p>
       ) : null}
 
@@ -81,7 +81,7 @@ export function ApercuEmail({ id, niveauTitre, modele, contexte, erreurContexte 
           <div className="overflow-x-auto rounded-xl border border-trait">
             <div
               // Ordinateur : 600 px réels, réduits (zoom) au bureau pour ne pas écraser la colonne de saisie.
-              className={`apercu-email mx-auto ${largeur === 'mobile' ? 'w-full max-w-[375px]' : 'w-[624px] paysage:[zoom:0.6]'}`}
+              className={`apercu-email mx-auto ${largeur === 'mobile' ? 'w-full max-w-[375px]' : 'w-[624px] paysage:[zoom:0.55]'}`}
               // HTML produit par rendreEmail : texte de l'admin et valeurs déjà échappés (tâche 2).
               dangerouslySetInnerHTML={{ __html: rendu.html }}
             />

@@ -24,7 +24,7 @@ import {
   datesPourEstimation,
 } from '../../app/composants/admin/emails/outils';
 
-const NB = ' ';
+const NB = '\u00a0';
 
 const SOMMIERES: DateCalendrier = {
   id: 'sommieres', nom: 'Olympiade des Manades', ville: 'Sommières', arenes: 'Arènes Gilles Arnaud',
@@ -193,8 +193,20 @@ describe('variables disponibles selon l’email', () => {
     expect(variableDisponible('annonce', 'dates_annoncees')).toBe(true);
     expect(variableDisponible('message', 'lien_je_viens')).toBe(false);
     expect(variableDisponible('prochaines_dates', 'dates_annoncees')).toBe(false);
-    for (const cle of ['lendemain', 'prochaines_dates', 'message'] as const) expect(variableDisponible(cle, 'vainqueur')).toBe(true);
-    for (const cle of ['bienvenue', 'j_moins_7', 'veille', 'jour_j', 'annonce'] as const) expect(variableDisponible(cle, 'vainqueur')).toBe(false);
+  });
+
+  it('ne donne le vainqueur qu’à un email parti après la soirée, selon son réglage', () => {
+    expect(variableDisponible('lendemain', 'vainqueur', 1)).toBe(true);
+    expect(variableDisponible('prochaines_dates', 'vainqueur', 7)).toBe(true);
+    expect(variableDisponible('message', 'vainqueur')).toBe(true);
+    // Réglé à J+1, la veille part après la soirée ; le lendemain avancé au jour même, avant.
+    expect(variableDisponible('veille', 'vainqueur', 1)).toBe(true);
+    expect(variableDisponible('lendemain', 'vainqueur', 0)).toBe(false);
+    for (const cle of ['j_moins_7', 'veille', 'jour_j'] as const) expect(variableDisponible(cle, 'vainqueur', MODELES_DEFAUT[cle].jours_decalage)).toBe(false);
+    // L'annonce porte sur une date à venir, la bienvenue et la confirmation sur aucune soirée passée.
+    expect(variableDisponible('annonce', 'vainqueur', 3)).toBe(false);
+    expect(variableDisponible('bienvenue', 'vainqueur')).toBe(false);
+    expect(variableDisponible('lendemain', 'vainqueur')).toBe(false);
   });
 
   it('ne laisse à la confirmation que le prénom et les liens sans date', () => {
