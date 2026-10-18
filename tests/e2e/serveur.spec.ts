@@ -53,7 +53,7 @@ test('les liens d’e-mail : pages sans Referer, lien en un clic ouvert dans un 
 
 test('une page non pré-rendue s’ouvre directement par son URL', async ({ page }) => {
   await page.goto('/noter');
-  await expect(page.getByText('Les votes ouvriront le soir de l’Olympiade')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Notez les Olympiades' })).toBeVisible();
 });
 
 // Garde ajoutée : un script en ligne refusé par la CSP ne lève aucune erreur de page,

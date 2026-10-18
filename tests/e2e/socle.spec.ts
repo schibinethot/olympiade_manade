@@ -9,7 +9,7 @@ test('la navigation mène aux pages vitrine et le pied de page porte la signatur
   for (const [zone, lien, titre] of [
     ['navigation', 'Classements', /Classements/],
     ['navigation', 'Dates', /Dates/],
-    ['navigation', 'Noter en direct', /Les votes ouvriront/],
+    ['navigation', 'Noter en direct', /Notez les Olympiades/],
     ['pied', 'Contact', /Contact/],
   ] as const) {
     if (zone === 'navigation') {

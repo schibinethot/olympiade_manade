@@ -66,7 +66,8 @@ function AperçuVote() {
           <button
             key={n}
             type="button"
-            aria-label={`${n} sur 10`}
+            // Nom distinct des vrais boutons de vote (« 8 sur 10 »), affichés sur la même page une fois connecté.
+            aria-label={`Exemple : ${n} sur 10`}
             aria-pressed={choix === n}
             onClick={() => setChoix(n === choix ? null : n)}
             className={[
