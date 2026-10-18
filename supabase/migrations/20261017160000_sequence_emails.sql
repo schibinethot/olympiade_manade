@@ -439,6 +439,26 @@ create trigger calendrier_rattacher_premiere_confirmation
   after insert or update of statut on public.calendrier
   for each row execute function prive.rattacher_premiere_confirmation();
 
+-- Date déplacée (QA B1) : les étapes de date sautées pour l'ancienne échéance (déjà passée à l'inscription, même jour
+-- que la bienvenue, plafond, fenêtre…) sont effacées, pour que la nouvelle échéance se calcule ; sinon l'unicité la
+-- bloquerait. Une étape partie, réservée ou en échec reste : elle n'est pas renvoyée pour la nouvelle échéance (le
+-- message n° 8 annonce un report), et la RPC la montre au calcul (pas de réservation fantôme sous le plafond).
+create function prive.effacer_sauts_date_deplacee() returns trigger
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  delete from public.envois_emails e
+  where e.calendrier_id = new.id and e.statut = 'saute'
+    and e.etape in ('j_moins_7', 'veille', 'jour_j', 'lendemain', 'prochaines_dates');
+  return null;
+end
+$$;
+
+create trigger calendrier_effacer_sauts_date_deplacee
+  after update of date_soiree on public.calendrier
+  for each row when (old.date_soiree is distinct from new.date_soiree)
+  execute function prive.effacer_sauts_date_deplacee();
+
 -- Abonnés aux actualités -------------------------------------------------------------------------------
 
 -- Plafond des demandes de confirmation réelles (revue juridique C6, sécurité I3) : au plus 1 par 30 jours
@@ -656,6 +676,7 @@ revoke execute on function prive.jour_des_soirees(timestamptz) from public, anon
 revoke execute on function prive.rattacher_prochaine_date(uuid, text, timestamptz) from public, anon, authenticated;
 revoke execute on function prive.rattacher_destinataire_confirme() from public, anon, authenticated;
 revoke execute on function prive.rattacher_premiere_confirmation() from public, anon, authenticated;
+revoke execute on function prive.effacer_sauts_date_deplacee() from public, anon, authenticated;
 revoke execute on function prive.confirmation_permise(smallint, timestamptz, timestamptz, timestamptz) from public, anon, authenticated;
 revoke execute on function prive.plafonner_confirmation_email() from public, anon, authenticated;
 revoke execute on function prive.inscrire_abonne_emails() from public, anon, authenticated;
@@ -904,6 +925,11 @@ as $$
                        -- pour un consentant : délais glissants de 7 jours et dates déjà annoncées ;
                        or (d.annonces and e.etape in ('annonce', 'prochaines_dates') and e.prevu_le > p_maintenant - interval '7 days')
                        or (d.annonces and e.etape = 'annonce' and e.calendrier_id in (select f.id from fenetre f))
+                       -- les étapes de date d'une date de la fenêtre, quel que soit leur âge, sauf les sautées (effacées si
+                       -- la date bouge) : après un report, une étape partie pour l'ancienne échéance n'est ni recalculée
+                       -- ni comptée sous le plafond comme une réservation fantôme (QA B1) ;
+                       or (e.etape in ('j_moins_7', 'veille', 'jour_j', 'lendemain', 'prochaines_dates') and e.statut <> 'saute'
+                           and e.calendrier_id in (select f.id from fenetre f))
                        -- toutes les étapes d'un rattachement de moins de 48 h (étapes déjà passées à l'inscription).
                        or exists (
                          select 1 from public.rattachements_emails r

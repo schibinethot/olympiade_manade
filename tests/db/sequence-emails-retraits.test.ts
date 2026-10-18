@@ -305,6 +305,36 @@ describe('séquence d’e-mails : date déplacée, bilan, idempotence', () => {
       expect((await db.query(reserver, [bruno, date, '2027-08-01T16:00:00Z'])).rows).toHaveLength(1);
     }));
 
+  it('date déplacée : seuls les sauts des étapes de cette date sont effacés (mineur n° 2)', () =>
+    dansUneTransaction(async (db) => {
+      await modifier(db, 'delete from public.calendrier');
+      const { rows: dates } = await db.query(
+        `insert into public.calendrier (annee, nom, ville, date_soiree, heure, statut) values
+           (2027, 'A', 'Sommières', '2027-07-30', '21:30', 'confirmee'), (2027, 'B', 'Lunel', '2027-08-06', '21:30', 'confirmee')
+         returning id, nom`,
+      );
+      const [a, b] = ['A', 'B'].map((nom) => dates.find((d: { nom: string }) => d.nom === nom).id as string);
+      const { rows: [{ id }] } = await db.query(`insert into public.destinataires_emails (email) values ('lea@exemple.fr') returning id`);
+      await db.query(
+        `insert into public.envois_emails (destinataire_id, etape, calendrier_id, reel, statut, raison) values
+           ($1, 'j_moins_7', $2, true, 'saute', 'deja_passe_a_l_inscription'), ($1, 'veille', $2, false, 'saute', 'plafond_jour'),
+           ($1, 'prochaines_dates', $2, true, 'saute', 'meme_jour_que_bienvenue'), ($1, 'jour_j', $2, true, 'envoye', null),
+           ($1, 'lendemain', $2, true, 'echec', 'interrompu'), ($1, 'annonce', $2, true, 'saute', 'date_passee'),
+           ($1, 'j_moins_7', $3, true, 'saute', 'deja_passe_a_l_inscription')`,
+        [id, a, b],
+      );
+      const lignes = async () => (await db.query(
+        `select c.nom || ':' || e.etape || ':' || e.statut as l from public.envois_emails e join public.calendrier c on c.id = e.calendrier_id
+         order by 1`,
+      )).rows.map((r: { l: string }) => r.l);
+      const toutes = await lignes();
+      // Une modification sans changement de date (heure, statut) ne touche à rien.
+      await db.query(`update public.calendrier set heure = '22:00', date_soiree = date_soiree where id = $1`, [a]);
+      expect(await lignes()).toEqual(toutes);
+      await db.query(`update public.calendrier set date_soiree = '2027-08-13' where id = $1`, [a]);
+      expect(await lignes()).toEqual(['A:annonce:saute', 'A:jour_j:envoye', 'A:lendemain:echec', 'B:j_moins_7:saute']);
+    }));
+
   it('bilan_envois_emails regroupe aussi par raison', () =>
     dansUneTransaction(async (db) => {
       const id = await abonner(db, 'lea@exemple.fr');

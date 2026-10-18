@@ -9,7 +9,9 @@
 //
 // Horizons : la bienvenue n'est examinée que dans les 24 h qui suivent la confirmation, une étape de date que
 // dans les 48 h qui suivent son échéance (ou les 48 h qui suivent le rattachement). Au-delà, rien n'est
-// calculé ni enregistré : la RPC ne renvoie plus les envois anciens (volume borné).
+// calculé ni enregistré : la RPC ne renvoie plus les envois anciens (volume borné), sauf les étapes de date non
+// sautées d'une date de sa fenêtre. Après un report, l'étape partie pour l'ancienne échéance reste ainsi visible :
+// elle n'est ni renvoyée ni comptée sous le plafond comme une réservation fantôme (QA B1).
 
 import { ETAPES } from './gabarits-emails.mjs';
 import {

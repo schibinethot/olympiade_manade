@@ -1291,8 +1291,10 @@ describe('séquence d’e-mails : RPC emails_a_traiter', () => {
         [rattache, debut, horsFenetre, avant, ilYa(24 * 20), desinscrit, opposee, aujourdhui, ilYa(1)],
       );
       // Envois renvoyés : ceux des 4 derniers jours, ceux d'un rattachement de moins de 48 h, les confirmations
-      // des adresses en attente, les annonces des dates de la fenêtre pour un consentant. Les autres, anciens, non.
-      await insererEnvoi(db, rattache, 'j_moins_7', { calendrierId: debut, creeLe: ilYa(24 * 15) }); // ancien
+      // des adresses en attente, les annonces des dates de la fenêtre pour un consentant, les étapes de date (non
+      // sautées) d'une date de la fenêtre quel que soit leur âge (date déplacée, QA B1). Les autres, anciens, non.
+      await insererEnvoi(db, rattache, 'j_moins_7', { calendrierId: debut, creeLe: ilYa(24 * 15) }); // étape d'une date de la fenêtre
+      await insererEnvoi(db, rattache, 'jour_j', { calendrierId: debut, statut: 'saute', creeLe: ilYa(24 * 8) }); // sautée, ancienne
       await insererEnvoi(db, rattache, 'veille', { calendrierId: debut, creeLe: ilYa(24 * 3) }); // 3 jours : renvoyé
       await insererEnvoi(db, rattache, 'veille', { calendrierId: avant, creeLe: ilYa(24 * 20) }); // ancien
       await insererEnvoi(db, rattache, 'annonce', { calendrierId: avant, creeLe: ilYa(24 * 5) }); // pas consentant
@@ -1394,6 +1396,7 @@ describe('séquence d’e-mails : RPC emails_a_traiter', () => {
         'bienvenue:hier:-',
         'confirmation:echec-recent:-',
         'j_moins_7:rattache:aujourdhui',
+        'j_moins_7:rattache:debut',
         'veille:rattache:debut',
       ]);
       expect(Object.keys(r.envois[0]).sort()).toEqual(['calendrier_id', 'destinataire_id', 'etape', 'prevu_le', 'raison', 'statut']);
