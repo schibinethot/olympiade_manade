@@ -62,7 +62,8 @@ function correspond(valeur: unknown, filtre: string): boolean {
   let ok: boolean;
   switch (op) {
     case 'eq': ok = valeur !== null && valeur !== undefined && String(valeur) === brut; break;
-    case 'neq': ok = valeur !== null && valeur !== undefined && String(valeur) !== brut; break;
+    // Comparaison d'instants comme PostgREST (« …Z » et « ….000Z » sont le même instant).
+    case 'neq': ok = valeur !== null && valeur !== undefined && comparer(valeur, brut) !== 0; break;
     case 'is': ok = brut === 'null' ? valeur === null || valeur === undefined : String(valeur) === brut; break;
     case 'in': ok = brut.replace(/^\(|\)$/g, '').split(',').map((v) => v.replace(/^"|"$/g, '')).includes(String(valeur)); break;
     case 'lt': ok = valeur !== null && valeur !== undefined && comparer(valeur, brut) < 0; break;
@@ -1784,6 +1785,31 @@ describe('correctifs n° 1 : planificateur', () => {
     expect(apres.filter((a) => a.methode === 'GET' && ['/rest/v1/destinataires_emails', '/rest/v1/calendrier'].includes(a.chemin))).toEqual([]);
     expect(base.tables.envois_emails.filter((e) => e.statut === 'en_attente' && e.raison === null)).toHaveLength(3);
     expect(base.tables.envois_emails.some((e) => e.raison === 'en_cours')).toBe(false);
+  });
+
+  it('réglage d’un modèle changé : le saut de l’ancienne échéance est supprimé, la nouvelle se réserve (fix 2, mineur n° 6)', async () => {
+    const horloge = { t: Date.parse('2027-07-29T17:05:00Z') }; // 19:05 à Paris, veille du 30/07
+    const { base, emails, courriel } = preparer({ mode: 'smtp', horloge });
+    // La veille passe de 18:00 à 19:00 après un saut « plafond_jour » enregistré pour 18:00.
+    base.tables.modeles_emails = modeles().map((m) => (m.cle === 'veille' ? { ...m, heure_envoi: '19:00' } : m));
+    base.tables.calendrier = [date(ID.demain, '2027-07-30')];
+    base.tables.destinataires_emails = [destinataire(ID.bruno, 'bruno@exemple.fr')];
+    base.tables.rattachements_emails = [{ destinataire_id: ID.bruno, calendrier_id: ID.demain, origine: 'inscription', cree_le: '2027-06-01T10:00:00Z' }];
+    base.tables.envois_emails = [
+      envoi(ID.bruno, 'bienvenue', null, { reel: true, statut: 'envoye' }),
+      envoi(ID.bruno, 'veille', ID.demain, { reel: true, statut: 'saute', raison: 'plafond_jour', envoye_le: null, prevu_le: '2027-07-29T16:00:00Z' }),
+    ];
+    expect(await emails.passer()).toMatchObject({ reserves: 1, envoyes: 1 });
+    expect(courriel.envoyer).toHaveBeenCalledTimes(1);
+    expect(base.tables.envois_emails.filter((e) => e.etape === 'veille')).toEqual([
+      expect.objectContaining({ statut: 'envoye', prevu_le: '2027-07-29T17:00:00.000Z' }),
+    ]);
+    // Suppression ciblée : le saut de cette personne, pour cette étape et cette date, à une autre échéance.
+    const suppression = base.appels.find((a) => a.methode === 'DELETE' && a.params.get('statut') === 'eq.saute');
+    expect(suppression?.params.get('destinataire_id')).toBe(`in.(${ID.bruno})`);
+    expect(suppression?.params.get('etape')).toBe('eq.veille');
+    expect(suppression?.params.get('calendrier_id')).toBe(`eq.${ID.demain}`);
+    expect(suppression?.params.get('prevu_le')).toBe('neq.2027-07-29T17:00:00.000Z');
   });
 
   it('{{prochaines_dates}} : les prochaines dates du calcul sont relues après la réclamation (mineur n° 4)', async () => {

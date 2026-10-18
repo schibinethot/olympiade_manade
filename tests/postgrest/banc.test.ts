@@ -232,4 +232,37 @@ describe('banc PostgREST réel', () => {
       expect(journal.filter((l) => l.level === 'error'), JSON.stringify(journal.filter((l) => l.level === 'error'))).toEqual([]);
     }
   });
+
+  it('saut d’une ancienne échéance : la suppression ciblée (neq, is.null) passe par le vrai PostgREST (fix 2, mineur n° 6)', async () => {
+    const { rows: [{ id: date }] } = await db.query(
+      `insert into public.calendrier (annee, nom, ville, arenes, date_soiree, heure, statut)
+       values (2027, 'Rencontre des manades', 'Lunel', 'Arènes', '2027-08-20', '21:30', 'confirmee') returning id`,
+    );
+    const { rows: [{ id: max }] } = await db.query(
+      `insert into public.destinataires_emails (email, confirme_le) values ('max@exemple.fr', '2027-06-01T10:00:00Z') returning id`,
+    );
+    await db.query('delete from public.rattachements_emails where destinataire_id = $1', [max]);
+    await db.query(
+      `insert into public.rattachements_emails (destinataire_id, calendrier_id, origine, cree_le)
+       values ($1, $2, 'inscription', '2027-06-01T10:00:00Z')`,
+      [max, date],
+    );
+    // Saut de la veille enregistré pour 17:00 (ancien réglage) ; la veille est réglée à 18:00.
+    await db.query(
+      `insert into public.envois_emails (destinataire_id, etape, calendrier_id, reel, statut, raison, prevu_le) values
+         ($1, 'bienvenue', null, false, 'simule', null, '2027-06-01T10:05:00Z'),
+         ($1, 'veille', $2, false, 'saute', 'plafond_jour', '2027-08-19T15:00:00Z')`,
+      [max, date],
+    );
+    const log = emails('log', { t: Date.parse('2027-08-19T16:05:00Z') });
+    await log.instance.passer();
+    const { rows } = await db.query(
+      `select statut, prevu_le from public.envois_emails where destinataire_id = $1 and etape = 'veille'`, [max],
+    );
+    expect(rows).toEqual([{ statut: 'simule', prevu_le: new Date('2027-08-19T16:00:00Z') }]);
+    expect(log.envoyes.map((e) => `${e.etape}:${e.to}`)).toEqual(['veille:max@exemple.fr']);
+    expect(log.journal.filter((l) => l.level === 'error'), JSON.stringify(log.journal.filter((l) => l.level === 'error'))).toEqual([]);
+    const suppression = appels.filter((a) => a.methode === 'DELETE' && a.requete.includes('statut=eq.saute'));
+    expect(suppression).toHaveLength(1);
+  });
 });

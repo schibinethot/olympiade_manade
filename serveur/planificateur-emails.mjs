@@ -9,7 +9,7 @@
 // toute tentative (relecture impossible, arrêt) est rendue. prevu_le n'est jamais modifié après la réservation : le
 // plafond journalier se compte dessus.
 
-import { calculerEnvois, lireEmailsATraiter } from './echeances-emails.mjs';
+import { calculerEnvois, lireEmailsATraiter, sautsPerimes } from './echeances-emails.mjs';
 import {
   LIMITE_RPC_OCTETS,
   LOT_IDS,
@@ -200,6 +200,20 @@ export function creerPlanificateur(ctx, acces) {
       await rest(`/rest/v1/envois_emails?id=in.(${lot.join(',')})&statut=eq.en_attente&raison=eq.en_cours`, {
         methode: 'DELETE', prefer: 'return=minimal',
       });
+    }
+  }
+
+  /**
+   * Sauts enregistrés pour une échéance qui n'est plus la bonne (sautsPerimes) : supprimés juste avant la réservation de
+   * la nouvelle, comme liberer() pour une ligne réservée. Filtrés sur le saut et sur une échéance différente : une
+   * ligne écrite entre-temps pour la nouvelle échéance reste. @param {ReturnType<typeof sautsPerimes>} perimes
+   */
+  async function effacerSautsPerimes(perimes) {
+    for (const { etape, calendrierId, prevuLe, destinataireIds } of perimes) {
+      for (const lot of tranches(destinataireIds, LOT_IDS)) {
+        await rest(`/rest/v1/envois_emails?destinataire_id=in.(${lot.join(',')})&etape=eq.${etape}&calendrier_id=eq.${calendrierId}`
+          + `&message_id=is.null&reel=is.${reel}&statut=eq.saute&prevu_le=neq.${enc(prevuLe)}`, { methode: 'DELETE', prefer: 'return=minimal' });
+      }
     }
   }
 
@@ -510,6 +524,9 @@ export function creerPlanificateur(ctx, acces) {
     const lues = lireEmailsATraiter(brut);
     const duree = Date.now() - debut;
     const { aEnvoyer, sautes } = calculerEnvois(lues, new Date(instant));
+    // Sauts pour une ancienne échéance (report pendant un calcul, réglage changé) : supprimés avant la réservation.
+    const perimes = sautsPerimes(lues, [...aEnvoyer, ...sautes]);
+    if (perimes.length) await effacerSautsPerimes(perimes);
     const reservees = await insererEnvois([
       ...aEnvoyer.flatMap((envoi) => lignesReservees(envoi, 'en_attente', reel)),
       ...sautes.flatMap((envoi) => lignesReservees(envoi, 'saute', reel)),

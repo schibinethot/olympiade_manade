@@ -2,7 +2,7 @@ import type pg from 'pg';
 import { describe, expect, it } from 'vitest';
 import { commeSuperutilisateur, dansUneTransaction } from './aide';
 import { modifier } from './graine';
-import { calculerEnvois, dateDeBienvenue, lireEmailsATraiter } from '../../serveur/echeances-emails.mjs';
+import { calculerEnvois, dateDeBienvenue, lireEmailsATraiter, sautsPerimes } from '../../serveur/echeances-emails.mjs';
 import { lignesModelesParDefaut, lignesReservees } from '../../serveur/planificateur-emails.mjs';
 
 // Couture SQL ↔ JS (revue QA) : les vrais déclencheurs et la vraie RPC nourrissent calculerEnvois, et ses envois
@@ -26,6 +26,15 @@ async function passer(db: pg.Client, reel = false, instant?: string) {
   const { rows: [{ r }] } = await db.query('select public.emails_a_traiter($1, $2) as r', [maintenant, reel]);
   const donnees = lireEmailsATraiter(r);
   const calcul = calculerEnvois(donnees, new Date(maintenant));
+  // Comme le planificateur (effacerSautsPerimes) : les sauts d'une ancienne échéance partent avant la réservation.
+  for (const p of sautsPerimes(donnees, [...calcul.aEnvoyer, ...calcul.sautes])) {
+    await db.query(
+      `delete from public.envois_emails
+       where destinataire_id = any($1::uuid[]) and etape = $2 and calendrier_id = $3 and message_id is null and reel = $4
+         and statut = 'saute' and prevu_le <> $5`,
+      [p.destinataireIds, p.etape, p.calendrierId, reel, p.prevuLe],
+    );
+  }
   const aReserver = [
     ...calcul.aEnvoyer.flatMap((e) => lignesReservees(e, 'en_attente', reel)),
     ...calcul.sautes.flatMap((e) => lignesReservees(e, 'saute', reel)),
@@ -187,5 +196,69 @@ describe('couture SQL ↔ calculerEnvois', () => {
       expect(passage.calcul.aEnvoyer.find((e) => e.etape === 'j_moins_7')).toMatchObject({
         calendrierIds: [a], prevuLe: '2027-08-06T08:00:00.000Z',
       });
+    }));
+
+  it('sauts d’une ancienne échéance : report pendant un calcul, réglage d’un modèle changé (fix 2, mineur n° 6)', () =>
+    dansUneTransaction(async (db) => {
+      await modifier(db, 'delete from public.calendrier');
+      await semerModeles(db);
+      await commeSuperutilisateur(db);
+      await db.query('delete from public.destinataires_emails');
+      const { rows: personnes } = await db.query(
+        `insert into public.destinataires_emails (email, confirme_le) values
+           ('lea@exemple.fr', '2027-06-01T10:00:00Z'), ('bruno@exemple.fr', '2027-06-01T10:00:00Z')
+         returning id, email`,
+      );
+      const id = (email: string) => personnes.find((p: { email: string }) => p.email === email).id as string;
+      const { rows: dates } = await db.query(
+        `insert into public.calendrier (annee, nom, ville, date_soiree, heure, statut) values
+           (2027, 'Rencontre A', 'Sommières', '2027-07-30', '21:30', 'confirmee'),
+           (2027, 'Rencontre B', 'Lunel', '2027-08-20', '21:30', 'confirmee')
+         returning id, nom`,
+      );
+      const [a, b] = ['Rencontre A', 'Rencontre B'].map((nom) => dates.find((d: { nom: string }) => d.nom === nom).id as string);
+      await db.query('delete from public.rattachements_emails');
+      await db.query(
+        `insert into public.rattachements_emails (destinataire_id, calendrier_id, origine, cree_le) values
+           ($1, $3, 'inscription', '2027-06-01T10:00:00Z'), ($2, $4, 'inscription', '2027-06-01T10:00:00Z')`,
+        [id('lea@exemple.fr'), id('bruno@exemple.fr'), a, b],
+      );
+      await db.query(
+        `insert into public.envois_emails (destinataire_id, etape, calendrier_id, reel, statut, prevu_le, envoye_le) values
+           ($1, 'bienvenue', null, true, 'envoye', '2027-06-01T10:05:00Z', '2027-06-01T10:05:00Z'),
+           ($2, 'bienvenue', null, true, 'envoye', '2027-06-01T10:05:00Z', '2027-06-01T10:05:00Z')`,
+        [id('lea@exemple.fr'), id('bruno@exemple.fr')],
+      );
+
+      // 1. Course au report : A passe au 13/08 (le déclencheur ne trouve aucun saut), puis le calcul commencé avant le
+      //    report écrit le saut du J-7 du 23/07. Le 06/08, ce saut de 14 jours n'est plus l'échéance : vu par la RPC,
+      //    tenu pour absent, supprimé, et le nouveau J-7 se réserve.
+      await db.query(`update public.calendrier set date_soiree = '2027-08-13' where id = $1`, [a]);
+      await db.query(
+        `insert into public.envois_emails (destinataire_id, etape, calendrier_id, reel, statut, raison, prevu_le)
+         values ($1, 'j_moins_7', $2, true, 'saute', 'plafond_jour', '2027-07-23T08:00:00Z')`,
+        [id('lea@exemple.fr'), a],
+      );
+      const report = await passer(db, true, '2027-08-06T08:05:00Z');
+      expect(report.reservees).toEqual(['j_moins_7:en_attente']);
+      expect(report.donnees.envois.some((e) => e.etape === 'j_moins_7' && e.statut === 'saute')).toBe(true);
+
+      // 2. Réglage changé : la veille de B, sautée « plafond_jour » à 18:00, passe à 19:00. À 19:05, le saut de
+      //    18:00 est supprimé et la veille de 19:00 se réserve.
+      await commeSuperutilisateur(db);
+      await db.query(
+        `insert into public.envois_emails (destinataire_id, etape, calendrier_id, reel, statut, raison, prevu_le)
+         values ($1, 'veille', $2, true, 'saute', 'plafond_jour', '2027-08-19T16:00:00Z')`,
+        [id('bruno@exemple.fr'), b],
+      );
+      await db.query(`update public.modeles_emails set heure_envoi = '19:00' where cle = 'veille'`);
+      expect((await passer(db, true, '2027-08-19T17:05:00Z')).reservees).toEqual(['veille:en_attente']);
+      const { rows: veilles } = await db.query(
+        `select statut, prevu_le from public.envois_emails where destinataire_id = $1 and etape = 'veille'`, [id('bruno@exemple.fr')],
+      );
+      expect(veilles).toEqual([{ statut: 'envoye', prevu_le: new Date('2027-08-19T17:00:00Z') }]);
+
+      // 3. Un saut à jour, lui, reste et compte : aucun envoi ni suppression de plus.
+      expect((await passer(db, true, '2027-08-19T17:10:00Z')).reservees).toEqual([]);
     }));
 });

@@ -941,6 +941,20 @@ as $$
                        -- ni comptée sous le plafond comme une réservation fantôme (QA B1) ;
                        or (e.etape in ('j_moins_7', 'veille', 'jour_j', 'lendemain', 'prochaines_dates') and e.statut <> 'saute'
                            and e.calendrier_id in (select f.id from fenetre f))
+                       -- les sauts d'étape de date d'une date de la fenêtre dont l'échéance a changé depuis (date reportée
+                       -- pendant un calcul, réglage du modèle) : calculerEnvois les tient pour absents, le planificateur les
+                       -- supprime avant de réserver la nouvelle échéance (mineur n° 6). Rares : à jour, un saut n'y figure pas ;
+                       or (e.statut = 'saute' and e.etape in ('j_moins_7', 'veille', 'jour_j', 'lendemain', 'prochaines_dates')
+                           and exists (
+                             select 1
+                             from public.calendrier c
+                             join fenetre f on f.id = c.id
+                             join public.modeles_emails m on m.cle = e.etape
+                             where c.id = e.calendrier_id and m.actif
+                               and m.jours_decalage is not null and m.heure_envoi is not null
+                               and e.prevu_le is distinct from
+                                   ((c.date_soiree + m.jours_decalage) + m.heure_envoi) at time zone 'Europe/Paris'
+                           ))
                        -- toutes les étapes d'un rattachement de moins de 48 h (étapes déjà passées à l'inscription).
                        or exists (
                          select 1 from public.rattachements_emails r

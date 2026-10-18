@@ -6,6 +6,7 @@ import {
   echeance,
   envoisAVenir,
   lireEmailsATraiter,
+  sautsPerimes,
   type Destinataire,
   type EmailsATraiter,
   type Envoi,
@@ -781,5 +782,58 @@ describe('vague finale : horizons, interrompus et forme compacte de la RPC', () 
     ]) {
       expect(() => lireEmailsATraiter(invalide)).toThrow('réponse RPC invalide');
     }
+  });
+});
+
+describe('fix 2 : sauts pour une ancienne échéance (mineur n° 6)', () => {
+  const camille = destinataire({ confirme_le: iso('2027-06-01 10:00') });
+  const suit = [rattachement(MARSILLARGUES, '2027-06-01 10:00')];
+
+  it('un saut enregistré pour une autre échéance est tenu pour absent ; sautsPerimes dit lequel supprimer', () => {
+    // La veille passe de 18:00 à 19:00 après un saut « plafond_jour » enregistré à 18:00.
+    const etat = donnees({
+      modeles: modeles({ veille: { heure_envoi: '19:00:00' } }),
+      destinataires: [camille],
+      rattachements: suit,
+      envois: [envoi('veille', MARSILLARGUES, iso('2027-07-29 18:00'), { statut: 'saute', raison: 'plafond_jour' })],
+    });
+    const calcul = calculerEnvois(etat, ete('2027-07-29 19:05'));
+    expect(calcul.aEnvoyer.map((e) => decrire(ete('2027-07-29 19:05'), e))).toEqual(['2027-07-29 19:05 · veille Marsillargues · part']);
+    expect(calcul.aEnvoyer[0].prevuLe).toBe(iso('2027-07-29 19:00'));
+    expect(sautsPerimes(etat, [...calcul.aEnvoyer, ...calcul.sautes])).toEqual([
+      { etape: 'veille', calendrierId: MARSILLARGUES, prevuLe: iso('2027-07-29 19:00'), destinataireIds: [CAMILLE] },
+    ]);
+  });
+
+  it('date reportée pendant un calcul : le J-7 sauté pour l’ancienne date ne bloque pas le nouveau', () => {
+    // Marsillargues passe du 30/07 au 13/08 ; un saut du J-7 du 23/07 a été écrit après le passage du déclencheur.
+    const etat = donnees({
+      dates: [marsillargues({ date_soiree: '2027-08-13' })],
+      destinataires: [camille],
+      rattachements: suit,
+      envois: [envoi('j_moins_7', MARSILLARGUES, iso('2027-07-23 10:00'), { statut: 'saute', raison: 'deja_passe_a_l_inscription' })],
+    });
+    const calcul = calculerEnvois(etat, ete('2027-08-06 10:05'));
+    expect(calcul.aEnvoyer.map((e) => decrire(ete('2027-08-06 10:05'), e))).toEqual(['2027-08-06 10:05 · j_moins_7 Marsillargues · part']);
+    expect(sautsPerimes(etat, calcul.aEnvoyer)).toHaveLength(1);
+  });
+
+  it('un saut à la bonne échéance, ou un envoi parti pour l’ancienne, compte toujours', () => {
+    const aJour = donnees({
+      destinataires: [camille],
+      rattachements: suit,
+      envois: [envoi('veille', MARSILLARGUES, iso('2027-07-29 18:00'), { statut: 'saute', raison: 'plafond_jour' })],
+    });
+    expect(calculerEnvois(aJour, ete('2027-07-29 18:05'))).toEqual({ aEnvoyer: [], sautes: [] });
+    // Parti à 18:00, réglage passé à 19:00 ensuite : pas de second envoi.
+    const parti = donnees({
+      modeles: modeles({ veille: { heure_envoi: '19:00:00' } }),
+      destinataires: [camille],
+      rattachements: suit,
+      envois: [envoi('veille', MARSILLARGUES, iso('2027-07-29 18:00'))],
+    });
+    const calcul = calculerEnvois(parti, ete('2027-07-29 19:05'));
+    expect(calcul).toEqual({ aEnvoyer: [], sautes: [] });
+    expect(sautsPerimes(parti, calcul.aEnvoyer)).toEqual([]);
   });
 });

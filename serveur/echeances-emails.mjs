@@ -367,6 +367,19 @@ const aUnEnvoi = (/** @type {Envoi[]} */ envois, /** @type {Etape} */ etape, /**
   envois.some((envoi) => envoi.etape === etape && envoi.calendrier_id === calendrierId)
 );
 
+/**
+ * Un saut d'étape de date enregistré pour une autre échéance que celle d'aujourd'hui (date reportée pendant un calcul,
+ * réglage du modèle changé) : il ne vaut plus, l'étape est recalculée et le planificateur le supprime avant de
+ * réserver la nouvelle échéance (voir sautsPerimes). Un envoi parti, réservé ou en échec compte toujours.
+ * @param {Envoi} envoi @param {number} instant échéance recalculée
+ */
+const sautPerime = (envoi, instant) => envoi.statut === 'saute' && Date.parse(envoi.prevu_le) !== instant;
+
+/** L'étape de date a déjà une ligne qui vaut pour l'échéance `instant` (un saut périmé ne compte pas). */
+const aUnEnvoiValable = (/** @type {Envoi[]} */ envois, /** @type {Etape} */ etape, /** @type {string} */ calendrierId, /** @type {number} */ instant) => (
+  envois.some((envoi) => envoi.etape === etape && envoi.calendrier_id === calendrierId && !sautPerime(envoi, instant))
+);
+
 /** Un envoi compté de cette étape, toutes dates confondues, prévu il y a moins de 7 jours. */
 const envoiRecent = (/** @type {readonly Envoi[]} */ envois, /** @type {Etape} */ etape, /** @type {number} */ maintenant) => (
   envois.some((envoi) => envoi.etape === etape && compte(envoi) && maintenant - Date.parse(envoi.prevu_le) < DELAI_GLISSANT_MS)
@@ -563,7 +576,7 @@ function envoisDe(destinataire, ctx) {
     for (const etape of ETAPES_DE_DATE) {
       const modele = ctx.modeles.get(etape);
       const instant = modele ? ctx.echeance(modele, date) : null;
-      if (instant === null || aUnEnvoi(envois, etape, date.id)) continue;
+      if (instant === null || aUnEnvoiValable(envois, etape, date.id, instant)) continue;
       if (!rattachementRecent && ctx.maintenant - instant > HORIZON_ETAPE_MS) continue;
       const issue = issueEtape(etape, date, rattachement, instant, situation, ctx);
       /** @type {Rang} */
@@ -610,6 +623,41 @@ export function calculerEnvois(donnees, maintenant) {
     sautes.push(...resultat.sautes);
   }
   return { aEnvoyer, sautes };
+}
+
+/** Étapes de date, en ensemble de chaînes (lecture des lignes de la RPC). */
+const ETAPES_DATEES = new Set(/** @type {readonly string[]} */ (ETAPES_DE_DATE));
+
+/**
+ * Sauts périmés à supprimer avant de réserver `prevus` (aEnvoyer et sautes d'un même calculerEnvois) : pour une étape
+ * de date prévue, le saut de la même personne, même étape et même date, enregistré pour une autre échéance (date
+ * reportée pendant un calcul, réglage du modèle changé). calculerEnvois l'a déjà tenu pour absent ; sans suppression,
+ * l'unicité bloquerait la nouvelle ligne. Regroupés par étape, date et nouvelle échéance.
+ * @param {Pick<EmailsATraiter, 'envois'>} donnees
+ * @param {readonly EnvoiPrevu[]} prevus
+ * @returns {{ etape: Etape, calendrierId: string, prevuLe: string, destinataireIds: string[] }[]}
+ */
+export function sautsPerimes(donnees, prevus) {
+  /** @type {Map<string, number>} */
+  const sauts = new Map();
+  for (const envoi of donnees.envois) {
+    if (envoi.statut === 'saute' && envoi.calendrier_id !== null && ETAPES_DATEES.has(envoi.etape)) {
+      sauts.set(`${envoi.destinataire_id} ${envoi.etape} ${envoi.calendrier_id}`, Date.parse(envoi.prevu_le));
+    }
+  }
+  /** @type {Map<string, { etape: Etape, calendrierId: string, prevuLe: string, destinataireIds: string[] }>} */
+  const groupes = new Map();
+  for (const prevu of prevus) {
+    if (!ETAPES_DATEES.has(prevu.etape) || prevu.calendrierIds.length !== 1) continue;
+    const [calendrierId] = prevu.calendrierIds;
+    const ancien = sauts.get(`${prevu.destinataireId} ${prevu.etape} ${calendrierId}`);
+    if (ancien === undefined || ancien === Date.parse(prevu.prevuLe)) continue;
+    const cle = `${prevu.etape} ${calendrierId} ${prevu.prevuLe}`;
+    const groupe = groupes.get(cle) ?? { etape: prevu.etape, calendrierId, prevuLe: prevu.prevuLe, destinataireIds: [] };
+    groupe.destinataireIds.push(prevu.destinataireId);
+    groupes.set(cle, groupe);
+  }
+  return [...groupes.values()];
 }
 
 /**
