@@ -119,6 +119,9 @@ export function InscriptionActualites() {
             {/* Texte enregistré comme preuve du consentement (art. 7(1) RGPD) : la constante, jamais une copie. */}
             {CONSENTEMENT_ACTUALITES_TEXTE}
           </label>
+          <p id={`${id}-age`} className="pl-[26px] text-[12px] leading-relaxed text-encre-2">
+            Vous devez avoir au moins 15&nbsp;ans, ou l’accord d’un titulaire de l’autorité parentale.
+          </p>
           <div aria-hidden="true" className="absolute -left-[9999px] size-px overflow-hidden">
             <label htmlFor={`${id}-site`}>Site web, à laisser vide</label>
             <input ref={piege} id={`${id}-site`} name="site_web" type="text" tabIndex={-1} autoComplete="off" />
