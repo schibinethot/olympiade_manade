@@ -69,6 +69,7 @@ export default function Confidentialite() {
               valider votre adresse. Sans confirmation, l’adresse est supprimée 30 jours après l’envoi de cet email, ou,
               si cet email n’a pas pu partir, 30 jours après la demande ou après la dernière tentative d’envoi. Une même
               adresse inscrite comme spectatrice ou spectateur et abonnée aux actualités n’a qu’une seule fiche d’envoi.
+              Vous devez avoir au moins 15&nbsp;ans, ou l’accord d’un titulaire de l’autorité parentale.
             </li>
             <li>
               <strong>Emails liés à vos dates</strong>&nbsp;: la ou les dates que vous suivez (conservées tant que votre
@@ -244,6 +245,8 @@ export default function Confidentialite() {
               <strong>Cloudflare Turnstile</strong>&nbsp;: vérification anti-robot des formulaires de connexion, de contact
               et d’abonnement aux actualités. Pour le contact et l’abonnement aux actualités, le serveur lui transmet le
               résultat de la vérification et l’adresse de connexion, sans le prénom, l’email ni le contenu du message.
+              Le module de vérification est chargé depuis les serveurs de Cloudflare à l’ouverture d’un de ces
+              formulaires&nbsp;: votre navigateur lui transmet alors directement son adresse IP.
             </li>
             <li>
               <strong>Brevo</strong> (société établie en France)&nbsp;: envoi des emails du site (confirmation, bienvenue,
